@@ -7,6 +7,147 @@ global client
 
 def talker():
     print("start")
+    f = open("/home/jhk/data/mpc/4_tocabi_.txt", 'r')
+    f2 = open("/home/jhk/data/mpc/4_tocabi_.txt", 'r')
+    f1 = open("/home/jhk/data/mpc/3_tocabi_.txt", 'r')
+
+    lines = f.read().split(' ')
+    lines1 = f2.readlines()
+    lines2 = f1.readlines()
+    loop = 0
+    count_q = 0
+    count_qdot = 0
+    count_qddot = 0
+    count_qddot2 = 0
+    count_bound = 0
+    count_u = 0
+    count_u2 = 0
+    count_xstate = 0
+    count_q_temp = 0
+    count_qdot_temp = 0
+    count_xstate_temp = 0
+    bool_qdot = 0
+    bool_u = 0
+    count_qddot_temp = 0
+    count_u_temp = 0
+    count_bound2 = 0
+    array_qdot = [[] for i in xrange(int(len(lines1)/208) * 30)]
+    array_q = [[] for i in xrange(int(len(lines1)/208) * 30)]
+    array_xstate = [[] for i in xrange(int(len(lines1)/208) * 30)]
+    array_u = [[] for i in xrange(int(len(lines1)/208)*29)]
+    array_qddot = [[] for i in xrange(int(len(lines1)/208)*29)]
+
+    array_boundx = [[] for i in xrange(int(len(lines1)/208) * 30)]
+    array_boundy = [[] for i in xrange(int(len(lines1)/208) * 30)]
+
+    array_boundRF = [[] for i in xrange(int(len(lines1)/208) * 30)]
+    array_boundLF = [[] for i in xrange(int(len(lines1)/208) * 30)]
+
+    bool_q = 0
+
+    N = 30
+    T = 1
+    MAXITER = 300
+    dt_ = 1.2 / float(N)
+
+    for i in range(0,len(lines)):
+        if lines[i].strip('\n') == 'walking_tick':
+            loop = loop + 1
+
+        if bool_u == 1:
+            count_u_temp = count_u_temp + 1
+            if count_u2 == 0:
+                array_u[count_u].append(float(lines[i].strip('\n').strip(str(count_u)).strip('\t').strip(",").strip("ustate")))
+            else:
+                array_u[count_u].append(float(lines[i].strip('\n').strip(str(count_u)).strip('\t').strip(",")))
+            count_u2 = count_u2 + 1
+            if count_u_temp == 4:
+                    count_u = count_u + 1
+                    count_u2 = 0
+                    count_u_temp = 0
+                    bool_u = 0
+
+        if lines[i].strip('\n').strip('\t') == "u" or bool_qdot == 1:
+            if count_qddot2 == 29:
+                count_qddot2 = 0
+
+            bool_qdot = 1
+            count_qddot_temp = count_qddot_temp + 1
+            if count_qddot_temp > 1:
+                array_qddot[count_qddot].append(float(lines[i].strip('\n').strip(str(count_qddot2)).strip('\t').strip(",")))
+            
+            if count_qddot_temp == 19:
+                bool_qdot = 0
+                count_qddot = count_qddot + 1
+                count_qddot2 = count_qddot2 + 1
+                count_qddot_temp = 0
+                bool_u = 1
+
+        if(i >= 6):
+            if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] >= 0 and divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] < 19:
+                if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] == 0:
+                    array_q[count_q].append(float(lines[i].strip('\n').strip(str(count_q_temp)).strip('\t').strip(",")))
+                else:
+                    array_q[count_q].append(float(lines[i].strip('\n').strip('\t').strip(",")))
+                if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] == 18:
+                    count_q = count_q + 1
+                    count_q_temp = count_q_temp + 1
+                    if count_q_temp == 30:
+                        count_q_temp = 0
+
+            if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] > 19 and divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] < 38:
+                if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] == 20:
+                    array_qdot[count_qdot].append(float(lines[i].strip('\n').strip(str(count_qdot_temp)).strip('\t').strip(",")))
+                else:
+                    array_qdot[count_qdot].append(float(lines[i].strip('\n').strip('\t').strip(",")))
+                if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] == 37:
+                    count_qdot = count_qdot + 1
+                    count_qdot_temp = count_qdot_temp + 1
+                    if count_qdot_temp == 30:
+                        count_qdot_temp = 0
+
+            if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] > 38 and divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] < 47:
+                if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] == 39:
+                    array_xstate[count_xstate].append(float(lines[i].strip('\n').strip(str(count_xstate_temp)).strip('\t').strip(",")))
+                else:
+                    array_xstate[count_xstate].append(float(lines[i].strip('\n').strip('\t').strip(",")))
+                if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] == 46:
+                    count_xstate = count_xstate + 1
+                    count_xstate_temp = count_xstate_temp + 1
+                    if count_xstate_temp == 30:
+                        count_xstate_temp = 0
+    
+    lines2_array = []
+    for i in range(0, len(lines2)):
+        lines2_array.append(lines2[i].split()) 
+
+    for i in range(0, len(lines2_array)):
+        for j in range(0, len(lines2_array[i])):
+            if divmod(int(j), int(len(lines2_array[i])))[1] == 3:
+                array_boundx[i].append(float(lines2_array[i][j].strip('ub')))
+            if divmod(int(j), int(len(lines2_array[i])))[1] == 4:
+                array_boundx[i].append(float(lines2_array[i][j]))
+            if divmod(int(j), int(len(lines2_array[i])))[1] == 6:
+                array_boundy[i].append(float(lines2_array[i][j].strip('ub')))
+            if divmod(int(j), int(len(lines2_array[i])))[1] == 7:
+                array_boundy[i].append(float(lines2_array[i][j]))
+            if divmod(int(j), int(len(lines2_array[i])))[1] == 8:
+                array_boundRF[i].append(float(lines2_array[i][j]))
+            if divmod(int(j), int(len(lines2_array[i])))[1] == 9:
+                array_boundRF[i].append(float(lines2_array[i][j]))
+            if divmod(int(j), int(len(lines2_array[i])))[1] == 10:
+                array_boundRF[i].append(float(lines2_array[i][j]))
+            if divmod(int(j), int(len(lines2_array[i])))[1] == 11:
+                array_boundLF[i].append(float(lines2_array[i][j]))
+            if divmod(int(j), int(len(lines2_array[i])))[1] == 12:
+                array_boundLF[i].append(float(lines2_array[i][j]))
+            if divmod(int(j), int(len(lines2_array[i])))[1] == 13:
+                array_boundLF[i].append(float(lines2_array[i][j]))
+
+    f.close()
+    f1.close()
+    f2.close()
+
     global model, foot_distance, data, LFframe_id, RFframe_id, PELVjoint_id, LHjoint_id, RHjoint_id, LFjoint_id, q_init, RFjoint_id, LFcframe_id, RFcframe_id, q, qdot, qddot, LF_tran, RF_tran, PELV_tran, LF_rot, RF_rot, PELV_rot, qdot_z, qddot_z, HRR_rot_init, HLR_rot_init, HRR_tran_init, HLR_tran_init, LF_rot_init, RF_rot_init, LF_tran_init, RF_tran_init, PELV_tran_init, PELV_rot_init, CPELV_tran_init, q_command, qdot_command, qddot_command, robotIginit, q_c
     model = pinocchio.buildModelFromUrdf("/home/jhk/catkin_ws/src/tocabi_cc/robots/dyros_tocabi_with_redhands.urdf",pinocchio.JointModelFreeFlyer())  
     
@@ -63,10 +204,7 @@ def talker():
     weight_quad_rf = np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
     weight_quad_lf = np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
     
-    N = 30
-    T = 1
-    MAXITER = 300
-    dt_ = 1.2 / float(N)
+
 
     lb_ = np.ones([2, N])
     ub_ = np.ones([2, N])
@@ -121,7 +259,7 @@ def talker():
     LF_tran.translation[0] = 0.06479871
     LF_tran.translation[1] = 0.1025
     LF_tran.translation[2] = 0.14151976
-    print(RF_tran)
+
     for i in range(0,N):
         state_vector[i] = crocoddyl.StateKinodynamic(model)
         actuation_vector[i] = crocoddyl.ActuationModelKinoBase(state_vector[i])
@@ -182,37 +320,30 @@ def talker():
     print(ddp.us[-1])
     print("finish")
 
+    walking_tick = 0
     while client.is_connected:
         T = 1
-
-        for i in range(0,N-5):
-            state_bounds[i].lb[0] = 0.0
-            state_bounds[i].ub[0] = 0.2
-
-        for i in range(N-5,N):
-            state_bounds[i].lb[0] = 0.15
-            state_bounds[i].ub[0] = 0.4
-
-        for i in range(0,N-4):
-            state_bounds[i].lb[1] = -0.2
-            state_bounds[i].ub[1] = 0.2
-
-        for i in range(N-4,N):
-            state_bounds[i].lb[1] = 0.05
-            state_bounds[i].ub[1] = 0.2
-
         for i in range(0,N):
+            state_bounds[i].lb[0] = array_boundx[30*(walking_tick)+i][0]
+            state_bounds[i].ub[0] = array_boundx[30*(walking_tick)+i][1]
+            state_bounds[i].lb[1] = array_boundy[30*(walking_tick)+i][0]
+            state_bounds[i].ub[1] = array_boundy[30*(walking_tick)+i][1]
             state_activations[i].bounds = state_bounds[i]
-            rf_foot_pos_vector[i].translation = RF_tran.translation
-            lf_foot_pos_vector[i].translation = LF_tran.translation
+            rf_foot_pos_vector[i].translation[0] = array_boundRF[30*(walking_tick)+i][0]
+            rf_foot_pos_vector[i].translation[1] = array_boundRF[30*(walking_tick)+i][1]
+            rf_foot_pos_vector[i].translation[2] = array_boundRF[30*(walking_tick)+i][2]
+            lf_foot_pos_vector[i].translation[0] = array_boundLF[30*(walking_tick)+i][0]
+            lf_foot_pos_vector[i].translation[1] = array_boundLF[30*(walking_tick)+i][1]
+            lf_foot_pos_vector[i].translation[2] = array_boundLF[30*(walking_tick)+i][2]
             residual_FrameRF[i].pref = rf_foot_pos_vector[i]
             residual_FrameLF[i].pref = lf_foot_pos_vector[i]
             foot_trackR[i].residual_ = residual_FrameRF[i]
             foot_trackL[i].residual_ = residual_FrameLF[i]
 
-
-        print("Aa")
-        ddp.solve(xs,us,300)
+        for i in range(0,T):
+            ddp.solve(xs,us,300)
+        walking_tick = walking_tick + 1
+        print(walking_tick)
 
     client.terminate()
     
