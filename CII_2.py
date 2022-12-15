@@ -2,6 +2,10 @@ import roslibpy
 import crocoddyl
 import pinocchio
 import numpy as np
+import time
+#from regression import *
+from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
 
 global client
 
@@ -10,6 +14,9 @@ def talker():
     f = open("/home/jhk/data/mpc/4_tocabi_.txt", 'r')
     f2 = open("/home/jhk/data/mpc/4_tocabi_.txt", 'r')
     f1 = open("/home/jhk/data/mpc/3_tocabi_.txt", 'r')
+
+    f3 = open("/home/jhk/data/mpc/5_tocabi_py.txt", 'w')
+    f4 = open("/home/jhk/data/mpc/6_tocabi_py.txt", 'w')
 
     lines = f.read().split(' ')
     lines1 = f2.readlines()
@@ -143,7 +150,6 @@ def talker():
                 array_boundLF[i].append(float(lines2_array[i][j]))
             if divmod(int(j), int(len(lines2_array[i])))[1] == 13:
                 array_boundLF[i].append(float(lines2_array[i][j]))
-
     f.close()
     f1.close()
     f2.close()
@@ -340,12 +346,129 @@ def talker():
             foot_trackR[i].residual_ = residual_FrameRF[i]
             foot_trackL[i].residual_ = residual_FrameLF[i]
 
+        if walking_tick >= 2:
+            for j in range(1, N):
+                for k in range(0, 19):
+                    xs[j][k] = array_q[30*(walking_tick) + j][k]
+                
+                for k in range(19, 37):
+                    xs[j][k] = array_qdot[30*(walking_tick) + j][k-19]
+                
+                for k in range(37, 45):
+                    xs[j][k] = array_xstate[30*(walking_tick) + j][k-37]
+
+                for k in range(0, 18):
+                    us[j][k] = array_qddot[29*(walking_tick) + j][k]
+
+                for k in range(18, 22):
+                    us[j][k] = array_u[29*(walking_tick) + j][k-18]
+
+        duration = []
         for i in range(0,T):
-            ddp.solve(xs,us,300)
+            c_start = time.time()
+            css = ddp.solve(xs,us,300)
+            c_end = time.time()
+            duration.append(1e3 * (c_end - c_start))
+            avrg_duration = duration[i]
+            min_duration = min(duration)
+            max_duration = max(duration)
+            print(i)
+            print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
+
+        f4.write("walking_tick ")
+        f4.write(str(walking_tick))
+        f4.write(" css ")
+        f4.write(str(ddp.iter))
+        f4.write(" ")
+        f4.write(str(css))
+        f4.write(" ")
+        f4.write(str(0))
+        f4.write("\n")
+        
+        for i in range(0, N-1):
+            f4.write("q ")
+            f4.write(str(i))
+            f4.write("\n")
+            for j in range(0,19):
+                f4.write(str(ddp.xs[i][j]))
+                f4.write(", ")
+            f4.write("qdot ")
+            f4.write(str(i))
+            f4.write("\n")            
+            for j in range(19,37):
+                f4.write(str(ddp.xs[i][j]))
+                f4.write(", ")
+            f4.write("x_state ")
+            f4.write(str(i))
+            f4.write("\n")  
+            for j in range(37,45):
+                f4.write(str(ddp.xs[i][j]))
+                f4.write(", ")
+            f4.write("\n")
+            f4.write("u ")
+            f4.write(str(i))
+            f4.write("\n")  
+            for j in range(0,18):
+                f4.write(str(ddp.us[i][j]))
+                f4.write(", ")
+            f4.write("ustate ")
+#            f4.write(str(i))
+            f4.write("\n")  
+            for j in range(18,22):
+                f4.write(str(ddp.us[i][j]))
+                f4.write(", ")
+            f4.write("\n")
+        f4.write("q ")
+        f4.write(str(N-1))
+        f4.write("\n")
+        for j in range(0,19):
+            f4.write(str(ddp.xs[N-1][j]))
+            f4.write(", ")
+        f4.write("qdot ")
+        f4.write(str(N-1))
+        f4.write("\n")            
+        for j in range(19,37):
+            f4.write(str(ddp.xs[N-1][j]))
+            f4.write(", ")
+        f4.write("x_state ")
+        f4.write(str(N-1))
+        f4.write("\n")  
+
+        for i in range(0, N):
+            f3.write(str(walking_tick))
+            f3.write(" ")
+            f3.write(str(i))
+            f3.write(" ")
+            f3.write("lb")
+            f3.write(str(array_boundx[30*(walking_tick)+i][0]))
+            f3.write("ub ")
+            f3.write(str(array_boundx[30*(walking_tick)+i][1]))
+            f3.write(" ")
+            f3.write("lb ")
+            f3.write(str(array_boundy[30*(walking_tick)+i][0]))
+            f3.write("ub ")
+            f3.write(str(array_boundy[30*(walking_tick)+i][1]))
+            f3.write(" ")
+            f3.write(str(array_boundRF[30*(walking_tick)+i][0]))
+            f3.write(" ")
+            f3.write(str(array_boundRF[30*(walking_tick)+i][1]))
+            f3.write(" ")
+            f3.write(str(array_boundRF[30*(walking_tick)+i][2]))
+            f3.write(" ")
+            f3.write(str(array_boundLF[30*(walking_tick)+i][0]))
+            f3.write(" ")
+            f3.write(str(array_boundLF[30*(walking_tick)+i][1]))
+            f3.write(" ")
+            f3.write(str(array_boundLF[30*(walking_tick)+i][2]))
+            f3.write("\n")
         walking_tick = walking_tick + 1
         print(walking_tick)
 
+      
+    f3.close()
+    f4.close()
     client.terminate()
+
     
 
 if __name__=='__main__':
