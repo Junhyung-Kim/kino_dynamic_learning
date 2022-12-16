@@ -3,6 +3,8 @@ import crocoddyl
 import pinocchio
 import numpy as np
 import time
+import example_robot_data
+from copy import copy
 #from regression import *
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
@@ -173,10 +175,10 @@ def talker():
     RFframe_id = model.getFrameId("R_Foot_Link")
     data = model.createData()
 
-    #pinocchio.forwardKinematics(model, data, q, qdot)
-    #pinocchio.updateFramePlacements(model,data)
-    #pinocchio.centerOfMass(model, data, q, False)
-    #pinocchio.computeCentroidalMomentum(model,data,q,qdot)
+    pinocchio.forwardKinematics(model, data, q, qdot)
+    pinocchio.updateFramePlacements(model,data)
+    pinocchio.centerOfMass(model, data, q, False)
+    pinocchio.computeCentroidalMomentum(model,data,q,qdot)
     LF_tran = data.oMf[LFframe_id]
     RF_tran = data.oMf[RFframe_id]
 
@@ -209,8 +211,6 @@ def talker():
     weight_quad_com = np.array([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
     weight_quad_rf = np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
     weight_quad_lf = np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
-    
-
 
     lb_ = np.ones([2, N])
     ub_ = np.ones([2, N])
@@ -258,13 +258,6 @@ def talker():
 
     lb = []
     ub = []
-       
-    RF_tran.translation[0] = 0.06479871
-    RF_tran.translation[1] = -0.1025
-    RF_tran.translation[2] = 0.14151976
-    LF_tran.translation[0] = 0.06479871
-    LF_tran.translation[1] = 0.1025
-    LF_tran.translation[2] = 0.14151976
 
     for i in range(0,N):
         state_vector[i] = crocoddyl.StateKinodynamic(model)
@@ -274,28 +267,30 @@ def talker():
         stateBoundCost_vector[i] = crocoddyl.CostModelResidual(state_vector[i], state_activations[i], crocoddyl.ResidualFlyState(state_vector[i], actuation_vector[i].nu + 4))
         camBoundCost_vector[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_cam), crocoddyl.ResidualModelCentroidalAngularMomentum(state_vector[i], actuation_vector[i].nu + 4))
         comBoundCost_vector[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_com), crocoddyl.ResidualModelCoMKinoPosition(state_vector[i], actuation_vector[i].nu + 4))
-        rf_foot_pos_vector[i] = RF_tran
-        lf_foot_pos_vector[i] = LF_tran
+        rf_foot_pos_vector[i] = pinocchio.SE3.Identity()
+        rf_foot_pos_vector[i].translation = copy(RF_tran.translation)
+        lf_foot_pos_vector[i] = pinocchio.SE3.Identity()
+        lf_foot_pos_vector[i].translation = copy(LF_tran.translation)
         residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
         residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
         foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
         foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
         runningCostModel_vector[i] = crocoddyl.CostModelSum(state_vector[i], actuation_vector[i].nu+4)
         runningCostModel_vector[i].addCost("stateReg", stateBoundCost_vector[i], weight_quad_zmp[0])
-        runningCostModel_vector[i].addCost("camReg", camBoundCost_vector[i], 1e0)
-        runningCostModel_vector[i].addCost("comReg", comBoundCost_vector[i], 1e0)
-        runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1e0)
-        runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1e0)
+        runningCostModel_vector[i].addCost("camReg", camBoundCost_vector[i], 1.0)
+        runningCostModel_vector[i].addCost("comReg", comBoundCost_vector[i], 1.0)
+        runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
+        runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)
         runningDAM_vector[i] = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[i], actuation_vector[i], runningCostModel_vector[i])
         runningModelWithRK4_vector[i] = crocoddyl.IntegratedActionModelEuler(runningDAM_vector[i], dt_)
 
     
     terminalCostModel = crocoddyl.CostModelSum(state_vector[N - 1], actuation_vector[N - 1].nu + 4)
     terminalCostModel.addCost("stateReg", stateBoundCost_vector[N - 1], weight_quad_zmp[0])
-    terminalCostModel.addCost("camReg", camBoundCost_vector[N - 1], 1e0)
-    terminalCostModel.addCost("comReg", comBoundCost_vector[N - 1], 1e0)
-    terminalCostModel.addCost("footReg1", foot_trackR[N - 1], 1e0)
-    terminalCostModel.addCost("footReg2", foot_trackL[N - 1], 1e0)
+    terminalCostModel.addCost("camReg", camBoundCost_vector[N - 1], 1.0)
+    terminalCostModel.addCost("comReg", comBoundCost_vector[N - 1], 1.0)
+    terminalCostModel.addCost("footReg1", foot_trackR[N - 1], 1.0)
+    terminalCostModel.addCost("footReg2", foot_trackL[N - 1], 1.0)
     terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N - 1], actuation_vector[N - 1], terminalCostModel)
 
     x0 = np.array([0.] * (state.nx + 8))
@@ -316,25 +311,18 @@ def talker():
     problemWithRK4.nthreads = 1
     ddp = crocoddyl.SolverBoxFDDP(problemWithRK4)
     ddp.solve(xs,us,300)
-    
-    print("lb")
-    print(lb_)
-    print(ub_)
-    print("Xs")
-    print(ddp.xs[N-6])
-    print("Xu")
-    print(ddp.us[-1])
-    print("finish")
 
     walking_tick = 0
     while client.is_connected:
-        T = 1
+        T = 30
+        problemWithRK4.x0 = ddp.xs[1]
         for i in range(0,N):
             state_bounds[i].lb[0] = array_boundx[30*(walking_tick)+i][0]
             state_bounds[i].ub[0] = array_boundx[30*(walking_tick)+i][1]
             state_bounds[i].lb[1] = array_boundy[30*(walking_tick)+i][0]
             state_bounds[i].ub[1] = array_boundy[30*(walking_tick)+i][1]
             state_activations[i].bounds = state_bounds[i]
+            stateBoundCost_vector[i].activation_ = state_activations[i]
             rf_foot_pos_vector[i].translation[0] = array_boundRF[30*(walking_tick)+i][0]
             rf_foot_pos_vector[i].translation[1] = array_boundRF[30*(walking_tick)+i][1]
             rf_foot_pos_vector[i].translation[2] = array_boundRF[30*(walking_tick)+i][2]
@@ -345,28 +333,38 @@ def talker():
             residual_FrameLF[i].pref = lf_foot_pos_vector[i]
             foot_trackR[i].residual_ = residual_FrameRF[i]
             foot_trackL[i].residual_ = residual_FrameLF[i]
+            runningCostModel_vector[i].removeCost("footReg1")
+            runningCostModel_vector[i].removeCost("footReg2")
+            runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
+            runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)
+            print("qq")
+            print(lf_foot_pos_vector[i].translation[2])
+            print(array_boundLF[30*(walking_tick)+i][2])
+            if i > 1:
+                print(lf_foot_pos_vector[i-1].translation[2])
 
+        '''
         if walking_tick >= 2:
             for j in range(1, N):
                 for k in range(0, 19):
-                    xs[j][k] = array_q[30*(walking_tick) + j][k]
+                    ddp.xs[j][k] = array_q[30*(walking_tick) + j][k]
                 
                 for k in range(19, 37):
-                    xs[j][k] = array_qdot[30*(walking_tick) + j][k-19]
+                    ddp.xs[j][k] = array_qdot[30*(walking_tick) + j][k-19]
                 
                 for k in range(37, 45):
-                    xs[j][k] = array_xstate[30*(walking_tick) + j][k-37]
+                    ddp.xs[j][k] = array_xstate[30*(walking_tick) + j][k-37]
 
                 for k in range(0, 18):
-                    us[j][k] = array_qddot[29*(walking_tick) + j][k]
+                    ddp.us[j][k] = array_qddot[29*(walking_tick) + j][k]
 
                 for k in range(18, 22):
-                    us[j][k] = array_u[29*(walking_tick) + j][k-18]
-
+                    ddp.us[j][k] = array_u[29*(walking_tick) + j][k-18]
+        '''
         duration = []
         for i in range(0,T):
             c_start = time.time()
-            css = ddp.solve(xs,us,300)
+            css = ddp.solve(ddp.xs,ddp.us,300)
             c_end = time.time()
             duration.append(1e3 * (c_end - c_start))
             avrg_duration = duration[i]
@@ -374,7 +372,15 @@ def talker():
             max_duration = max(duration)
             print(i)
             print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
-
+            print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, walking_tick))
+        for i in range(0,N):
+            print(runningCostModel_vector[i].costs['comReg'].cost.residual)
+            print(runningCostModel_vector[i].costs['camReg'].cost.residual)
+            print(runningCostModel_vector[i].costs['stateReg'].cost.residual)
+            print(runningCostModel_vector[i].costs['footReg1'].cost.residual)
+            print(runningCostModel_vector[i].costs['footReg2'].cost.residual)
+        print(ddp.xs[N-1])
+        
         f4.write("walking_tick ")
         f4.write(str(walking_tick))
         f4.write(" css ")
@@ -433,6 +439,10 @@ def talker():
         f4.write("x_state ")
         f4.write(str(N-1))
         f4.write("\n")  
+        for j in range(37,45):
+            f4.write(str(ddp.xs[N-1][j]))
+            f4.write(", ")
+        f4.write("\n")
 
         for i in range(0, N):
             f3.write(str(walking_tick))
@@ -463,8 +473,9 @@ def talker():
             f3.write("\n")
         walking_tick = walking_tick + 1
         print(walking_tick)
+        if walking_tick == 52:
+            break
 
-      
     f3.close()
     f4.close()
     client.terminate()
@@ -475,4 +486,3 @@ if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)
     client.run()
     talker()
-
