@@ -222,20 +222,10 @@ def talker():
     qdot = pinocchio.utils.zero(model.nv)
     qdot_init = pinocchio.utils.zero(model.nv)
     qddot = pinocchio.utils.zero(model.nv)
-    #q_init = [0, 0, 0.80783, 0, 0, 0, 1, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0, -0.55, 1.26, -0.71, 0]
-    q_init = [1.00000000e-01,  0.00000000e+00,  8.07830000e-01,  0.00000000e+00,0.00000000e+00 , 0.00000000e+00 , 1.00000000e+00, -4.58270337e-17,5.49813461e-19, -3.36530703e-01,  1.17717832e+00, -8.40647617e-01,1.23071442e-16 , 4.25905878e-16,  8.33360457e-17, -3.36530703e-01, 1.17717832e+00 ,-8.40647617e-01,  2.46142884e-16]
+    q_init = [0, 0, 0.80783, 0, 0, 0, 1, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0, -0.55, 1.26, -0.71, 0]
+    
     for i in range(0, len(q)):
         q[i] = q_init[i]
-
-    state = crocoddyl.StateKinodynamic(model)
-    actuation = crocoddyl.ActuationModelKinoBase(state)
-    x0 = np.array([0.] * (state.nx + 8))
-    u0 = np.array([0.] * (22))
-    for i in range(0,len(q_init)):
-        x0[i] = q_init[i]
-
-    x0[37] = 1.71151324e-01 #1.12959174e-01
-    x0[39] = 1.71151324e-01# 1.12959174e-01
     
     RFjoint_id = model.getJointId("R_AnkleRoll_Joint")
     LFjoint_id = model.getJointId("L_AnkleRoll_Joint")
@@ -250,6 +240,8 @@ def talker():
     LF_tran = data.oMf[LFframe_id]
     RF_tran = data.oMf[RFframe_id]
 
+    state = crocoddyl.StateKinodynamic(model)
+    actuation = crocoddyl.ActuationModelKinoBase(state)
     traj_= [0, 0, 0.80783, 0, 0, 0, 1, 0.0, 0.0, -0.55, 1.26, -0.71, 0.0, 0.0, 0.0, -0.55, 1.26, -0.71, 0.0, 0.08, 0.0, 0.0, 0.0]
     u_traj_ = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
     
@@ -380,6 +372,14 @@ def talker():
     terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
     terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
 
+    x0 = np.array([0.] * (state.nx + 8))
+    u0 = np.array([0.] * (22))
+    for i in range(0,len(q_init)):
+        x0[i] = q_init[i]
+
+    x0[37] = 1.12959174e-01
+    x0[39] = 1.12959174e-01
+
     for i in range(0,N):
         xs[i] = copy(x0)
     for i in range(0,N-1):
@@ -407,9 +407,8 @@ def talker():
 
     walking_tick = 0
     while client.is_connected:
-        T = 2
-        #if walking_tick >= 1:
-        #problemWithRK4.x0 = copy(ddp.xs[1])
+        T = 10
+        problemWithRK4.x0 = copy(ddp.xs[1])
         for i in range(0,N-1):
             state_bounds[i].lb[0] = copy(array_boundx[30*(walking_tick)+i][0])
             state_bounds[i].ub[0] = copy(array_boundx[30*(walking_tick)+i][1])
@@ -434,7 +433,8 @@ def talker():
             runningCostModel_vector[i].removeCost("footReg1")
             runningCostModel_vector[i].removeCost("footReg2")
             runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
-            runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)   
+            runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)
+            print(lf_foot_pos_vector[i].translation[2])    
 
         state_bounds[N-1].lb[0] = copy(array_boundx[30*(walking_tick)+N-1][0])
         state_bounds[N-1].ub[0] = copy(array_boundx[30*(walking_tick)+N-1][1])
@@ -455,7 +455,7 @@ def talker():
         terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
         terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
 
-        
+        '''
         for j in range(0, N):
             for k in range(0, 19):
                 xs[j][k] = copy(array_q1[30*(walking_tick) + j][k])
@@ -468,19 +468,19 @@ def talker():
                 us[j][k] = copy(array_qddot1[29*(walking_tick) + j][k])
             for k in range(18, 22):
                 us[j][k] = copy(array_u1[29*(walking_tick) + j][k-18])
-        
+        '''
         
     #    duration = []
         booltemp = True
         booltemp1 = True
         iter_ = 0
         T = 1
-        for i in range(0,T):
-        #while booltemp == True:
-        #    booltemp1 = True
+        #for i in range(0,T):
+        while booltemp == True:
+            booltemp1 = True
             c_start = time.time()
-        #    css = ddp.solve(ddp.xs,ddp.us, 3000)
-            css = ddp.solve(xs,us, 10)
+            css = ddp.solve(ddp.xs,ddp.us, 3000)
+        #    css = ddp.solve(xs,us, 300)
 
             c_end = time.time()
             #duration.append(1e3 * (c_end - c_start))
@@ -493,7 +493,7 @@ def talker():
             print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
             print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, walking_tick))
              
-         
+            
             for i in range(0,N):
                 if i < N-1:
                     for j in range(0,3):
@@ -535,12 +535,10 @@ def talker():
                 if booltemp1 == True and avrg_duration <= 30:
                     booltemp = False
                     break
-            print("success")
-            print(walking_tick)
             
             iter_ = iter_ + 1
         booltemp = True  
-        '''   
+        
         for i in range(0,N-1):
             print(runningCostModel_vector[i].costs['comReg'].cost.residual)
             print(runningCostModel_vector[i].costs['camReg'].cost.residual)
@@ -553,7 +551,7 @@ def talker():
         print(terminalCostModel.costs['footReg1'].cost.residual)
         print(terminalCostModel.costs['footReg2'].cost.residual)
         print(ddp.xs[N-1])
-        '''
+        
         f4.write("walking_tick ")
         f4.write(str(walking_tick))
         f4.write(" css ")
@@ -645,7 +643,7 @@ def talker():
             f3.write(str(array_boundLF[30*(walking_tick)+i][2]))
             f3.write("\n")
         walking_tick = walking_tick + 1
-        if walking_tick == 3:
+        if walking_tick == 26:
             break
     f3.close()
     f4.close()
@@ -657,4 +655,3 @@ if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)
     client.run()
     talker()
-
