@@ -19,7 +19,308 @@ import numpy.matlib
 
 global client
 
+class Regressor():
+    def __init__(self, transform=None):
+        self.transform = transform
+        self.pca = None
+
+    def save_to_file(self,filename):
+        f = open(filename + '.pkl', 'wb')
+        pickle.dump(self.__dict__,f)
+        f.close()
+
+    def load_from_file(self,filename):
+        f = open(filename + '.pkl', 'rb')
+        self.__dict__ = pickle.load(f)
+class GPy_Regressor(Regressor):
+    def __init__(self, dim_input, transform = None):
+        self.transform = transform #whether the output should be transformed or not. Possible option: PCA, RBF, etc.
+        self.dim_input = dim_input
+
+    def fit(self,x,y, num_restarts = 10):
+        kernel = GPy.kern.RBF(input_dim=self.dim_input, variance=0.1,lengthscale=0.3, ARD=True) + GPy.kern.White(input_dim=self.dim_input)
+        self.gp = GPy.models.GPRegression(x, y, kernel)
+        self.gp.optimize_restarts(num_restarts=num_restarts)
+
+    def predict(self,x, is_transform = True):
+        y,cov = self.gp.predict(x)
+        if is_transform:
+            y_transform = self.transform.inverse_transform([y[None,:]])[0]
+            return y_transform, cov
+        else:
+            return y,cov
+
+def define_RBF(dof=39, nbStates=60, offset=200, width=60, T=4000, coeff = 250):
+    tList = np.arange(T)
+
+    Mu = np.linspace(tList[0]-offset, tList[-1]+offset, nbStates)
+    Sigma  = np.reshape(np.matlib.repmat(width, 1, nbStates),[1, 1, nbStates])
+    Sigma.shape
+    Phi = np.zeros((T, nbStates))
+    for i in range(nbStates):
+        Phi[:,i] = coeff*scipy.stats.norm(Mu[i], Sigma[0,0,i]).pdf(tList)
+    print Phi
+    return Phi
+
+def apply_RBF(trajs, Phi, rcond=0.0001):
+    w_trajs = []
+    for traj in trajs:
+        w,_,_,_ = np.linalg.lstsq(Phi, traj, rcond=0.0001)
+        w_trajs.append(w.flatten())
+    return np.array(w_trajs)
+    
+def inverse_transform(w_pca, pca, Phi, rbf_num):
+    w = pca.inverse_transform(w_pca)
+    w = w.reshape(rbf_num,-1)
+    traj = np.dot(Phi,w)
+    return traj
+
+def PCAlearning():
+    global xs_pca_test
+    global xs_pca
+    global us_pca
+    learn_type = 1
+    database = dict()
+    database['left'] = dict()
+    database['right'] = dict()
+
+    for key in database.keys():
+        database[key]['foot_poses'] = []
+        database[key]['trajs'] = []
+        database[key]['acc_trajs'] = []
+        database[key]['x_inputs'] = []
+        database[key]['vel_trajs'] = [] 
+        database[key]['x_state'] = []        
+        database[key]['u_trajs'] = []
+        database[key]['data_phases_set'] = []
+        database[key]['costs'] = []
+        database[key]['iters'] = []
+
+    with open('/home/jhk/data/mpc/filename1.pkl', 'rb') as f:
+        database = pickle.load(f)
+    f.close()
+
+    trajs = dict()
+    vel_trajs = dict()
+    x_inputs = dict()
+    acc_trajs = dict()
+    foot_poses = dict()
+    u_trajs = dict()
+    x_trajs = dict()
+
+    new_trajs = dict()
+    new_vel_trajs = dict()
+    new_u_trajs = dict()
+    
+    w_trajs = dict()
+    w_vel_trajs = dict()
+    w_x_trajs = dict()
+    w_acc_trajs = dict()
+    w_u_trajs = dict()
+
+    w_trajs_pca = dict()
+    pca = dict()
+
+    w_x_trajs_pca = dict()
+    pca_x = dict()
+
+    w_vel_trajs_pca = dict()
+    pca_vel = dict()
+
+    w_acc_trajs_pca = dict()
+    pca_acc = dict()
+
+    w_u_trajs_pca = dict()
+    pca_u = dict()
+    
+    #define dataset
+    num_desired = 81
+    keys = ['left','right']
+    num_data = dict()
+
+    for key in keys:
+        x_inputs[key] = np.array(database[key]['x_inputs'])[:num_desired]
+        trajs[key] = np.array(database[key]['trajs'])[:num_desired]
+        vel_trajs[key] = np.array(database[key]['vel_trajs'])[:num_desired]
+        x_trajs[key] = np.array(database[key]['x_state'])[:num_desired]
+        foot_poses[key] = database[key]['foot_poses'][:num_desired]
+        num_data[key] = len(foot_poses[key])
+
+    #revise
+    for key in keys:
+        raw_u_trajs = database[key]['acc_trajs']
+        raw_acc_trajs = database[key]['u_trajs']
+        for i in range(len(raw_acc_trajs)):
+            newrow1 = np.zeros(18)
+            raw_acc_trajs[i] = numpy.vstack([raw_acc_trajs[i], newrow1])
+        for i in range(len(raw_u_trajs)):
+            newrow = np.zeros(4)
+            raw_u_trajs[i] = numpy.vstack([raw_u_trajs[i],newrow])
+        u_trajs[key] = np.array(raw_u_trajs)
+        acc_trajs[key] = np.array(raw_acc_trajs)
+
+    timestep = 30
+    rbf_num = 60
+    Phi = define_RBF(dof=19, nbStates = rbf_num, offset = 200, width = 60, T = timestep)
+    #Phi_input = define_RBF(dof=19, nbStates = rbf_num, offset = 200, width = 60, T = timestep -1)
+    plt.plot(Phi)
+    plt.savefig('/home/jhk/data/mpc/filename.png')
+
+    for key in keys:
+        w_trajs[key] = apply_RBF(trajs[key], Phi)
+        w_vel_trajs[key] = apply_RBF(vel_trajs[key], Phi)
+        w_x_trajs[key] = apply_RBF(x_trajs[key], Phi)
+        w_u_trajs[key] = apply_RBF(u_trajs[key], Phi)    
+        w_acc_trajs[key] = apply_RBF(acc_trajs[key], Phi)
+
+    for key in keys:
+        pca[key] = PCA(n_components=60)
+        w_trajs_pca[key] = pca[key].fit_transform(w_trajs[key])
+        pca_vel[key] = PCA(n_components=60)
+        w_vel_trajs_pca[key] = pca_vel[key].fit_transform(w_vel_trajs[key])
+
+        pca_x[key] = PCA(n_components=60)
+        w_x_trajs_pca[key] = pca_x[key].fit_transform(w_x_trajs[key])
+
+        pca_acc[key] = PCA(n_components=60)
+        w_acc_trajs_pca[key] = pca_acc[key].fit_transform(w_acc_trajs[key])
+
+        pca_u[key] = PCA(n_components=60)
+        w_u_trajs_pca[key] = pca_u[key].fit_transform(w_u_trajs[key])
+
+    key = 'left'
+    
+    for i in range(10):
+        w_pca = w_trajs_pca[key][i]
+        w = pca[key].inverse_transform(w_pca)
+        w = w.reshape(60,-1)
+        traj = np.dot(Phi,w)
+
+    x_inputs_train = dict()
+    x_inputs_test = dict()
+    y_train = dict()
+    y_test = dict()
+
+    y_vel_train = dict()
+    y_vel_test = dict()
+
+    y_acc_train = dict()
+    y_acc_test = dict()
+
+    y_u_train = dict()
+    y_u_test = dict()
+
+    y_x_train = dict()
+    y_x_test = dict()
+
+    gpr = dict()
+    gpr_vel = dict()
+    gpr_u = dict()
+    gpr_acc = dict()
+    gpr_x = dict()
+
+    for key in keys:
+        x_inputs_train[key], x_inputs_test[key], y_train[key], y_test[key] = train_test_split(x_inputs[key],w_trajs_pca[key], test_size = 0.1666, random_state=1)
+        _,_, y_vel_train[key], y_vel_test[key] = train_test_split(x_inputs[key],w_vel_trajs_pca[key], test_size = 0.1666, random_state=1)
+        _,_, y_u_train[key], y_u_test[key] = train_test_split(x_inputs[key],w_u_trajs_pca[key], test_size = 0.1666, random_state=1)
+        _,_, y_acc_train[key], y_acc_test[key] = train_test_split(x_inputs[key],w_acc_trajs_pca[key], test_size = 0.1666, random_state=1)
+        _,_, y_x_train[key], y_x_test[key] = train_test_split(x_inputs[key],w_x_trajs_pca[key], test_size = 0.1666, random_state=1)
+
+    if learn_type == 0:
+        print("SAVE REGRESSION PROBLEM")
+        for key in keys:
+            gpr[key] = GPy_Regressor(dim_input=x_inputs_train[key].shape[1], transform = pca[key])
+            #gpr[key].pca = pca[key]
+            gpr[key].fit(x_inputs_train[key], y_train[key],num_restarts=3)
+            gpr_vel[key] = GPy_Regressor(dim_input=x_inputs_train[key].shape[1], transform = pca_vel[key])
+            #gpr_vel[key].pca = pca_vel[key]
+            gpr_vel[key].fit(x_inputs_train[key], y_vel_train[key],num_restarts=3)
+            gpr_acc[key] = GPy_Regressor(dim_input=x_inputs_train[key].shape[1], transform = pca_acc[key])
+            #gpr_acc[key].pca = pca_vel[key]
+            gpr_acc[key].fit(x_inputs_train[key], y_acc_train[key],num_restarts=3)
+            gpr_x[key] = GPy_Regressor(dim_input=x_inputs_train[key].shape[1], transform = pca_x[key])
+            #gpr_x[key].pca = pca_vel[key]
+            gpr_x[key].fit(x_inputs_train[key], y_x_train[key],num_restarts=3)
+            gpr_u[key] = GPy_Regressor(dim_input=x_inputs_train[key].shape[1], transform = pca_u[key])
+            #gpr_u[key].pca = pca_vel[key]
+            gpr_u[key].fit(x_inputs_train[key], y_u_train[key],num_restarts=3)
+
+        clear_output()
+        functions = dict()
+        functions['gpr'] = gpr
+        functions['gpr_x'] = gpr_x
+        functions['gpr_vel'] = gpr_vel
+        functions['gpr_acc'] = gpr_acc
+        functions['gpr_u'] = gpr_u
+        f = open('/home/jhk/data/mpc/functions.pkl', 'wb')
+        pickle.dump(functions, f)
+        f.close()
+    else:
+        print("LOAD REGRESSION PROBLEM")
+        f = open('/home/jhk/data/mpc/functions.pkl', 'rb')
+        functions = pickle.load(f)
+        f.close()
+        gpr = functions['gpr']
+        gpr_vel = functions['gpr_vel']
+        gpr_u = functions['gpr_u']
+        gpr_x = functions['gpr_x']
+        gpr_acc = functions['gpr_acc']
+
+    indexes = [3]
+    for i in (indexes): 
+        if i%2 == 0:
+            key = 'left'
+        else:
+            key = 'right'
+            JJ = np.random.randint(x_inputs_test[key].shape[0])
+            x = x_inputs_test[key][JJ][None,:]
+            #xy = 
+            #predict the trajectory
+            w_traj,cov_traj = gpr[key].predict(x)
+            #w = gpr[key].pca.inverse_transform(w_pca)
+            w_traj = w_traj.reshape(rbf_num,-1)
+            traj = np.dot(Phi,w_traj)
+                #predict the velocity trajectory
+            w_vel,cov_vel = gpr_vel[key].predict(x)
+            #w = gpr_vel[key].pca.inverse_transform(w_pca)
+            w_vel = w_vel.reshape(rbf_num,-1)
+            vel_traj = np.dot(Phi,w_vel)
+
+                #predict the velocity trajectory
+            w_acc,cov = gpr_acc[key].predict(x)
+            #w = gpr_acc[key].pca.inverse_transform(w_pca)
+            w_acc = w_acc.reshape(rbf_num,-1)
+            acc_traj = np.dot(Phi,w_acc)
+
+                #predict the velocity trajectory
+            w_x,cov = gpr_x[key].predict(x)
+            #w = gpr_acc[key].pca.inverse_transform(w_pca)
+            w_x = w_x.reshape(rbf_num,-1)
+            x_traj = np.dot(Phi,w_x)
+
+            #predict the control trajectory
+            w_u,cov_u = gpr_u[key].predict(x)
+            #w = gpr_u[key].pca.inverse_transform(w_pca)
+            w_u = w_u.reshape(rbf_num,-1)
+            u_traj = np.dot(Phi,w_u)
+    q_pca = traj
+    v_pca = vel_traj
+    x_pca = x_traj
+    acc_pca = acc_traj
+    u_pca = u_traj
+    xs_pca = []
+    us_pca = []
+    xs_pca_test = x
+    for q, v, x in zip(q_pca, v_pca, x_pca):
+        xs_pca.append(np.concatenate([q, v, x]))
+
+    for a, u in zip(acc_pca[:(timestep-1)], u_pca[:(timestep-1)]):
+        us_pca.append(np.concatenate([a, u]))
+
+    
+
 def talker():
+    global xs_pca_test, xs_pca, us_pca
     print("start")
     f = open("/home/jhk/data/mpc/4_tocabi_.txt", 'r')
     f2 = open("/home/jhk/data/mpc/4_tocabi_.txt", 'r')
@@ -76,6 +377,7 @@ def talker():
     T = 1
     MAXITER = 300
     dt_ = 1.2 / float(N)
+    PCAlearning()
     '''
     for i in range(0,len(lines)):
         if lines[i].strip('\n') == 'walking_tick':
@@ -232,18 +534,16 @@ def talker():
     qddot = pinocchio.utils.zero(model.nv)
     q_init = [0, 0, 0.80783, 0, 0, 0, 1, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0, -0.55, 1.26, -0.71, 0]
     #q_init = [1.00000000e-01,  0.00000000e+00,  8.07830000e-01,  0.00000000e+00, 0.00000000e+00 , 0.00000000e+00 , 1.00000000e+00, -4.58270337e-17,5.49813461e-19, -3.36530703e-01,  1.17717832e+00, -8.40647617e-01,1.23071442e-16 , 4.25905878e-16,  8.33360457e-17, -3.36530703e-01, 1.17717832e+00 ,-8.40647617e-01,  2.46142884e-16]
+    print(xs_pca_test)
     for i in range(0, len(q)):
-        q[i] = q_init[i]
+        q[i] = xs_pca_test[0][i]
 
     state = crocoddyl.StateKinodynamic(model)
     actuation = crocoddyl.ActuationModelKinoBase(state)
     x0 = np.array([0.] * (state.nx + 8))
     u0 = np.array([0.] * (22))
     for i in range(0,len(q_init)):
-        x0[i] = q_init[i]
-    #1.71151324e-01 #1.12959174e-01
-    x0[37] = 1.12959174e-01
-    x0[39] = 1.12959174e-01
+        x0[i] = xs_pca_test[0][i]
     
     RFjoint_id = model.getJointId("R_AnkleRoll_Joint")
     LFjoint_id = model.getJointId("L_AnkleRoll_Joint")
@@ -257,6 +557,12 @@ def talker():
     pinocchio.computeCentroidalMomentum(model,data,q,qdot)
     LF_tran = data.oMf[LFframe_id]
     RF_tran = data.oMf[RFframe_id]
+
+        #1.71151324e-01 #1.12959174e-01
+    x0[37] = data.com[0][0]
+    x0[39] = data.com[0][0]
+    x0[41] = data.com[0][1]
+    x0[43] = data.com[0][1]
 
     traj_= [0, 0, 0.80783, 0, 0, 0, 1, 0.0, 0.0, -0.55, 1.26, -0.71, 0.0, 0.0, 0.0, -0.55, 1.26, -0.71, 0.0, 0.08, 0.0, 0.0, 0.0]
     u_traj_ = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
@@ -333,6 +639,7 @@ def talker():
     lb = []
     ub = []
 
+    
     for i in range(0,N-1):
         state_vector[i] = crocoddyl.StateKinodynamic(model)
         actuation_vector[i] = crocoddyl.ActuationModelKinoBase(state_vector[i])
@@ -392,7 +699,6 @@ def talker():
     problemWithRK4 = crocoddyl.ShootingProblem(x0, runningModelWithRK4_vector, terminalModel)
     problemWithRK4.nthreads = 6
     ddp = crocoddyl.SolverBoxFDDP(problemWithRK4)
-    ddp.solve(xs,us,300)
 
     walking_tick = 0
     
@@ -441,22 +747,34 @@ def talker():
     terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
     terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
     
+    problemWithRK4.x0 = xs[0]
+    ddp.th_stop = 0.01
+   
     c_start = time.time()
-    css = ddp.solve(xs, us, 300)#, True, 0.1)
+    css = ddp.solve(xs_pca, us_pca, 300, True, 0.1)
+    c_end = time.time()
+    duration = (1e3 * (c_end - c_start))
+        
+    avrg_duration = duration
+    min_duration = duration #min(duration)
+    max_duration = duration #max(duration)
+    print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
+    print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, walking_tick))
+    ''' 
+    c_start = time.time()
+    css = ddp.solve(xs, us, 300, True, 0.1)
     c_end = time.time()
     duration = (1e3 * (c_end - c_start))
             
     avrg_duration = duration
     min_duration = duration #min(duration)
     max_duration = duration #max(duration)
-    print(iter_)
     print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
     print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, walking_tick))
+     '''
     
+    '''
     while client.is_connected:
-        T = 2
-        #if walking_tick >= 1:
-        #problemWithRK4.x0 = copy(ddp.xs[1])
         for i in range(0,N-1):
             state_bounds[i].lb[0] = copy(array_boundx[30*(walking_tick)+i][0])
             state_bounds[i].ub[0] = copy(array_boundx[30*(walking_tick)+i][1])
@@ -516,20 +834,17 @@ def talker():
             for k in range(18, 22):
                 us[j][k] = copy(array_u1[29*(walking_tick) + j][k-18])
         
-        
     #    duration = []
-        booltemp = True
-        booltemp1 = True
+    
         iter_ = 0
         T = 1
         for i in range(0,T):
-
             if walking_tick > 0:
                 problemWithRK4.x0 = ddp.xs[1]
             
             ddp.th_stop = 0.01
             c_start = time.time()
-            css = ddp.solve(xs, us, 300, True, 0.1)
+            css = ddp.solve(xs_pca, us_pca, 300, True, 0.1)
             c_end = time.time()
             duration = (1e3 * (c_end - c_start))
             
@@ -697,7 +1012,7 @@ def talker():
     f3.close()
     f4.close()
     client.terminate()
-
+    '''
 
 if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)

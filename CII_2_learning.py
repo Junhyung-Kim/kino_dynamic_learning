@@ -77,7 +77,10 @@ def inverse_transform(w_pca, pca, Phi, rbf_num):
     return traj
 
 def talker():
-    learn_type = 1 
+    global xs_pca_test
+    global xs_pca
+    global us_pca
+    learn_type = 1
     database = dict()
     database['left'] = dict()
     database['right'] = dict()
@@ -135,9 +138,6 @@ def talker():
     num_desired = 81
     keys = ['left','right']
     num_data = dict()
-    
-    print( np.array(database[key]['x_inputs'])[:num_desired])
-    print( np.array(database[key]['x_inputs'])[:num_desired])
 
     for key in keys:
         x_inputs[key] = np.array(database[key]['x_inputs'])[:num_desired]
@@ -149,13 +149,21 @@ def talker():
 
     #revise
     for key in keys:
-        u_trajs[key] = np.array(database[key]['u_trajs'])[:num_desired]
-        acc_trajs[key] = np.array(database[key]['acc_trajs'])[:num_desired]
-    
+        raw_u_trajs = database[key]['acc_trajs']
+        raw_acc_trajs = database[key]['u_trajs']
+        for i in range(len(raw_acc_trajs)):
+            newrow1 = np.zeros(18)
+            raw_acc_trajs[i] = numpy.vstack([raw_acc_trajs[i], newrow1])
+        for i in range(len(raw_u_trajs)):
+            newrow = np.zeros(4)
+            raw_u_trajs[i] = numpy.vstack([raw_u_trajs[i],newrow])
+        u_trajs[key] = np.array(raw_u_trajs)
+        acc_trajs[key] = np.array(raw_acc_trajs)
+
     timestep = 30
     rbf_num = 60
     Phi = define_RBF(dof=19, nbStates = rbf_num, offset = 200, width = 60, T = timestep)
-    Phi_input = define_RBF(dof=19, nbStates = rbf_num, offset = 200, width = 60, T = timestep -1)
+    #Phi_input = define_RBF(dof=19, nbStates = rbf_num, offset = 200, width = 60, T = timestep -1)
     plt.plot(Phi)
     plt.savefig('/home/jhk/data/mpc/filename.png')
 
@@ -163,24 +171,8 @@ def talker():
         w_trajs[key] = apply_RBF(trajs[key], Phi)
         w_vel_trajs[key] = apply_RBF(vel_trajs[key], Phi)
         w_x_trajs[key] = apply_RBF(x_trajs[key], Phi)
-        w_u_trajs[key] = apply_RBF(u_trajs[key], Phi_input)    
-        w_acc_trajs[key] = apply_RBF(acc_trajs[key], Phi_input)
-    
-    '''
-    trajs['left'].shape
-    
-    w_trajs2 = dict()
-    w_trajs2['left'] = trajs['left'].reshape(81,-1)
-    w_trajs2['right'] = trajs['right'].reshape(81,-1)
-    
-    pca = PCA(n_components=20)
-    tic = time.time()
-    w_trajs_pca = dict()
-    w_trajs_pca['left'] = pca.fit_transform(w_trajs2['left'])
-    w_trajs_pca['right'] = pca.fit_transform(w_trajs2['right'])
-    toc = time.time()
-    print (toc-tic)
-    '''
+        w_u_trajs[key] = apply_RBF(u_trajs[key], Phi)    
+        w_acc_trajs[key] = apply_RBF(acc_trajs[key], Phi)
 
     for key in keys:
         pca[key] = PCA(n_components=60)
@@ -204,12 +196,7 @@ def talker():
         w = pca[key].inverse_transform(w_pca)
         w = w.reshape(60,-1)
         traj = np.dot(Phi,w)
-    '''
-    for i in range(10):
-        w_pca = w_trajs_pca[i]
-        w = pca.inverse_transform(w_pca)
-        traj = w.reshape(81,-1)
-    '''
+
     x_inputs_train = dict()
     x_inputs_test = dict()
     y_train = dict()
@@ -280,9 +267,8 @@ def talker():
         gpr_x = functions['gpr_x']
         gpr_acc = functions['gpr_acc']
 
-    indexes = [2,4,6,8,11,14,20,21]
+    indexes = [3]
     for i in (indexes): 
-        print i
         if i%2 == 0:
             key = 'left'
         else:
@@ -291,58 +277,46 @@ def talker():
             x = x_inputs_test[key][JJ][None,:]
             #xy = 
             #predict the trajectory
-            w,cov = gpr[key].predict(x)
+            w_traj,cov_traj = gpr[key].predict(x)
             #w = gpr[key].pca.inverse_transform(w_pca)
-            w = w.reshape(rbf_num,-1)
-            traj = np.dot(Phi,w)
-
-            print("x")
-            print(x)
-            print("traj")
-            print(traj)
-
+            w_traj = w_traj.reshape(rbf_num,-1)
+            traj = np.dot(Phi,w_traj)
                 #predict the velocity trajectory
-            w,cov = gpr_vel[key].predict(x)
+            w_vel,cov_vel = gpr_vel[key].predict(x)
             #w = gpr_vel[key].pca.inverse_transform(w_pca)
-            w = w.reshape(rbf_num,-1)
-            vel_traj = np.dot(Phi,w)
+            w_vel = w_vel.reshape(rbf_num,-1)
+            vel_traj = np.dot(Phi,w_vel)
 
                 #predict the velocity trajectory
-            w,cov = gpr_acc[key].predict(x)
+            w_acc,cov = gpr_acc[key].predict(x)
             #w = gpr_acc[key].pca.inverse_transform(w_pca)
-            w = w.reshape(rbf_num,-1)
-            acc_traj = np.dot(Phi,w)
+            w_acc = w_acc.reshape(rbf_num,-1)
+            acc_traj = np.dot(Phi,w_acc)
 
                 #predict the velocity trajectory
-            w,cov = gpr_x[key].predict(x)
+            w_x,cov = gpr_x[key].predict(x)
             #w = gpr_acc[key].pca.inverse_transform(w_pca)
-            w = w.reshape(rbf_num,-1)
-            x_traj = np.dot(Phi,w)
-
-            print("x_traj")
-            print(x_traj)
+            w_x = w_x.reshape(rbf_num,-1)
+            x_traj = np.dot(Phi,w_x)
 
             #predict the control trajectory
-            w,cov = gpr_u[key].predict(x)
+            w_u,cov_u = gpr_u[key].predict(x)
             #w = gpr_u[key].pca.inverse_transform(w_pca)
-            w = w.reshape(rbf_num,-1)
-            u_traj = np.dot(Phi,w)
-
+            w_u = w_u.reshape(rbf_num,-1)
+            u_traj = np.dot(Phi,w_u)
+    q_pca = traj
+    v_pca = vel_traj
+    x_pca = x_traj
+    acc_pca = acc_traj
+    u_pca = u_traj
     xs_pca = []
     us_pca = []
-    '''
-    qs_pca = traj
-    vs_pca = vel_traj
-    xs_pca = x_traj
-    accs_pca = acc_traj
-    us_pca = u_traj
-    for q, v, x in zip(qs_pca, vs_pca, xs_pca):
+    xs_pca_test = x
+    for q, v, x in zip(q_pca, v_pca, x_pca):
         xs_pca.append(np.concatenate([q, v, x]))
         
-    for a, u in zip(accs_pca, us_pca):
+    for a, u in zip(acc_pca, u_pca):
         us_pca.append(np.concatenate([a, u]))
-
-    '''
     
 if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)
