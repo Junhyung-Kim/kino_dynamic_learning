@@ -563,9 +563,9 @@ def talker():
 
     data_finish = True
     while data_finish == True:
-        for i in range(0, 40):
-            for j in range(0, 40):
-                if i != 20 and j != 20:
+        for i in range(0, 30):
+            for j in range(0, 30):
+                if i >= 0 and j >= 0:
                     for k in range(0, len(q)):
                         q[k] = q_init[k]
                     pinocchio.forwardKinematics(model, data, q, qdot)
@@ -575,12 +575,13 @@ def talker():
                     pinocchio.centerOfMass(model, data, q, False)
 
                     PELV_tran = np.add(data.oMi[PELVjoint_id].translation, model.inertias[PELVjoint_id].lever)
-                    Pelv_Move = [ 0.15/(i -20), 0.15/(j -20), 0.0]
+                    Pelv_Move = [ 0.08*(i - 15)/15, 0.08 * (j - 15)/15, 0.0]
+                    #Pelv_Move = [ 0.08/(i - 15), 0.08/(j - 15), 0.0]
                     PELV_tran[0] = Pelv_Move[0] + PELV_tran[0]
                     PELV_tran[1] = Pelv_Move[1] + PELV_tran[1]
                     PELV_tran[2] = Pelv_Move[2] + PELV_tran[2]
                     inverseKinematics(0.0, LF_rot, RF_rot, PELV_rot, LF_tran, RF_tran, PELV_tran, HRR_tran_init, HLR_tran_init, HRR_rot_init, HLR_rot_init, PELV_tran_init, PELV_rot_init, CPELV_tran_init)
-
+                                     
                     for a in range(0, 3):
                         q[a] = q[a] + Pelv_Move[a]
                     for b in range(7,19):
@@ -603,10 +604,6 @@ def talker():
 
                     for l in range(0,N):
                         xs[l] = copy(x0)
-
-                    print("kk")
-                    print(i)
-                    print(j)
 
                     for l in range(0,N-1):
                         state_bounds[l].lb[0] = copy(array_boundx[30*(walking_tick)+l][0])
@@ -671,6 +668,9 @@ def talker():
                         max_duration = duration #max(duration)
                         print("iter")
                         print(iter_)
+                        print("kk")
+                        print(i)
+                        print(j)
                         print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
                         print('ddp.iter {0},{1},{2}'.format(ddp.iter, ddp.cost, walking_tick))
                         
@@ -710,6 +710,7 @@ def talker():
                                         booltemp1 = False
                                         break
                             if booltemp1 == False:
+                                print("booltemp1 error")
                                 break
 
                         if booltemp1 == True and avrg_duration <= 30:
@@ -724,31 +725,103 @@ def talker():
                                 traj = np.array(ddp.xs)[:,0:19]
                                 vel_traj = np.array(ddp.xs)[:,19:37]
                                 x_traj = np.array(ddp.xs)[:, 37:45]
+
                                 crocs_data[key]['x_inputs'].append(copy(ddp.xs[0][0:19]))
                                 crocs_data[key]['vel_trajs'].append(copy(vel_traj))
                                 crocs_data[key]['x_state'].append(copy(x_traj))
                                 crocs_data[key]['costs'].append(copy(ddp.cost))
                                 crocs_data[key]['iters'].append(copy(ddp.iter))
                                 crocs_data[key]['trajs'].append(copy(traj))
+
                                 #for l in range(0,N-1):
                                 u_traj = np.array(ddp.us)[:,18:22]
                                 acc_traj = np.array(ddp.us)[:, 0:18]
                                 crocs_data[key]['u_trajs'].append(copy(acc_traj))
                                 crocs_data[key]['acc_trajs'].append(copy(u_traj))
+
+                                f4.write("walking_tick ")
+                                f4.write(str(i))
+                                f4.write(" css ")
+                                f4.write(str(ddp.iter))
+                                f4.write(" ")
+                                f4.write(str(css))
+                                f4.write(" ")
+                                f4.write(str(j))
+                                f4.write("\n")
                                 
+                                for k in range(0, N-1):
+                                    f4.write("q ")
+                                    f4.write(str(k))
+                                    f4.write("\n")
+                                    for a in range(0,19):
+                                        f4.write(str(ddp.xs[k][a]))
+                                        f4.write(", ")
+                                    f4.write("qdot ")
+                                    f4.write(str(k))
+                                    f4.write("\n")            
+                                    for a in range(19,37):
+                                        f4.write(str(ddp.xs[k][a]))
+                                        f4.write(", ")
+                                    f4.write("x_state ")
+                                    f4.write(str(k))
+                                    f4.write("\n")  
+                                    for a in range(37,45):
+                                        f4.write(str(ddp.xs[k][a]))
+                                        f4.write(", ")
+                                    f4.write("\n")
+                                    f4.write("u ")
+                                    f4.write(str(k))
+                                    f4.write("\n")  
+                                    for a in range(0,18):
+                                        f4.write(str(ddp.us[k][a]))
+                                        f4.write(", ")
+                                    f4.write("ustate ")
+                        #            f4.write(str(i))
+                                    f4.write("\n")  
+                                    for a in range(18,22):
+                                        f4.write(str(ddp.us[k][a]))
+                                        f4.write(", ")
+                                    f4.write("\n")
+                                f4.write("q ")
+                                f4.write(str(N))
+                                f4.write("\n")
+                                for a in range(0,19):
+                                    f4.write(str(ddp.xs[N-1][a]))
+                                    f4.write(", ")
+                                f4.write("qdot ")
+                                f4.write(str(N-1))
+                                f4.write("\n")            
+                                for a in range(19,37):
+                                    f4.write(str(ddp.xs[N-1][a]))
+                                    f4.write(", ")
+                                f4.write("x_state ")
+                                f4.write(str(N-1))
+                                f4.write("\n")  
+                                for a in range(37,45):
+                                    f4.write(str(ddp.xs[N-1][a]))
+                                    f4.write(", ")
+                                f4.write("\n")
+                            print("Data save")
                             booltemp = False
                             break
                         else:
                             if booltemp1 == True:
                                 print("Time fail")
+                            else:
+                                print("error")
                         
                         iter_ = iter_ + 1
                         k_temp = k_temp + 1
+                        
 
-        if i == 99 and j == 99:
+        if i == 29 and j == 29:
             with open('/home/jhk/data/mpc/filename.pkl', 'wb') as f:
 	            pickle.dump(crocs_data, f, protocol=pickle.HIGHEST_PROTOCOL)
             data_finish = False
+            print("size")
+            print(len(crocs_data['left']['x_inputs']))
+
+        
                     
     '''
     while client.is_connected:
