@@ -79,7 +79,7 @@ def PCAlearning():
     global xs_pca_test
     global xs_pca
     global us_pca
-    learn_type = 1
+    learn_type = 0
     database = dict()
     database['left'] = dict()
     database['right'] = dict()
@@ -317,7 +317,7 @@ def PCAlearning():
     for a, u in zip(acc_pca[:(timestep-1)], u_pca[:(timestep-1)]):
         us_pca.append(np.concatenate([a, u]))
 
-    
+    print(xs_pca[1])
 
 def talker():
     global xs_pca_test, xs_pca, us_pca
