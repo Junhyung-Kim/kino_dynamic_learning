@@ -524,7 +524,7 @@ def talker():
     terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
     terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
 
-    walking_tick = 0
+    walking_tick = 23
 
     #model IK
     x0 = np.array([0.] * (state.nx + 8))
@@ -563,8 +563,8 @@ def talker():
 
     data_finish = True
     while data_finish == True:
-        for i in range(0, 30):
-            for j in range(0, 30):
+        for i in range(0, 100):
+            for j in range(0, 100):
                 if i >= 0 and j >= 0:
                     for k in range(0, len(q)):
                         q[k] = q_init[k]
@@ -575,7 +575,7 @@ def talker():
                     pinocchio.centerOfMass(model, data, q, False)
 
                     PELV_tran = np.add(data.oMi[PELVjoint_id].translation, model.inertias[PELVjoint_id].lever)
-                    Pelv_Move = [ 0.08*(i - 15)/15, 0.08 * (j - 15)/15, 0.0]
+                    Pelv_Move = [ 0.05*(i - 50)/50, 0.05 * (j - 50)/50, 0.0]
                     #Pelv_Move = [ 0.08/(i - 15), 0.08/(j - 15), 0.0]
                     PELV_tran[0] = Pelv_Move[0] + PELV_tran[0]
                     PELV_tran[1] = Pelv_Move[1] + PELV_tran[1]
@@ -656,10 +656,10 @@ def talker():
                     while booltemp == True:
                         booltemp1 = True
                         c_start = time.time()
-                        if k_temp == 0:
-                            css = ddp.solve(xs, us, 3000)
-                        else:
-                            css = ddp.solve(ddp.xs, ddp.us, 3000)
+                        #if k_temp == 0:
+                        #    css = ddp.solve(xs, us, 3000)
+                        #######################else:
+                        css = ddp.solve(ddp.xs, ddp.us, 3000)
                         c_end = time.time()
                         duration = (1e3 * (c_end - c_start))
 
@@ -675,6 +675,16 @@ def talker():
                         print('ddp.iter {0},{1},{2}'.format(ddp.iter, ddp.cost, walking_tick))
                         
                         for l in range(0,N):
+                            if l == 0:
+                                if(abs(ddp.xs[0][0]-xs[0][0])> 0.001):
+                                    booltemp1 = False
+                                    break
+                                if(abs(ddp.xs[0][1]-xs[1][1])> 0.001):
+                                    booltemp1 = False
+                                    break
+                                if(abs(ddp.xs[0][2]-xs[2][2])> 0.001):
+                                    booltemp1 = False
+                                    break
                             if l < N-1:
                                 for a in range(0,3):
                                     if abs(runningCostModel_vector[l].costs['footReg1'].cost.residual.reference.translation[a]) > 0.006:
@@ -713,7 +723,7 @@ def talker():
                                 print("booltemp1 error")
                                 break
 
-                        if booltemp1 == True and avrg_duration <= 30:
+                        if booltemp1 == True and avrg_duration <= 30 and ddp.cost < 0.0016:
                             for key in crocs_data.keys():
                                 if key == 'left':
                                     for l in range(0,3):
@@ -814,7 +824,7 @@ def talker():
                         k_temp = k_temp + 1
                         
 
-        if i == 29 and j == 29:
+        if i == 99 and j == 99:
             with open('/home/jhk/data/mpc/filename.pkl', 'wb') as f:
 	            pickle.dump(crocs_data, f, protocol=pickle.HIGHEST_PROTOCOL)
             data_finish = False
@@ -1065,4 +1075,3 @@ if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)
     client.run()
     talker()
-
