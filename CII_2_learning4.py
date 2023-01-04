@@ -22,15 +22,139 @@ global client
 global learn_type
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+from torch.autograd import Variable
+from torch.utils.data import Dataset
+import torch.optim as optim
+import torch.multiprocessing as multiprocessing
+import ctypes
 
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Flatten
-from keras.layers.convolutional import Conv1D
-from keras.layers.convolutional import MaxPooling1D
-from tensorflow import keras
-import tensorflow as tf
+#manager = multiprocessing.Manager()
+#thread_manager = manager.list()
+#X_manager = manager.dict()
+
+def InversePCA(model, rbf_num, pca, Phi, X, thread_manager):
+    while True:
+        if thread_manager[0] == 0:
+            ti = time.time()
+            a = np.array(X[:])
+            c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
+            w_traj = model(c)
+            w_traj = w_traj[0].detach().numpy()
+            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = w_traj.reshape(rbf_num,-1)
+            traj1 = np.dot(Phi,w_traj)
+            t2 = time.time()
+            print("thread1")
+            print(ti)
+            print(t2)
+            print(t2 - ti)
+            thread_manager[0] = 1
+
+def InversePCA1(model, rbf_num, pca, Phi, X, thread_manager):
+    while True:
+        if thread_manager[1] == 0:
+            ti = time.time()
+            a = np.array(X[:])
+            c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
+            w_traj = model(c)
+            w_traj = w_traj[0].detach().numpy()
+            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = w_traj.reshape(rbf_num,-1)
+            traj1 = np.dot(Phi,w_traj)
+            t2 = time.time()
+            print("thread2")
+            print(ti)
+            print(t2)
+            print(t2 - ti)
+            thread_manager[1] = 1
+
+def InversePCA2(model, rbf_num, pca, Phi, X, thread_manager):
+    while True:
+        if thread_manager[2] == 0:
+            ti = time.time()
+            a = np.array(X[:])
+            c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
+            w_traj = model(c)
+            w_traj = w_traj[0].detach().numpy()
+            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = w_traj.reshape(rbf_num,-1)
+            traj1 = np.dot(Phi,w_traj)
+            t2 = time.time()
+            print("thread3")
+            print(ti)
+            print(t2)
+            print(t2 - ti)
+            thread_manager[2] = 1
+
+def InversePCA3(model, rbf_num, pca, Phi, X, thread_manager):
+    while True:
+        if thread_manager[3] == 0:
+            ti = time.time()
+            a = np.array(X[:])
+            c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
+            w_traj = model(c)
+            w_traj = w_traj[0].detach().numpy()
+            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = w_traj.reshape(rbf_num,-1)
+            traj1 = np.dot(Phi,w_traj)
+            t2 = time.time()
+            print("thread4")
+            print(ti)
+            print(t2)
+            print(t2 - ti)
+            thread_manager[3] = 1
+
+def InversePCA4(model, rbf_num, pca, Phi, X, thread_manager):
+    while True:
+        if thread_manager[4] == 0:
+            ti = time.time()
+            a = np.array(X[:])
+            c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
+            w_traj = model(c)
+            w_traj = w_traj[0].detach().numpy()
+            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = w_traj.reshape(rbf_num,-1)
+            traj1 = np.dot(Phi,w_traj)
+            t2 = time.time()
+            print("thread5")
+            print(ti)
+            print(t2)
+            print(t2 - ti)
+            thread_manager[4] = 1
+    
+class timeseries(Dataset):
+    def __init__(self,x,y):
+        self.x = torch.tensor(x,dtype=torch.float32)
+        self.y = torch.tensor(y,dtype=torch.float32)
+        self.len = x.shape[0]
+        
+    def __getitem__(self,idx):
+        return self.x[idx],self.y[idx]
+  
+    def __len__(self):
+        return self.len
+
+class VanillaRNN(nn.Module):
+
+  def __init__(self, input_size, hidden_size, sequence_length, num_layers, device):
+    super(VanillaRNN, self).__init__()
+    self.device = device
+    self.hidden_size = hidden_size
+    self.num_layers = num_layers
+    self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
+    self.fc = nn.Sequential(nn.Linear(hidden_size * sequence_length, 1), nn.Sigmoid())
+
+  def forward(self, x):
+    h0 = torch.zeros(self.num_layers, x.size()[0], self.hidden_size).to(self.device) # 초기 hidden state 설정하기.
+    out, _ = self.rnn(x, h0) # out: RNN의 마지막 레이어로부터 나온 output feature 를 반환한다. hn: hidden state를 반환한다.
+    out = out.reshape(out.shape[0], -1) # many to many 전략
+    return out
+
+def forward(self, x):
+    h0 = torch.zeros(self.num_layers, x.size()[0], self.hidden_size).to(self.device) # 초기 hidden state 설정하기.
+    out, _ = self.rnn(x, h0) # out: RNN의 마지막 레이어로부터 나온 output feature 를 반환한다. hn: hidden state를 반환한다.
+    out = out.reshape(out.shape[0], -1) # many to many 전략
+    return out
 
 def define_RBF(dof=39, nbStates=60, offset=200, width=60, T=4000, coeff = 250):
     tList = np.arange(T)
@@ -60,7 +184,7 @@ def PCAlearning():
     global xs_pca_test
     global xs_pca
     global us_pca
-    learn_type = 0
+    learn_type = 1
     database = dict()
     database['left'] = dict()
     database['right'] = dict()
@@ -207,167 +331,319 @@ def PCAlearning():
         _,_, y_acc_train[key], y_acc_test[key] = train_test_split(x_inputs[key],w_acc_trajs_pca[key], test_size = 0.1666, random_state=1)
         _,_, y_x_train[key], y_x_test[key] = train_test_split(x_inputs[key],w_x_trajs_pca[key], test_size = 0.1666, random_state=1)
 
-        x_inputs_train[key] = np.array(x_inputs_train[key])
-        x_inputs_test[key] = np.array(x_inputs_test[key])
-        y_test[key] = np.array(y_test[key])
-        y_vel_test[key] = np.array(y_vel_test[key])
-        y_u_test[key] = np.array(y_u_test[key])
-        y_acc_test[key] = np.array(y_acc_test[key])
-        y_x_test[key] = np.array(y_x_test[key])
-        y_train[key] = np.array(y_train[key])
-        y_vel_train[key] = np.array(y_vel_train[key])
-        y_u_train[key] = np.array(y_u_train[key])
-        y_acc_train[key] = np.array(y_acc_train[key])
-        y_x_train[key] = np.array(y_x_train[key])
-
-    print("aa")
-    x_inputs_train_temp[key] = x_inputs_train[key][:, :, np.newaxis]
-    x_inputs_test_temp[key] = x_inputs_test[key][:, :, np.newaxis]
-    print(y_test[key].shape)
-    #print(y_test[key][0].shape)
-    #print(y_x_train[key][0])
-
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    if gpus:
-        try:
-            tf.config.experimental.set_virtual_device_configuration(
-                gpus[0],[tf.config.experimental.VirtualDeviceConfiguration(memory_limit=1000)])
-        except RuntimeError as e:
-            print(e)
-
+        x_inputs_train[key] = torch.FloatTensor(x_inputs_train[key])
+        x_inputs_test[key] = torch.FloatTensor(x_inputs_test[key])
+        y_test[key] = torch.FloatTensor( (y_test[key]))
+        y_vel_test[key] = torch.FloatTensor( (y_vel_test[key]))
+        y_u_test[key] = torch.FloatTensor( (y_u_test[key]))
+        y_acc_test[key] = torch.FloatTensor( (y_acc_test[key]))
+        y_x_test[key] = torch.FloatTensor( (y_x_test[key]))
+        y_train[key] = torch.FloatTensor( (y_train[key]))
+        y_vel_train[key] = torch.FloatTensor( (y_vel_train[key]))
+        y_u_train[key] = torch.FloatTensor( (y_u_train[key]))
+        y_acc_train[key] = torch.FloatTensor( (y_acc_train[key]))
+        y_x_train[key] = torch.FloatTensor( (y_x_train[key]))
     
+    #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    #print(f'{device} is available')
+    device = 'cpu'
+    train_y = timeseries(x_inputs_train[key], y_train[key])
+    test_y = timeseries(x_inputs_test[key], y_test[key])
+    train_yvel = timeseries(x_inputs_train[key], y_vel_train[key])
+    test_yvel = timeseries(x_inputs_test[key], y_vel_test[key])
+    train_yacc = timeseries(x_inputs_train[key], y_acc_train[key])
+    test_yacc = timeseries(x_inputs_test[key], y_acc_test[key])
+    train_yu = timeseries(x_inputs_train[key], y_u_train[key])
+    test_yu = timeseries(x_inputs_test[key], y_u_test[key])
+    train_yx = timeseries(x_inputs_train[key], y_x_train[key])
+    test_yx = timeseries(x_inputs_test[key], y_x_test[key])
+
+    batch_size = 3
+    train_loader = torch.utils.data.DataLoader(dataset=train_y, batch_size=batch_size, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(dataset=test_y, batch_size=batch_size, shuffle=True)
+    train_vel_loader = torch.utils.data.DataLoader(dataset=train_yvel, batch_size=batch_size, shuffle=True)
+    test_vel_loader = torch.utils.data.DataLoader(dataset=test_yvel, batch_size=batch_size, shuffle=True)
+    train_acc_loader = torch.utils.data.DataLoader(dataset=train_yacc, batch_size=batch_size, shuffle=True)
+    test_acc_loader = torch.utils.data.DataLoader(dataset=test_yacc, batch_size=batch_size, shuffle=True)
+    train_u_loader = torch.utils.data.DataLoader(dataset=train_yu, batch_size=batch_size, shuffle=True)
+    test_u_loader = torch.utils.data.DataLoader(dataset=test_yu, batch_size=batch_size, shuffle=True)
+    train_x_loader = torch.utils.data.DataLoader(dataset=train_yx, batch_size=batch_size, shuffle=True)
+    test_x_loader = torch.utils.data.DataLoader(dataset=test_yx, batch_size=batch_size, shuffle=True)
+
+    #q
+    input_size = 19
+    sequence_length = 1
+    num_layers = 5
+    hidden_size = rbf_num
+
+    model = VanillaRNN(input_size=input_size,
+                hidden_size=hidden_size,
+                sequence_length=sequence_length,
+                num_layers=num_layers,
+                device=device).to(device)
+
+    #qdot
+    input_size = 19
+    sequence_length = 1
+    num_layers = 10
+    hidden_size = rbf_num
+
+    model1 = VanillaRNN(input_size=input_size,
+                hidden_size=hidden_size,
+                sequence_length=sequence_length,
+                num_layers=num_layers,
+                device=device).to(device)
+
+    #x
+    input_size = 19
+    sequence_length = 1
+    num_layers = 5
+    hidden_size = rbf_num
+
+    model2 = VanillaRNN(input_size=input_size,
+                hidden_size=hidden_size,
+                sequence_length=sequence_length,
+                num_layers=num_layers,
+                device=device).to(device)
+
+    #acc
+    input_size = 19
+    sequence_length = 1
+    num_layers = 10
+    hidden_size = rbf_num
+
+    model3 = VanillaRNN(input_size=input_size,
+                hidden_size=hidden_size,
+                sequence_length=sequence_length,
+                num_layers=num_layers,
+                device=device).to(device)
+    #u
+    input_size = 19
+    sequence_length = 1
+    num_layers = 5
+    hidden_size = rbf_num
+
+    model4 = VanillaRNN(input_size=input_size,
+                hidden_size=hidden_size,
+                sequence_length=sequence_length,
+                num_layers=num_layers,
+                device=device).to(device)
+
     if learn_type == 0:
-        model = Sequential()
-        model.add(Conv1D(filters = 10, kernel_size=10, activation='relu', input_shape = (19,1)))
-        model.add(MaxPooling1D(pool_size = 10))
-        model.add(Flatten())
-        model.add(Dense(8, input_dim = 19, activation='relu'))
-        model.add(Dense(40))
-        model.compile(optimizer='adam',loss='mse')
-        model.fit(x_inputs_train_temp['right'], y_train['right'], epochs=1000, verbose =0)
-        
-        model.save(
-        '/home/jhk/data/mpc/keras.pkl',
-        overwrite=True,
-        include_optimizer=True,
-        save_format=None,
-        signatures=None,
-        options=None,
-        save_traces=True,
-        )
+        criterion = nn.MSELoss()
+        lr = 0.001
+        num_epochs = 200
+        optimizer = optim.Adam(model.parameters(), lr=lr)
+        loss_graph = []
 
-        model1 = Sequential()
-        model1.add(Conv1D(filters = 10, kernel_size=10, activation='relu', input_shape = (19,1)))
-        model1.add(MaxPooling1D(pool_size = 10))
-        model1.add(Flatten())
-        model1.add(Dense(8, input_dim = 19, activation='relu'))
-        model1.add(Dense(40))
-        model1.compile(optimizer='adam',loss='mse')
-        model1.fit(x_inputs_train_temp['right'], y_vel_train['right'], epochs=1000, verbose =0)
-        
-        model1.save(
-        '/home/jhk/data/mpc/keras1.pkl',
-        overwrite=True,
-        include_optimizer=True,
-        save_format=None,
-        signatures=None,
-        options=None,
-        save_traces=True,
-        )
+        for epoch in range(num_epochs):
+            for data in train_loader:
+                seq, target = data
+                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
+                out = model(X)
+                loss = criterion(out, target)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                if epoch % 1 == 0:
+                    print ('Epoch [{}/{}],  Loss: {:.4f}' 
+                       .format(epoch+1, num_epochs, loss.item()))
 
-        model2 = Sequential()
-        model2.add(Conv1D(filters = 10, kernel_size=10, activation='relu', input_shape = (19,1)))
-        model2.add(MaxPooling1D(pool_size = 10))
-        model2.add(Flatten())
-        model2.add(Dense(8, input_dim = 19, activation='relu'))
-        model2.add(Dense(40))
-        model2.compile(optimizer='adam',loss='mse')
-        model2.fit(x_inputs_train_temp['right'], y_u_train['right'], epochs=1000, verbose =0)
-        
-        model2.save(
-        '/home/jhk/data/mpc/keras2.pkl',
-        overwrite=True,
-        include_optimizer=True,
-        save_format=None,
-        signatures=None,
-        options=None,
-        save_traces=True,
-        )
+        criterion = nn.MSELoss()
+        lr = 0.001
+        num_epochs = 200
+        optimizer1 = optim.Adam(model1.parameters(), lr=lr)
+        loss_graph = []
 
-        model3 = Sequential()
-        model3.add(Conv1D(filters = 10, kernel_size=10, activation='relu', input_shape = (19,1)))
-        model3.add(MaxPooling1D(pool_size = 10))
-        model3.add(Flatten())
-        model3.add(Dense(8, input_dim = 19, activation='relu'))
-        model3.add(Dense(40))
-        model3.compile(optimizer='adam',loss='mse')
-        model3.fit(x_inputs_train_temp['right'], y_acc_train['right'], epochs=1000, verbose =0)
-        
-        model3.save(
-        '/home/jhk/data/mpc/keras3.pkl',
-        overwrite=True,
-        include_optimizer=True,
-        save_format=None,
-        signatures=None,
-        options=None,
-        save_traces=True,
-        )
+        for epoch in range(num_epochs):
+            for data in train_vel_loader:
+                seq, target = data
+                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
+                out = model1(X)
+                loss = criterion(out, target)
 
-        model4 = Sequential()
-        model4.add(Conv1D(filters = 10, kernel_size=10, activation='relu', input_shape = (19,1)))
-        model4.add(MaxPooling1D(pool_size = 10))
-        model4.add(Flatten())
-        model4.add(Dense(8, input_dim = 19, activation='relu'))
-        model4.add(Dense(40))
-        model4.compile(optimizer='adam',loss='mse')
-        model4.fit(x_inputs_train_temp['right'], y_x_train['right'], epochs=1000, verbose =0)
+                optimizer1.zero_grad()
+                loss.backward()
+                optimizer1.step()
+
+            if epoch % 1 == 0:
+                print ('2Epoch [{}/{}],  Loss: {:.4f}' 
+                       .format(epoch+1, num_epochs, loss.item()))
+    
+        criterion = nn.MSELoss()
+        lr = 0.001
+        num_epochs = 200
+        optimizer2 = optim.Adam(model2.parameters(), lr=lr)
+        loss_graph = []
+
+        for epoch in range(num_epochs):
+            for data in train_x_loader:
+                seq, target = data
+                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
+                out = model2(X)
+                loss = criterion(out, target)
+
+                optimizer2.zero_grad()
+                loss.backward()
+                optimizer2.step()
+                if epoch % 1 == 0:
+                    print ('2Epoch [{}/{}],  Loss: {:.4f}' 
+                       .format(epoch+1, num_epochs, loss.item()))
         
-        model4.save(
-        '/home/jhk/data/mpc/keras4.pkl',
-        overwrite=True,
-        include_optimizer=True,
-        save_format=None,
-        signatures=None,
-        options=None,
-        save_traces=True,
-        )
+        criterion = nn.MSELoss()
+        lr = 0.001
+        num_epochs = 200
+        optimizer3 = optim.Adam(model3.parameters(), lr=lr)
+        loss_graph = []
+
+        for epoch in range(num_epochs):
+            for data in train_acc_loader:
+                seq, target = data
+                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
+                out = model3(X)
+                loss = criterion(out, target)
+
+                optimizer3.zero_grad()
+                loss.backward()
+                optimizer3.step()
+
+            if epoch % 1 == 0:
+                print ('3Epoch [{}/{}],  Loss: {:.4f}' 
+                    .format(epoch+1, num_epochs, loss.item()))
+
+        criterion = nn.MSELoss()
+        lr = 0.001
+        num_epochs = 200
+        optimizer4 = optim.Adam(model4.parameters(), lr=lr)
+        loss_graph = []
+
+        for epoch in range(num_epochs):
+            for data in train_u_loader:
+                seq, target = data
+                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
+                out = model(X)
+                loss = criterion(out, target)
+
+                optimizer4.zero_grad()
+                loss.backward()
+                optimizer4.step()
+
+            if epoch % 1 == 0:
+                print ('4Epoch [{}/{}],  Loss: {:.4f}' 
+                    .format(epoch+1, num_epochs, loss.item()))
+
+        torch.save(model.state_dict(), '/home/jhk/data/mpc/rnn.pkl')
+        torch.save(model1.state_dict(), '/home/jhk/data/mpc/rnn1.pkl')
+        torch.save(model2.state_dict(), '/home/jhk/data/mpc/rnn2.pkl')
+        torch.save(model3.state_dict(), '/home/jhk/data/mpc/rnn3.pkl')
+        torch.save(model4.state_dict(), '/home/jhk/data/mpc/rnn4.pkl')
     else:
-        model = keras.models.load_model('/home/jhk/data/mpc/keras.pkl', compile = True)
-        model1 = keras.models.load_model('/home/jhk/data/mpc/keras1.pkl', compile = True)
-        model2 = keras.models.load_model('/home/jhk/data/mpc/keras2.pkl', compile = True)
-        model3 = keras.models.load_model('/home/jhk/data/mpc/keras3.pkl', compile = True)
-        model4 = keras.models.load_model('/home/jhk/data/mpc/keras4.pkl', compile = True)
-    model.summary()
+        model.load_state_dict(torch.load('/home/jhk/data/mpc/rnn.pkl'))
+        model1.load_state_dict(torch.load('/home/jhk/data/mpc/rnn1.pkl'))
+        model2.load_state_dict(torch.load('/home/jhk/data/mpc/rnn2.pkl'))
+        model3.load_state_dict(torch.load('/home/jhk/data/mpc/rnn3.pkl'))
+        model4.load_state_dict(torch.load('/home/jhk/data/mpc/rnn4.pkl'))
 
-    tic = time.time()
     JJ = np.random.randint(x_inputs_test[key].shape[0])
-    X = x_inputs_test_temp['right'][JJ][None,:]
-    x_hat = model.predict(X, verbose =0)
-    xvel_hat = model1.predict(X, verbose =0)
-    xu_hat = model2.predict(X, verbose =0)
-    xacc_hat = model3.predict(X, verbose =0)
-    xx_hat = model4.predict(X, verbose =0)
-    w_traj = pca[key].inverse_transform([x_hat[None,:]])[0]
+    X = x_inputs_test['right'][JJ][None,:]
+    X = X.reshape(1, sequence_length, input_size).to(device)
+    print("old X")
+    print(X)
+
+    traj = np.zeros(19)
+    traj_vel = np.zeros(18)
+    traj_x = np.zeros(8)
+    traj_acc = np.zeros(18)
+    traj_u = np.zeros(4)
+
+    thread_manager1 = []
+    for i in range(0,5):
+        thread_manager1.append(0)
+
+    thread_manager = multiprocessing.Array(ctypes.c_int, thread_manager1)
+    queue = multiprocessing.Array(ctypes.c_float, X.numpy()[0][0])
+    '''
+    queue1 = multiprocessing.Queue()
+    queue1.put(X)
+    queue2 = multiprocessing.Queue()
+    queue2.put(X)
+    queue3 = multiprocessing.Queue()
+    queue3.put(X)
+    queue4 = multiprocessing.Queue()
+    queue4.put(X)
+    '''
+    #X_manager = X.share_memory()
+
+    p1 = multiprocessing.Process(target=InversePCA, args=(model, rbf_num, pca, Phi, queue, thread_manager))
+    p2 = multiprocessing.Process(target=InversePCA1, args=(model1, rbf_num, pca_vel, Phi, queue, thread_manager))
+    p3 = multiprocessing.Process(target=InversePCA2, args=(model2, rbf_num, pca_x, Phi, queue, thread_manager))
+    p4 = multiprocessing.Process(target=InversePCA3, args=(model3, rbf_num, pca_acc, Phi, queue, thread_manager))
+    p5 = multiprocessing.Process(target=InversePCA4, args=(model4, rbf_num, pca_u, Phi, queue, thread_manager))
+   
+    p1.start()
+    p2.start()
+    p3.start()
+    p4.start()
+    p5.start()  
+    
+    JJ = np.random.randint(x_inputs_test[key].shape[0])
+    X = x_inputs_test['right'][JJ][None,:]
+    X = X.reshape(1, sequence_length, input_size).to(device)
+
+    #X_manager['right'] = X
+    
+    time.sleep(2)
+    
+    print("new X")
+    print(X)
+    #queue.put(X)
+    #queue1.put(X)
+    #queue2.put(X)
+    #queue3.put(X)
+    #queue4.put(X)
+    
+    if(thread_manager[0] == 1 and thread_manager[1] == 1 and thread_manager[2] == 1 and thread_manager[3] == 1 and thread_manager[4] == 1):
+        for i in range(0,5):
+            thread_manager[i] = 0
+
+    while(thread_manager[0] == 0 or thread_manager[1] == 0 or thread_manager[2] == 0 or thread_manager[3] == 0 or thread_manager[4] ==  0):
+        if(thread_manager[0] == 1 and thread_manager[1] == 1 and thread_manager[2] == 1 and thread_manager[3] == 1 and thread_manager[4] == 1):
+            break
+    
+    tic = time.time()
+    w_traj = model(X)
+    w_traj = w_traj[0].detach().numpy()
+    w_traj = pca[key].inverse_transform([w_traj[None,:]])[0]
     w_traj = w_traj.reshape(rbf_num,-1)
-    w_vel_traj = pca_vel[key].inverse_transform([xvel_hat[None,:]])[0]
-    w_vel_traj = w_vel_traj.reshape(rbf_num,-1)
-    w_acc_traj = pca_acc[key].inverse_transform([xacc_hat[None,:]])[0]
-    w_acc_traj = w_acc_traj.reshape(rbf_num,-1)
-    w_u_traj = pca_u[key].inverse_transform([xu_hat[None,:]])[0]
-    w_u_traj = w_u_traj.reshape(rbf_num,-1)
-    w_x_traj = pca_x[key].inverse_transform([xx_hat[None,:]])[0]
-    w_x_traj = w_x_traj.reshape(rbf_num,-1)
+
+    w_traj_dot = model1(X)
+    w_traj_dot = w_traj_dot[0].detach().numpy()
+    w_traj_dot = pca_vel[key].inverse_transform([w_traj_dot[None,:]])[0]
+    w_traj_dot = w_traj_dot.reshape(rbf_num,-1)
+
+    w_traj_x = model2(X)
+    w_traj_x = w_traj_x[0].detach().numpy()
+    w_traj_x = pca_x[key].inverse_transform([w_traj_x[None,:]])[0]
+    w_traj_x = w_traj_x.reshape(rbf_num,-1)
+
+    w_traj_acc = model3(X)
+    w_traj_acc = w_traj_acc[0].detach().numpy()
+    w_traj_acc = pca_acc[key].inverse_transform([w_traj_acc[None,:]])[0]
+    w_traj_acc = w_traj_acc.reshape(rbf_num,-1)
+
+    w_traj_u = model4(X)
+    w_traj_u = w_traj_u[0].detach().numpy()
+    w_traj_u = pca_u[key].inverse_transform([w_traj_u[None,:]])[0]
+    w_traj_u = w_traj_u.reshape(rbf_num,-1)
+
     traj = np.dot(Phi,w_traj)
-    traj_vel = np.dot(Phi,w_vel_traj)
-    traj_acc = np.dot(Phi,w_acc_traj)
-    traj_u = np.dot(Phi,w_u_traj)
-    traj_x = np.dot(Phi,w_x_traj)
+    traj_vel = np.dot(Phi,w_traj_dot)
+    traj_acc = np.dot(Phi,w_traj_acc)
+    traj_u = np.dot(Phi,w_traj_u)
+    traj_x = np.dot(Phi,w_traj_x)
+    
     toc = time.time()
     tt = tic - toc
-
-    print("w")
-    print(X)
-    print(traj)
     print(tt)
     
     q_pca = traj
@@ -383,9 +659,8 @@ def PCAlearning():
     for a, u in zip(acc_pca, u_pca):
         us_pca.append(np.concatenate([a, u]))
     del us_pca[-1]
-    print(tt)
     xs_pca_test = x_inputs_test[key][JJ][None,:][0]#.detach().numpy()[0]
-
+    
 def talker():
     global xs_pca_test, xs_pca, us_pca
     print("start")
@@ -1176,6 +1451,6 @@ def talker():
 if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)
     client.run()
+    #PCAlearning()
     talker()
-
 
