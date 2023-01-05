@@ -21,13 +21,9 @@ np.set_printoptions(threshold=sys.maxsize)
 global client
 global learn_type
 import torch
-import torch.nn as nn
-from torch.autograd import Variable
 from torch.utils.data import Dataset
-import torch.optim as optim
-import torch.multiprocessing as multiprocessing
-import ctypes
-import pytorch_model_summary
+import torch.nn as nn
+
 
 #manager = multiprocessing.Manager()
 #thread_manager = manager.list()
@@ -122,7 +118,23 @@ def InversePCA4(model, rbf_num, pca, Phi, X, thread_manager):
             print(t2)
             print(t2 - ti)
             thread_manager[4] = 1
+
+class HelloDNN(nn.Module):
+    def __init__(self, input_size=784, num_classes=10):
+        super(HelloDNN, self).__init__()
+        self.mlp = nn.Sequential(
+            nn.Conv1d(in_channels = 1, out_channels = 3, kernel_size=19)
+            ,nn.MaxPool1d(10)
+            ,nn.Flatten()
+            ,nn.Dense()
+            ,nn.Dense()
+        )
     
+    def forward(self, x):
+        y_ = x
+        self.mlp(y_)
+        return y_
+
 class timeseries(Dataset):
     def __init__(self,x,y):
         self.x = torch.tensor(x,dtype=torch.float32)
@@ -134,28 +146,6 @@ class timeseries(Dataset):
   
     def __len__(self):
         return self.len
-
-class VanillaRNN(nn.Module):
-
-  def __init__(self, input_size, hidden_size, sequence_length, num_layers, device):
-    super(VanillaRNN, self).__init__()
-    self.device = device
-    self.hidden_size = hidden_size
-    self.num_layers = num_layers
-    self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
-    self.fc = nn.Sequential(nn.Linear(hidden_size * sequence_length, 1), nn.Sigmoid())
-
-  def forward(self, x):
-    h0 = torch.zeros(self.num_layers, x.size()[0], self.hidden_size).to(self.device) # 초기 hidden state 설정하기.
-    out, _ = self.rnn(x, h0) # out: RNN의 마지막 레이어로부터 나온 output feature 를 반환한다. hn: hidden state를 반환한다.
-    out = out.reshape(out.shape[0], -1) # many to many 전략
-    return out
-
-def forward(self, x):
-    h0 = torch.zeros(self.num_layers, x.size()[0], self.hidden_size).to(self.device) # 초기 hidden state 설정하기.
-    out, _ = self.rnn(x, h0) # out: RNN의 마지막 레이어로부터 나온 output feature 를 반환한다. hn: hidden state를 반환한다.
-    out = out.reshape(out.shape[0], -1) # many to many 전략
-    return out
 
 def define_RBF(dof=39, nbStates=60, offset=200, width=60, T=4000, coeff = 250):
     tList = np.arange(T)
@@ -345,8 +335,6 @@ def PCAlearning():
         y_acc_train[key] = torch.FloatTensor( (y_acc_train[key]))
         y_x_train[key] = torch.FloatTensor( (y_x_train[key]))
     
-    #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    #print(f'{device} is available')
     device = 'cpu'
     train_y = timeseries(x_inputs_train[key], y_train[key])
     test_y = timeseries(x_inputs_test[key], y_test[key])
@@ -371,193 +359,51 @@ def PCAlearning():
     train_x_loader = torch.utils.data.DataLoader(dataset=train_yx, batch_size=batch_size, shuffle=True)
     test_x_loader = torch.utils.data.DataLoader(dataset=test_yx, batch_size=batch_size, shuffle=True)
 
-    #q
-    input_size = 19
-    sequence_length = 1
-    num_layers = 5
-    hidden_size = rbf_num
-
-    model = VanillaRNN(input_size=input_size,
-                hidden_size=hidden_size,
-                sequence_length=sequence_length,
-                num_layers=num_layers,
-                device=device).to(device)
-
-    
-    #qdot
-    input_size = 19
-    sequence_length = 1
-    num_layers = 10
-    hidden_size = rbf_num
-
-    model1 = VanillaRNN(input_size=input_size,
-                hidden_size=hidden_size,
-                sequence_length=sequence_length,
-                num_layers=num_layers,
-                device=device).to(device)
-
-    #x
-    input_size = 19
-    sequence_length = 1
-    num_layers = 5
-    hidden_size = rbf_num
-
-    model2 = VanillaRNN(input_size=input_size,
-                hidden_size=hidden_size,
-                sequence_length=sequence_length,
-                num_layers=num_layers,
-                device=device).to(device)
-
-    #acc
-    input_size = 19
-    sequence_length = 1
-    num_layers = 10
-    hidden_size = rbf_num
-
-    model3 = VanillaRNN(input_size=input_size,
-                hidden_size=hidden_size,
-                sequence_length=sequence_length,
-                num_layers=num_layers,
-                device=device).to(device)
-    #u
-    input_size = 19
-    sequence_length = 1
-    num_layers = 5
-    hidden_size = rbf_num
-
-    model4 = VanillaRNN(input_size=input_size,
-                hidden_size=hidden_size,
-                sequence_length=sequence_length,
-                num_layers=num_layers,
-                device=device).to(device)
-    model.train()
-    model1.train()
-    model2.train()
-    model3.train()
-    model4.train()
     if learn_type == 0:
-        criterion = nn.MSELoss()
+        print("Train")
+
+        #q
+        input_size = 19
+        sequence_length = 1
+
+        DNN = HelloDNN(input_size = input_size).to(device)
+        EPOCH = 100
         lr = 0.001
-        num_epochs = 200
-        optimizer = optim.Adam(model.parameters(), lr=lr)
-        loss_graph = []
-
-        for epoch in range(num_epochs):
-            for data in train_loader:
-                seq, target = data
-                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
-                out = model(X)
-                loss = criterion(out, target)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                if epoch % 1 == 0:
-                    print ('Epoch [{}/{}],  Loss: {:.4f}' 
-                       .format(epoch+1, num_epochs, loss.item()))
-
-        criterion = nn.MSELoss()
-        lr = 0.001
-        num_epochs = 200
-        optimizer1 = optim.Adam(model1.parameters(), lr=lr)
-        loss_graph = []
-
-        for epoch in range(num_epochs):
-            for data in train_vel_loader:
-                seq, target = data
-                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
-                out = model1(X)
-                loss = criterion(out, target)
-
-                optimizer1.zero_grad()
-                loss.backward()
-                optimizer1.step()
-
-            if epoch % 1 == 0:
-                print ('2Epoch [{}/{}],  Loss: {:.4f}' 
-                       .format(epoch+1, num_epochs, loss.item()))
-    
-        criterion = nn.MSELoss()
-        lr = 0.001
-        num_epochs = 200
-        optimizer2 = optim.Adam(model2.parameters(), lr=lr)
-        loss_graph = []
-
-        for epoch in range(num_epochs):
-            for data in train_x_loader:
-                seq, target = data
-                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
-                out = model2(X)
-                loss = criterion(out, target)
-
-                optimizer2.zero_grad()
-                loss.backward()
-                optimizer2.step()
-                if epoch % 1 == 0:
-                    print ('2Epoch [{}/{}],  Loss: {:.4f}' 
-                       .format(epoch+1, num_epochs, loss.item()))
         
-        criterion = nn.MSELoss()
-        lr = 0.001
-        num_epochs = 200
-        optimizer3 = optim.Adam(model3.parameters(), lr=lr)
-        loss_graph = []
+        loss_func = nn.MSELoss()
+        optimizer = torch.optim.Adam(DNN.parameters(), lr) 
+        DNN.train()
+        for epoch in range(EPOCH):
+            for step, (b_x, b_y) in enumerate(train_loader):
+                b_x_temp = b_x.reshape(batch_size, sequence_length, input_size).to(device)
+                print(b_x_temp.shape)
+                output = DNN(b_x_temp)              
+                loss = loss_func(output, b_y) 
+                optimizer.zero_grad()           
+                loss.backward()            
+                optimizer.step()        
 
-        for epoch in range(num_epochs):
-            for data in train_acc_loader:
-                seq, target = data
-                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
-                out = model3(X)
-                loss = criterion(out, target)
-
-                optimizer3.zero_grad()
-                loss.backward()
-                optimizer3.step()
-
-            if epoch % 1 == 0:
-                print ('3Epoch [{}/{}],  Loss: {:.4f}' 
-                    .format(epoch+1, num_epochs, loss.item()))
-
-        criterion = nn.MSELoss()
-        lr = 0.001
-        num_epochs = 200
-        optimizer4 = optim.Adam(model4.parameters(), lr=lr)
-        loss_graph = []
-
-        for epoch in range(num_epochs):
-            for data in train_u_loader:
-                seq, target = data
-                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
-                out = model(X)
-                loss = criterion(out, target)
-
-                optimizer4.zero_grad()
-                loss.backward()
-                optimizer4.step()
-
-            if epoch % 1 == 0:
-                print ('4Epoch [{}/{}],  Loss: {:.4f}' 
-                    .format(epoch+1, num_epochs, loss.item()))
-
-        torch.save(model.state_dict(), '/home/jhk/data/mpc/rnn.pkl')
-        torch.save(model1.state_dict(), '/home/jhk/data/mpc/rnn1.pkl')
-        torch.save(model2.state_dict(), '/home/jhk/data/mpc/rnn2.pkl')
-        torch.save(model3.state_dict(), '/home/jhk/data/mpc/rnn3.pkl')
-        torch.save(model4.state_dict(), '/home/jhk/data/mpc/rnn4.pkl')
-    else:
-        model.load_state_dict(torch.load('/home/jhk/data/mpc/rnn.pkl'))
-        model1.load_state_dict(torch.load('/home/jhk/data/mpc/rnn1.pkl'))
-        model2.load_state_dict(torch.load('/home/jhk/data/mpc/rnn2.pkl'))
-        model3.load_state_dict(torch.load('/home/jhk/data/mpc/rnn3.pkl'))
-        model4.load_state_dict(torch.load('/home/jhk/data/mpc/rnn4.pkl'))
-
-    
+                if step % 10 == 0:
+                    print('Epoch: ', epoch, '| train loss: %.4f' % loss.data.numpy())
 
     JJ = np.random.randint(x_inputs_test[key].shape[0])
     X = x_inputs_test['right'][JJ][None,:]
-    X = X.reshape(1, sequence_length, input_size).to(device)
+    #X = X.reshape(1, sequence_length, input_size).to(device)
     print("old X")
     print(X)
-    print(pytorch_model_summary.summary(model, X, max_depth = True,show_parent_layers = True))
+
+    tic = time.time()
+    DNN.eval()
+    w_traj = DNN.forward(X)
+    w_traj = w_traj[0].detach().numpy()
+    w_traj = pca[key].inverse_transform([w_traj[None,:]])[0]
+    w_traj = w_traj.reshape(rbf_num,-1)
+    traj = np.dot(Phi,w_traj)
+    toc = time.time()
+    print(traj)
+    print(toc - tic)
+
+    '''
     traj = np.zeros(19)
     traj_vel = np.zeros(18)
     traj_x = np.zeros(8)
@@ -571,22 +417,7 @@ def PCAlearning():
     thread_manager = multiprocessing.Array(ctypes.c_int, thread_manager1)
     queue = multiprocessing.Array(ctypes.c_float, X.numpy()[0][0])
     '''
-    queue1 = multiprocessing.Queue()
-    queue1.put(X)
-    queue2 = multiprocessing.Queue()
-    queue2.put(X)
-    queue3 = multiprocessing.Queue()
-    queue3.put(X)
-    queue4 = multiprocessing.Queue()
-    queue4.put(X)
     '''
-    #X_manager = X.share_memory()
-    model.eval()
-    model1.eval()
-    model2.eval()
-    model3.eval()
-    model4.eval()
-    
     p1 = multiprocessing.Process(target=InversePCA, args=(model, rbf_num, pca, Phi, queue, thread_manager))
     p2 = multiprocessing.Process(target=InversePCA1, args=(model1, rbf_num, pca_vel, Phi, queue, thread_manager))
     p3 = multiprocessing.Process(target=InversePCA2, args=(model2, rbf_num, pca_x, Phi, queue, thread_manager))
@@ -673,6 +504,7 @@ def PCAlearning():
         us_pca.append(np.concatenate([a, u]))
     del us_pca[-1]
     xs_pca_test = x_inputs_test[key][JJ][None,:][0]#.detach().numpy()[0]
+    '''
     
 def talker():
     global xs_pca_test, xs_pca, us_pca

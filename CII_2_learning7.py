@@ -39,7 +39,7 @@ def InversePCA(model, rbf_num, pca, Phi, X, thread_manager):
             ti = time.time()
             a = np.array(X[:])
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
-            w_traj = model(c)
+            w_traj = model.forward(c)
             w_traj = w_traj[0].detach().numpy()
             w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
@@ -57,7 +57,7 @@ def InversePCA1(model, rbf_num, pca, Phi, X, thread_manager):
             ti = time.time()
             a = np.array(X[:])
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
-            w_traj = model(c)
+            w_traj = model.forward(c)
             w_traj = w_traj[0].detach().numpy()
             w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
@@ -75,7 +75,7 @@ def InversePCA2(model, rbf_num, pca, Phi, X, thread_manager):
             ti = time.time()
             a = np.array(X[:])
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
-            w_traj = model(c)
+            w_traj = model.forward(c)
             w_traj = w_traj[0].detach().numpy()
             w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
@@ -93,7 +93,7 @@ def InversePCA3(model, rbf_num, pca, Phi, X, thread_manager):
             ti = time.time()
             a = np.array(X[:])
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
-            w_traj = model(c)
+            w_traj = model.forward(c)
             w_traj = w_traj[0].detach().numpy()
             w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
@@ -111,7 +111,7 @@ def InversePCA4(model, rbf_num, pca, Phi, X, thread_manager):
             ti = time.time()
             a = np.array(X[:])
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
-            w_traj = model(c)
+            w_traj = model.forward(c)
             w_traj = w_traj[0].detach().numpy()
             w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
@@ -135,27 +135,28 @@ class timeseries(Dataset):
     def __len__(self):
         return self.len
 
-class VanillaRNN(nn.Module):
+class CNN(nn.Module):
+    def __init__(self, input_size, hidden_size, sequence_length, num_layers, device):
+        super(CNN, self).__init__()
+        self.layer1 = torch.nn.Sequential(
+            torch.nn.Conv1d(1, 10, kernel_size=10, stride=1),
+            torch.nn.ReLU(),
+            )
+        self.layer2 = torch.nn.Sequential(
+            torch.nn.MaxPool1d(kernel_size=10, stride = 1),
+            torch.nn.Flatten()
+        )
+        self.layer3 = torch.nn.Sequential(
+            torch.nn.Linear(in_features = 19, out_features= 8),
+            torch.nn.ReLU(),
+            torch.nn.Linear(in_features = 8, out_features = 40)
+            )
 
-  def __init__(self, input_size, hidden_size, sequence_length, num_layers, device):
-    super(VanillaRNN, self).__init__()
-    self.device = device
-    self.hidden_size = hidden_size
-    self.num_layers = num_layers
-    self.rnn = nn.RNN(input_size, hidden_size, num_layers, batch_first=True)
-    self.fc = nn.Sequential(nn.Linear(hidden_size * sequence_length, 1), nn.Sigmoid())
-
-  def forward(self, x):
-    h0 = torch.zeros(self.num_layers, x.size()[0], self.hidden_size).to(self.device) # 초기 hidden state 설정하기.
-    out, _ = self.rnn(x, h0) # out: RNN의 마지막 레이어로부터 나온 output feature 를 반환한다. hn: hidden state를 반환한다.
-    out = out.reshape(out.shape[0], -1) # many to many 전략
-    return out
-
-def forward(self, x):
-    h0 = torch.zeros(self.num_layers, x.size()[0], self.hidden_size).to(self.device) # 초기 hidden state 설정하기.
-    out, _ = self.rnn(x, h0) # out: RNN의 마지막 레이어로부터 나온 output feature 를 반환한다. hn: hidden state를 반환한다.
-    out = out.reshape(out.shape[0], -1) # many to many 전략
-    return out
+    def forward(self, x):
+        out = self.layer1(x)
+        out = self.layer2(x)
+        out = self.layer3(x)
+        return out
 
 def define_RBF(dof=39, nbStates=60, offset=200, width=60, T=4000, coeff = 250):
     tList = np.arange(T)
@@ -359,7 +360,7 @@ def PCAlearning():
     train_yx = timeseries(x_inputs_train[key], y_x_train[key])
     test_yx = timeseries(x_inputs_test[key], y_x_test[key])
 
-    batch_size = 3
+    batch_size = 1
     train_loader = torch.utils.data.DataLoader(dataset=train_y, batch_size=batch_size, shuffle=True)
     test_loader = torch.utils.data.DataLoader(dataset=test_y, batch_size=batch_size, shuffle=True)
     train_vel_loader = torch.utils.data.DataLoader(dataset=train_yvel, batch_size=batch_size, shuffle=True)
@@ -377,20 +378,19 @@ def PCAlearning():
     num_layers = 5
     hidden_size = rbf_num
 
-    model = VanillaRNN(input_size=input_size,
+    model = CNN(input_size=input_size,
                 hidden_size=hidden_size,
                 sequence_length=sequence_length,
                 num_layers=num_layers,
                 device=device).to(device)
-
-    
+        
     #qdot
     input_size = 19
     sequence_length = 1
     num_layers = 10
     hidden_size = rbf_num
 
-    model1 = VanillaRNN(input_size=input_size,
+    model1 = CNN(input_size=input_size,
                 hidden_size=hidden_size,
                 sequence_length=sequence_length,
                 num_layers=num_layers,
@@ -402,7 +402,7 @@ def PCAlearning():
     num_layers = 5
     hidden_size = rbf_num
 
-    model2 = VanillaRNN(input_size=input_size,
+    model2 = CNN(input_size=input_size,
                 hidden_size=hidden_size,
                 sequence_length=sequence_length,
                 num_layers=num_layers,
@@ -414,7 +414,7 @@ def PCAlearning():
     num_layers = 10
     hidden_size = rbf_num
 
-    model3 = VanillaRNN(input_size=input_size,
+    model3 = CNN(input_size=input_size,
                 hidden_size=hidden_size,
                 sequence_length=sequence_length,
                 num_layers=num_layers,
@@ -425,11 +425,12 @@ def PCAlearning():
     num_layers = 5
     hidden_size = rbf_num
 
-    model4 = VanillaRNN(input_size=input_size,
+    model4 = CNN(input_size=input_size,
                 hidden_size=hidden_size,
                 sequence_length=sequence_length,
                 num_layers=num_layers,
                 device=device).to(device)
+
     model.train()
     model1.train()
     model2.train()
@@ -438,7 +439,7 @@ def PCAlearning():
     if learn_type == 0:
         criterion = nn.MSELoss()
         lr = 0.001
-        num_epochs = 200
+        num_epochs = 5
         optimizer = optim.Adam(model.parameters(), lr=lr)
         loss_graph = []
 
@@ -454,10 +455,10 @@ def PCAlearning():
                 if epoch % 1 == 0:
                     print ('Epoch [{}/{}],  Loss: {:.4f}' 
                        .format(epoch+1, num_epochs, loss.item()))
-
+        
         criterion = nn.MSELoss()
         lr = 0.001
-        num_epochs = 200
+        num_epochs = 20
         optimizer1 = optim.Adam(model1.parameters(), lr=lr)
         loss_graph = []
 
@@ -473,12 +474,12 @@ def PCAlearning():
                 optimizer1.step()
 
             if epoch % 1 == 0:
-                print ('2Epoch [{}/{}],  Loss: {:.4f}' 
+                print ('1Epoch [{}/{}],  Loss: {:.4f}' 
                        .format(epoch+1, num_epochs, loss.item()))
     
         criterion = nn.MSELoss()
         lr = 0.001
-        num_epochs = 200
+        num_epochs = 50
         optimizer2 = optim.Adam(model2.parameters(), lr=lr)
         loss_graph = []
 
@@ -498,7 +499,7 @@ def PCAlearning():
         
         criterion = nn.MSELoss()
         lr = 0.001
-        num_epochs = 200
+        num_epochs = 50
         optimizer3 = optim.Adam(model3.parameters(), lr=lr)
         loss_graph = []
 
@@ -519,7 +520,7 @@ def PCAlearning():
 
         criterion = nn.MSELoss()
         lr = 0.001
-        num_epochs = 200
+        num_epochs = 50
         optimizer4 = optim.Adam(model4.parameters(), lr=lr)
         loss_graph = []
 
@@ -538,26 +539,23 @@ def PCAlearning():
                 print ('4Epoch [{}/{}],  Loss: {:.4f}' 
                     .format(epoch+1, num_epochs, loss.item()))
 
-        torch.save(model.state_dict(), '/home/jhk/data/mpc/rnn.pkl')
-        torch.save(model1.state_dict(), '/home/jhk/data/mpc/rnn1.pkl')
-        torch.save(model2.state_dict(), '/home/jhk/data/mpc/rnn2.pkl')
-        torch.save(model3.state_dict(), '/home/jhk/data/mpc/rnn3.pkl')
-        torch.save(model4.state_dict(), '/home/jhk/data/mpc/rnn4.pkl')
+        torch.save(model.state_dict(), '/home/jhk/data/mpc/cnn.pkl')
+        torch.save(model1.state_dict(), '/home/jhk/data/mpc/cnn1.pkl')
+        torch.save(model2.state_dict(), '/home/jhk/data/mpc/cnn2.pkl')
+        torch.save(model3.state_dict(), '/home/jhk/data/mpc/cnn3.pkl')
+        torch.save(model4.state_dict(), '/home/jhk/data/mpc/cnn4.pkl')
+        
     else:
-        model.load_state_dict(torch.load('/home/jhk/data/mpc/rnn.pkl'))
-        model1.load_state_dict(torch.load('/home/jhk/data/mpc/rnn1.pkl'))
-        model2.load_state_dict(torch.load('/home/jhk/data/mpc/rnn2.pkl'))
-        model3.load_state_dict(torch.load('/home/jhk/data/mpc/rnn3.pkl'))
-        model4.load_state_dict(torch.load('/home/jhk/data/mpc/rnn4.pkl'))
-
-    
+        model.load_state_dict(torch.load('/home/jhk/data/mpc/cnn.pkl'))
+        model1.load_state_dict(torch.load('/home/jhk/data/mpc/cnn1.pkl'))
+        model2.load_state_dict(torch.load('/home/jhk/data/mpc/cnn2.pkl'))
+        model3.load_state_dict(torch.load('/home/jhk/data/mpc/cnn3.pkl'))
+        model4.load_state_dict(torch.load('/home/jhk/data/mpc/cnn4.pkl'))
 
     JJ = np.random.randint(x_inputs_test[key].shape[0])
     X = x_inputs_test['right'][JJ][None,:]
-    X = X.reshape(1, sequence_length, input_size).to(device)
-    print("old X")
-    print(X)
-    print(pytorch_model_summary.summary(model, X, max_depth = True,show_parent_layers = True))
+    X = X.reshape(1, sequence_length, input_size).to(device)        
+    
     traj = np.zeros(19)
     traj_vel = np.zeros(18)
     traj_x = np.zeros(8)
@@ -570,23 +568,12 @@ def PCAlearning():
 
     thread_manager = multiprocessing.Array(ctypes.c_int, thread_manager1)
     queue = multiprocessing.Array(ctypes.c_float, X.numpy()[0][0])
-    '''
-    queue1 = multiprocessing.Queue()
-    queue1.put(X)
-    queue2 = multiprocessing.Queue()
-    queue2.put(X)
-    queue3 = multiprocessing.Queue()
-    queue3.put(X)
-    queue4 = multiprocessing.Queue()
-    queue4.put(X)
-    '''
-    #X_manager = X.share_memory()
     model.eval()
     model1.eval()
     model2.eval()
     model3.eval()
     model4.eval()
-    
+    '''
     p1 = multiprocessing.Process(target=InversePCA, args=(model, rbf_num, pca, Phi, queue, thread_manager))
     p2 = multiprocessing.Process(target=InversePCA1, args=(model1, rbf_num, pca_vel, Phi, queue, thread_manager))
     p3 = multiprocessing.Process(target=InversePCA2, args=(model2, rbf_num, pca_x, Phi, queue, thread_manager))
@@ -602,19 +589,10 @@ def PCAlearning():
     JJ = np.random.randint(x_inputs_test[key].shape[0])
     X = x_inputs_test['right'][JJ][None,:]
     X = X.reshape(1, sequence_length, input_size).to(device)
-
-    #X_manager['right'] = X
     
-    time.sleep(2)
-    
-    print("new X")
-    print(X)
-    #queue.put(X)
-    #queue1.put(X)
-    #queue2.put(X)
-    #queue3.put(X)
-    #queue4.put(X)
-    
+    time.sleep(5)
+    queue = multiprocessing.Array(ctypes.c_float, X.numpy()[0][0])
+    print(thread_manager)
     if(thread_manager[0] == 1 and thread_manager[1] == 1 and thread_manager[2] == 1 and thread_manager[3] == 1 and thread_manager[4] == 1):
         for i in range(0,5):
             thread_manager[i] = 0
@@ -623,42 +601,58 @@ def PCAlearning():
         if(thread_manager[0] == 1 and thread_manager[1] == 1 and thread_manager[2] == 1 and thread_manager[3] == 1 and thread_manager[4] == 1):
             break
     
-    tic = time.time()
-    w_traj = model(X)
-    w_traj = w_traj[0].detach().numpy()
-    w_traj = pca[key].inverse_transform([w_traj[None,:]])[0]
-    w_traj = w_traj.reshape(rbf_num,-1)
 
-    w_traj_dot = model1(X)
-    w_traj_dot = w_traj_dot[0].detach().numpy()
-    w_traj_dot = pca_vel[key].inverse_transform([w_traj_dot[None,:]])[0]
-    w_traj_dot = w_traj_dot.reshape(rbf_num,-1)
+    timer.sleep(5)
+    '''
+    for i in range(0, 30):
+        print(i)
+        JJ = np.random.randint(x_inputs_test[key].shape[0])
+        print(JJ)
+        X = x_inputs_test['right'][JJ][None,:]
+        X = X.reshape(1, sequence_length, input_size).to(device)   
 
-    w_traj_x = model2(X)
-    w_traj_x = w_traj_x[0].detach().numpy()
-    w_traj_x = pca_x[key].inverse_transform([w_traj_x[None,:]])[0]
-    w_traj_x = w_traj_x.reshape(rbf_num,-1)
-
-    w_traj_acc = model3(X)
-    w_traj_acc = w_traj_acc[0].detach().numpy()
-    w_traj_acc = pca_acc[key].inverse_transform([w_traj_acc[None,:]])[0]
-    w_traj_acc = w_traj_acc.reshape(rbf_num,-1)
-
-    w_traj_u = model4(X)
-    w_traj_u = w_traj_u[0].detach().numpy()
-    w_traj_u = pca_u[key].inverse_transform([w_traj_u[None,:]])[0]
-    w_traj_u = w_traj_u.reshape(rbf_num,-1)
-
-    traj = np.dot(Phi,w_traj)
-    traj_vel = np.dot(Phi,w_traj_dot)
-    traj_acc = np.dot(Phi,w_traj_acc)
-    traj_u = np.dot(Phi,w_traj_u)
-    traj_x = np.dot(Phi,w_traj_x)
+        tic = time.time()
+        w_traj = model(X)
+        w_traj = w_traj[0].detach().numpy()
+        w_traj = pca[key].inverse_transform([w_traj[None,:]])[0]
+        w_traj = w_traj.reshape(rbf_num,-1)
+        tic1 = time.time()
+        w_traj_dot = model1(X)
+        w_traj_dot = w_traj_dot[0].detach().numpy()
+        w_traj_dot = pca_vel[key].inverse_transform([w_traj_dot[None,:]])[0]
+        w_traj_dot = w_traj_dot.reshape(rbf_num,-1)
+        tic2 = time.time()
+        w_traj_x = model2(X)
+        w_traj_x = w_traj_x[0].detach().numpy()
+        w_traj_x = pca_x[key].inverse_transform([w_traj_x[None,:]])[0]
+        w_traj_x = w_traj_x.reshape(rbf_num,-1)
+        tic3 = time.time()
+        w_traj_acc = model3(X)
+        w_traj_acc = w_traj_acc[0].detach().numpy()
+        w_traj_acc = pca_acc[key].inverse_transform([w_traj_acc[None,:]])[0]
+        w_traj_acc = w_traj_acc.reshape(rbf_num,-1)
+        tic4 = time.time()
+        w_traj_u = model4(X)
+        w_traj_u = w_traj_u[0].detach().numpy()
+        w_traj_u = pca_u[key].inverse_transform([w_traj_u[None,:]])[0]
+        w_traj_u = w_traj_u.reshape(rbf_num,-1)
+        tic5 = time.time()
+        traj = np.dot(Phi,w_traj)
+        traj_vel = np.dot(Phi,w_traj_dot)
+        traj_acc = np.dot(Phi,w_traj_acc)
+        traj_u = np.dot(Phi,w_traj_u)
+        traj_x = np.dot(Phi,w_traj_x)
+        toc = time.time()
+        tt = tic - toc
+        time.sleep(1)
     
-    toc = time.time()
-    tt = tic - toc
-    print(tt)
-    
+        print(tic5 - tic4)
+        print(tic4 - tic3)
+        print(tic3 - tic2)
+        print(tic2 - tic1)
+        print(tic1 - tic)
+    '''    
+
     q_pca = traj
     v_pca = traj_vel
     x_pca = traj_x
@@ -673,6 +667,7 @@ def PCAlearning():
         us_pca.append(np.concatenate([a, u]))
     del us_pca[-1]
     xs_pca_test = x_inputs_test[key][JJ][None,:][0]#.detach().numpy()[0]
+    '''
     
 def talker():
     global xs_pca_test, xs_pca, us_pca
