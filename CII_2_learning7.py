@@ -33,6 +33,13 @@ import pytorch_model_summary
 #thread_manager = manager.list()
 #X_manager = manager.dict()
 
+global q_traj, v_traj, acc_traj, x_traj, u_traj
+q_traj = multiprocessing.Array(ctypes.c_float, range(30*19))
+v_traj = multiprocessing.Array(ctypes.c_float, range(30*18))
+acc_traj= multiprocessing.Array(ctypes.c_float, range(30*18))
+x_traj= multiprocessing.Array(ctypes.c_float, range(30*8))
+u_traj = multiprocessing.Array(ctypes.c_float, range(30*4))
+
 def InversePCA(model, rbf_num, pca, Phi, X, thread_manager):
     while True:
         if thread_manager[0] == 0:
@@ -44,6 +51,7 @@ def InversePCA(model, rbf_num, pca, Phi, X, thread_manager):
             w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
+            q_traj[:] = traj1.flatten()
             t2 = time.time()
             print("thread1")
             print(ti)
@@ -62,6 +70,7 @@ def InversePCA1(model, rbf_num, pca, Phi, X, thread_manager):
             w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
+            v_traj[:] = traj1.flatten()
             t2 = time.time()
             print("thread2")
             print(ti)
@@ -80,6 +89,7 @@ def InversePCA2(model, rbf_num, pca, Phi, X, thread_manager):
             w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
+            x_traj[:] = traj1.flatten()
             t2 = time.time()
             print("thread3")
             print(ti)
@@ -98,6 +108,7 @@ def InversePCA3(model, rbf_num, pca, Phi, X, thread_manager):
             w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
+            acc_traj[:] = traj1.flatten()
             t2 = time.time()
             print("thread4")
             print(ti)
@@ -116,6 +127,7 @@ def InversePCA4(model, rbf_num, pca, Phi, X, thread_manager):
             w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
+            u_traj[:] = traj1.flatten()
             t2 = time.time()
             print("thread5")
             print(ti)
@@ -147,14 +159,14 @@ class CNN(nn.Module):
             torch.nn.Flatten()
         )
         self.layer3 = torch.nn.Sequential(
-            torch.nn.Linear(in_features = 19, out_features= 8),
+            torch.nn.Linear(in_features = 19, out_features= 30),
             torch.nn.ReLU(),
-            torch.nn.Linear(in_features = 8, out_features = 40)
+            torch.nn.Linear(in_features = 30, out_features = 40)
             )
 
     def forward(self, x):
-        out = self.layer1(x)
-        out = self.layer2(x)
+        #out = self.layer1(x)
+        #out = self.layer2(x)
         out = self.layer3(x)
         return out
 
@@ -186,7 +198,8 @@ def PCAlearning():
     global xs_pca_test
     global xs_pca
     global us_pca
-    learn_type = 0
+
+    learn_type = 1
     database = dict()
     database['left'] = dict()
     database['right'] = dict()
@@ -555,25 +568,19 @@ def PCAlearning():
     JJ = np.random.randint(x_inputs_test[key].shape[0])
     X = x_inputs_test['right'][JJ][None,:]
     X = X.reshape(1, sequence_length, input_size).to(device)        
-    
-    traj = np.zeros(19)
-    traj_vel = np.zeros(18)
-    traj_x = np.zeros(8)
-    traj_acc = np.zeros(18)
-    traj_u = np.zeros(4)
 
     thread_manager1 = []
     for i in range(0,5):
         thread_manager1.append(0)
 
     thread_manager = multiprocessing.Array(ctypes.c_int, thread_manager1)
-    queue = multiprocessing.Array(ctypes.c_float, X.numpy()[0][0])
+    queue = multiprocessing.Array(ctypes.c_float, X.numpy()[0][0].tolist())
     model.eval()
     model1.eval()
     model2.eval()
     model3.eval()
     model4.eval()
-    '''
+
     p1 = multiprocessing.Process(target=InversePCA, args=(model, rbf_num, pca, Phi, queue, thread_manager))
     p2 = multiprocessing.Process(target=InversePCA1, args=(model1, rbf_num, pca_vel, Phi, queue, thread_manager))
     p3 = multiprocessing.Process(target=InversePCA2, args=(model2, rbf_num, pca_x, Phi, queue, thread_manager))
@@ -589,10 +596,9 @@ def PCAlearning():
     JJ = np.random.randint(x_inputs_test[key].shape[0])
     X = x_inputs_test['right'][JJ][None,:]
     X = X.reshape(1, sequence_length, input_size).to(device)
-    
-    time.sleep(5)
-    queue = multiprocessing.Array(ctypes.c_float, X.numpy()[0][0])
-    print(thread_manager)
+    time.sleep(3)
+    queue[:] = X.numpy()[0][0]
+
     if(thread_manager[0] == 1 and thread_manager[1] == 1 and thread_manager[2] == 1 and thread_manager[3] == 1 and thread_manager[4] == 1):
         for i in range(0,5):
             thread_manager[i] = 0
@@ -600,17 +606,9 @@ def PCAlearning():
     while(thread_manager[0] == 0 or thread_manager[1] == 0 or thread_manager[2] == 0 or thread_manager[3] == 0 or thread_manager[4] ==  0):
         if(thread_manager[0] == 1 and thread_manager[1] == 1 and thread_manager[2] == 1 and thread_manager[3] == 1 and thread_manager[4] == 1):
             break
-    
 
-    timer.sleep(5)
     '''
-    for i in range(0, 30):
-        print(i)
-        JJ = np.random.randint(x_inputs_test[key].shape[0])
-        print(JJ)
-        X = x_inputs_test['right'][JJ][None,:]
-        X = X.reshape(1, sequence_length, input_size).to(device)   
-
+    for i in range(0, 1):
         tic = time.time()
         w_traj = model(X)
         w_traj = w_traj[0].detach().numpy()
@@ -651,23 +649,39 @@ def PCAlearning():
         print(tic3 - tic2)
         print(tic2 - tic1)
         print(tic1 - tic)
-    '''    
-
+    '''
+    #traj = np.dot(Phi,q_traj)
+    #traj_vel = np.dot(Phi,v_traj)
+    #traj_x = np.dot(Phi,x_traj)
+    #traj_acc = np.dot(Phi,acc_traj)
+    #traj_u = np.dot(Phi,u_traj)
+    
+    q_pca = np.array(q_traj).reshape(30,19)
+    v_pca = np.array(v_traj).reshape(30,18)
+    x_pca = np.array(x_traj).reshape(30,8)
+    acc_pca = np.array(acc_traj).reshape(30,18)
+    u_pca = np.array(u_traj).reshape(30,4)
+    '''
+    print(acc_pca)
     q_pca = traj
     v_pca = traj_vel
     x_pca = traj_x
     acc_pca = traj_acc
     u_pca = traj_u
+    print(acc_pca)
+    '''
     xs_pca = []
     us_pca = []
+
     for q, v, x in zip(q_pca, v_pca, x_pca):
         xs_pca.append(np.concatenate([q, v, x]))
         
     for a, u in zip(acc_pca, u_pca):
         us_pca.append(np.concatenate([a, u]))
     del us_pca[-1]
+
     xs_pca_test = x_inputs_test[key][JJ][None,:][0]#.detach().numpy()[0]
-    '''
+    
     
 def talker():
     global xs_pca_test, xs_pca, us_pca
@@ -1095,7 +1109,7 @@ def talker():
     #ddp.alphas = [2**(-n) for n in range(10)]
     ddp.th_stop = 5.0
     c_start = time.time()
-    css = ddp.solve(xs_pca, us_pca, 300, False, 0.5)
+    css = ddp.solve(xs_pca, us_pca, 300, False, 1.0)
     c_end = time.time()
     duration = (1e3 * (c_end - c_start))
 
