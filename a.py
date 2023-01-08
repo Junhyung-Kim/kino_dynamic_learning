@@ -1,0 +1,1 @@
+from posix_ipc import SharedMemory

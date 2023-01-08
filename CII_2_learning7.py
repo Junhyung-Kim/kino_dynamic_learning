@@ -28,20 +28,50 @@ import torch.optim as optim
 import torch.multiprocessing as multiprocessing
 import ctypes
 import pytorch_model_summary
+import sysv_ipc
 
 #manager = multiprocessing.Manager()
 #thread_manager = manager.list()
 #X_manager = manager.dict()
 
 global q_traj, v_traj, acc_traj, x_traj, u_traj
+global p1, p2, p3, p4, p5
+global PCA_1, PCA_2, PCA_3, PCA_4, PCA_5
+global thread_manager
 q_traj = multiprocessing.Array(ctypes.c_float, range(30*19))
 v_traj = multiprocessing.Array(ctypes.c_float, range(30*18))
 acc_traj= multiprocessing.Array(ctypes.c_float, range(30*18))
 x_traj= multiprocessing.Array(ctypes.c_float, range(30*8))
 u_traj = multiprocessing.Array(ctypes.c_float, range(30*4))
+PCA_1 = True
+PCA_2 = True
+PCA_3 = True
+PCA_4 = True
+PCA_5 = True
+
+class CShmReader :
+ 
+    def __init__(self) :
+ 
+        pass
+ 
+    def doReadShm(self, key, sizex, sizey) :
+        memory = sysv_ipc.SharedMemory(key)
+        memory_value = memory.read()
+        c = np.ndarray((sizex, sizey), dtype=np.float, buffer=memory_value)
+        print (c[1])
+        print ("memory_value")
+
+    def doWriteShm(self, key, Input) :
+        memory = sysv_ipc.SharedMemory(key)
+        c = Input
+        memory.write(c)
+        print("c")
+        print(c)
 
 def InversePCA(model, rbf_num, pca, Phi, X, thread_manager):
-    while True:
+    global PCA_1
+    while PCA_1:
         if thread_manager[0] == 0:
             ti = time.time()
             a = np.array(X[:])
@@ -58,9 +88,13 @@ def InversePCA(model, rbf_num, pca, Phi, X, thread_manager):
             print(t2)
             print(t2 - ti)
             thread_manager[0] = 1
+        elif thread_manager[0] == 2:
+            PCA_1 = False
+
 
 def InversePCA1(model, rbf_num, pca, Phi, X, thread_manager):
-    while True:
+    global PCA_2
+    while PCA_2:
         if thread_manager[1] == 0:
             ti = time.time()
             a = np.array(X[:])
@@ -77,9 +111,12 @@ def InversePCA1(model, rbf_num, pca, Phi, X, thread_manager):
             print(t2)
             print(t2 - ti)
             thread_manager[1] = 1
+        elif thread_manager[1] == 2:
+            PCA_2 = False
 
 def InversePCA2(model, rbf_num, pca, Phi, X, thread_manager):
-    while True:
+    global PCA_3
+    while PCA_3:
         if thread_manager[2] == 0:
             ti = time.time()
             a = np.array(X[:])
@@ -96,9 +133,12 @@ def InversePCA2(model, rbf_num, pca, Phi, X, thread_manager):
             print(t2)
             print(t2 - ti)
             thread_manager[2] = 1
+        elif thread_manager[2] == 2:
+            PCA_3 = False
 
 def InversePCA3(model, rbf_num, pca, Phi, X, thread_manager):
-    while True:
+    global PCA_4
+    while PCA_4:
         if thread_manager[3] == 0:
             ti = time.time()
             a = np.array(X[:])
@@ -115,9 +155,12 @@ def InversePCA3(model, rbf_num, pca, Phi, X, thread_manager):
             print(t2)
             print(t2 - ti)
             thread_manager[3] = 1
+        elif thread_manager[3] == 2:
+            PCA_4 = False
 
 def InversePCA4(model, rbf_num, pca, Phi, X, thread_manager):
-    while True:
+    global PCA_5
+    while PCA_5:
         if thread_manager[4] == 0:
             ti = time.time()
             a = np.array(X[:])
@@ -134,6 +177,8 @@ def InversePCA4(model, rbf_num, pca, Phi, X, thread_manager):
             print(t2)
             print(t2 - ti)
             thread_manager[4] = 1
+        elif thread_manager[4] == 2:
+            PCA_5 = False
     
 class timeseries(Dataset):
     def __init__(self,x,y):
@@ -198,7 +243,10 @@ def PCAlearning():
     global xs_pca_test
     global xs_pca
     global us_pca
+    global thread_manager
+    global p1, p2, p3, p4, p5
 
+    shared_x = CShmReader()
     learn_type = 1
     database = dict()
     database['left'] = dict()
@@ -670,18 +718,19 @@ def PCAlearning():
     u_pca = traj_u
     print(acc_pca)
     '''
-    xs_pca = []
-    us_pca = []
+    xs_pca = np.empty((0,45))
+    us_pca = np.empty((0,22))
 
     for q, v, x in zip(q_pca, v_pca, x_pca):
-        xs_pca.append(np.concatenate([q, v, x]))
-        
+        xs_pca = np.append(xs_pca, np.array([np.concatenate([q, v, x])]), axis=0)
+   
     for a, u in zip(acc_pca, u_pca):
-        us_pca.append(np.concatenate([a, u]))
-    del us_pca[-1]
+        us_pca = np.append(us_pca, np.array([np.concatenate([a, u])]), axis=0)
 
     xs_pca_test = x_inputs_test[key][JJ][None,:][0]#.detach().numpy()[0]
-    
+
+    shared_x.doWriteShm(1700, xs_pca)
+    #shared_x.doWriteShm(1701, us_pca)
     
 def talker():
     global xs_pca_test, xs_pca, us_pca
@@ -742,73 +791,6 @@ def talker():
     MAXITER = 300
     dt_ = 1.2 / float(N)
     PCAlearning()
-    '''
-    for i in range(0,len(lines)):
-        if lines[i].strip('\n') == 'walking_tick':
-            loop = loop + 1
-        if bool_u == 1:
-            count_u_temp = count_u_temp + 1
-            if count_u2 == 0:
-                array_u[count_u].append(float(lines[i].strip('\n').strip(str(count_u)).strip('\t').strip(",").strip("ustate")))
-            else:
-                array_u[count_u].append(float(lines[i].strip('\n').strip(str(count_u)).strip('\t').strip(",")))
-            count_u2 = count_u2 + 1
-            if count_u_temp == 4:
-                    count_u = count_u + 1
-                    count_u2 = 0
-                    count_u_temp = 0
-                    bool_u = 0
-
-        if lines[i].strip('\n').strip('\t') == "u" or bool_qdot == 1:
-            if count_qddot2 == 29:
-                count_qddot2 = 0
-
-            bool_qdot = 1
-            count_qddot_temp = count_qddot_temp + 1
-            if count_qddot_temp > 1:
-                array_qddot[count_qddot].append(float(lines[i].strip('\n').strip(str(count_qddot2)).strip('\t').strip(",")))
-            
-            if count_qddot_temp == 19:
-                bool_qdot = 0
-                count_qddot = count_qddot + 1
-                count_qddot2 = count_qddot2 + 1
-                count_qddot_temp = 0
-                bool_u = 1
-
-        if(i >= 6):
-            if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] >= 0 and divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] < 19:
-                if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] == 0:
-                    array_q[count_q].append(float(lines[i].strip('\n').strip(str(count_q_temp)).strip('\t').strip(",")))
-                else:
-                    array_q[count_q].append(float(lines[i].strip('\n').strip('\t').strip(",")))
-                if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] == 18:
-                    count_q = count_q + 1
-                    count_q_temp = count_q_temp + 1
-                    if count_q_temp == 30:
-                        count_q_temp = 0
-
-            if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] > 19 and divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] < 38:
-                if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] == 20:
-                    array_qdot[count_qdot].append(float(lines[i].strip('\n').strip(str(count_qdot_temp)).strip('\t').strip(",")))
-                else:
-                    array_qdot[count_qdot].append(float(lines[i].strip('\n').strip('\t').strip(",")))
-                if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] == 37:
-                    count_qdot = count_qdot + 1
-                    count_qdot_temp = count_qdot_temp + 1
-                    if count_qdot_temp == 30:
-                        count_qdot_temp = 0
-
-            if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] > 38 and divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] < 47:
-                if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] == 39:
-                    array_xstate[count_xstate].append(float(lines[i].strip('\n').strip(str(count_xstate_temp)).strip('\t').strip(",")))
-                else:
-                    array_xstate[count_xstate].append(float(lines[i].strip('\n').strip('\t').strip(",")))
-                if divmod(int(i - 6 * loop - 2106*(loop - 1)), int(71))[1] == 46:
-                    count_xstate = count_xstate + 1
-                    count_xstate_temp = count_xstate_temp + 1
-                    if count_xstate_temp == 30:
-                        count_xstate_temp = 0
-    '''
     lines1_array = []
     for i in range(0, len(lines3)):
         lines1_array.append(lines3[i].split())
@@ -897,8 +879,7 @@ def talker():
     qdot_init = pinocchio.utils.zero(model.nv)
     qddot = pinocchio.utils.zero(model.nv)
     q_init = [0, 0, 0.80783, 0, 0, 0, 1, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0, -0.55, 1.26, -0.71, 0]
-    #q_init = [1.00000000e-01,  0.00000000e+00,  8.07830000e-01,  0.00000000e+00, 0.00000000e+00 , 0.00000000e+00 , 1.00000000e+00, -4.58270337e-17,5.49813461e-19, -3.36530703e-01,  1.17717832e+00, -8.40647617e-01,1.23071442e-16 , 4.25905878e-16,  8.33360457e-17, -3.36530703e-01, 1.17717832e+00 ,-8.40647617e-01,  2.46142884e-16]
-
+   
     for i in range(0, len(q)):
         q[i] = xs_pca_test[i]
 
@@ -1106,24 +1087,28 @@ def talker():
     terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
 
     problemWithRK4.x0 = xs[0]
-    #ddp.alphas = [2**(-n) for n in range(10)]
     ddp.th_stop = 5.0
     c_start = time.time()
     css = ddp.solve(xs_pca, us_pca, 300, False, 1.0)
     c_end = time.time()
     duration = (1e3 * (c_end - c_start))
 
-    '''
-    print(ddp.xs[15])
-   
-    '''
-    print("end")
     avrg_duration = duration
     min_duration = duration #min(duration)
     max_duration = duration #max(duration)
     print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
     print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, walking_tick))
 
+    global thread_manager
+    global p1, p2, p3, p4, p5
+
+    for i in range(0,5):
+        thread_manager[i] = 2
+    p1.join()
+    p2.join()
+    p3.join()
+    p4.join()
+    p5.join()
 
     '''
     f4.write("walking_tick ")
@@ -1473,6 +1458,6 @@ def talker():
 if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)
     client.run()
-    #PCAlearning()
-    talker()
+    PCAlearning()
+    #talker()
 
