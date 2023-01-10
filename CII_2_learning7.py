@@ -55,20 +55,13 @@ class CShmReader :
  
     def doReadShm(self, sizex, sizey) :
         memory_value = self.memory.read()
-        print(len(memory_value))
-        print(memory_value[0])
-        print(memory_value[1])
-        print(memory_value[2])
-        print(memory_value[3])
         c = np.ndarray((sizex,sizey), dtype=np.int32, buffer=memory_value)
-        print (c[0,0])
-        print ("memory_value")
+        return c
 
     def doReadShm1(self, sizex, sizey) :
         memory_value = self.memory.read()
         c = np.ndarray((sizex,sizey), dtype=np.float, buffer=memory_value)
-        print (c)
-        print ("memory_value1")
+        return c
 
     def doWriteShm(self, Input) :
         self.memory.write(Input)
@@ -89,10 +82,12 @@ def InversePCA(model, rbf_num, pca, Phi, X, thread_manager):
             traj1 = np.dot(Phi,w_traj)
             q_traj[:] = traj1.flatten()
             t2 = time.time()
+            '''
             print("thread1")
             print(ti)
             print(t2)
             print(t2 - ti)
+            '''
             thread_manager[0] = 1
         elif thread_manager[0] == 2:
             PCA_1 = False
@@ -112,10 +107,12 @@ def InversePCA1(model, rbf_num, pca, Phi, X, thread_manager):
             traj1 = np.dot(Phi,w_traj)
             v_traj[:] = traj1.flatten()
             t2 = time.time()
+            '''
             print("thread2")
             print(ti)
             print(t2)
             print(t2 - ti)
+            '''
             thread_manager[1] = 1
         elif thread_manager[1] == 2:
             PCA_2 = False
@@ -134,10 +131,12 @@ def InversePCA2(model, rbf_num, pca, Phi, X, thread_manager):
             traj1 = np.dot(Phi,w_traj)
             x_traj[:] = traj1.flatten()
             t2 = time.time()
+            '''
             print("thread3")
             print(ti)
             print(t2)
             print(t2 - ti)
+            '''
             thread_manager[2] = 1
         elif thread_manager[2] == 2:
             PCA_3 = False
@@ -156,10 +155,10 @@ def InversePCA3(model, rbf_num, pca, Phi, X, thread_manager):
             traj1 = np.dot(Phi,w_traj)
             acc_traj[:] = traj1.flatten()
             t2 = time.time()
-            print("thread4")
-            print(ti)
-            print(t2)
-            print(t2 - ti)
+            #print("thread4")
+           #print(ti)
+           # print(t2)
+           # print(t2 - ti)
             thread_manager[3] = 1
         elif thread_manager[3] == 2:
             PCA_4 = False
@@ -178,10 +177,10 @@ def InversePCA4(model, rbf_num, pca, Phi, X, thread_manager):
             traj1 = np.dot(Phi,w_traj)
             u_traj[:] = traj1.flatten()
             t2 = time.time()
-            print("thread5")
-            print(ti)
-            print(t2)
-            print(t2 - ti)
+            #print("thread5")
+            #print(ti)
+            #print(t2)
+            #print(t2 - ti)
             thread_manager[4] = 1
         elif thread_manager[4] == 2:
             PCA_5 = False
@@ -254,6 +253,9 @@ def PCAlearning():
 
     shared_x = CShmReader(100)
     shared_u = CShmReader(101)
+    ddp_start = CShmReader(102)
+    ddp_finish = CShmReader(102)
+    ddp_start1 = CShmReader(103)
     learn_type = 1
     database = dict()
     database['left'] = dict()
@@ -650,63 +652,71 @@ def PCAlearning():
     
     loop = 0.0
 
-    while loop < 5:
-        JJ = np.random.randint(x_inputs_test[key].shape[0])
-        X = x_inputs_test['right'][JJ][None,:]
-        X = X.reshape(1, sequence_length, input_size).to(device)
+    ddpdata = ddp_start.doReadShm(1,4)
+    ddpdata = []
+    ddpdata = np.ndarray((1,4), dtype=np.int32, buffer=ddp_start.memory.read())
+    finish = np.zeros((1,4), dtype=np.int32)
+    newstart = np.zeros((1,4), dtype=np.int32)
 
-        queue[:] = X.numpy()[0][0]
+    while True:
+        a = np.ndarray((1,4), dtype=np.int32, buffer=ddp_start.memory.read())[0][0]
+        if a == 1:
+            JJ = np.random.randint(x_inputs_test[key].shape[0])
+            X = x_inputs_test['right'][JJ][None,:]
+            X = X.reshape(1, sequence_length, input_size).to(device)
 
-        if(thread_manager[0] == 1 and thread_manager[1] == 1 and thread_manager[2] == 1 and thread_manager[3] == 1 and thread_manager[4] == 1):
-            for i in range(0,5):
-                thread_manager[i] = 0
+            queue[:] = X.numpy()[0][0]
 
-        while(thread_manager[0] == 0 or thread_manager[1] == 0 or thread_manager[2] == 0 or thread_manager[3] == 0 or thread_manager[4] ==  0):
             if(thread_manager[0] == 1 and thread_manager[1] == 1 and thread_manager[2] == 1 and thread_manager[3] == 1 and thread_manager[4] == 1):
-                break
-        print("Aaa")
-        q_pca = np.array(q_traj).reshape(30,19)
-        v_pca = np.array(v_traj).reshape(30,18)
-        x_pca = np.array(x_traj).reshape(30,8)
-        acc_pca = np.array(acc_traj).reshape(30,18)
-        u_pca = np.array(u_traj).reshape(30,4)
-    
-        xs_pca = np.empty((0,45))
-        us_pca = np.empty((0,22))
+                for i in range(0,5):
+                    thread_manager[i] = 0
 
-        for q, v, x in zip(q_pca, v_pca, x_pca):
-            xs_pca = np.append(xs_pca, np.array([np.concatenate([q, v, x])]), axis=0)
-            #xs_pca.append(np.concatenate([q, v, x]))
-        for a, u in zip(acc_pca, u_pca):
-            us_pca = np.append(us_pca, np.array([np.concatenate([a, u])]), axis=0)
-            #us_pca.append(np.concatenate([a, u]))
-
-        xs_pca_test = x_inputs_test[key][JJ][None,:].detach().numpy()
-        xs_pca_test1 = x_inputs_test[key][JJ][None,:].detach().numpy().reshape(1,19)
-        for i  in range(0, 19):
-            us_pca[29][i] = xs_pca_test[0][i]
-        if loop == 0:
-            shared_x.doWriteShm(xs_pca)
-            shared_u.doWriteShm(us_pca)
-        else:
-            shared_x.memory.write(xs_pca)
-            shared_u.memory.write(us_pca)
-        #shared_value.doReadShm(1702, 1, 1)
-        #shared_initx.doReadShm1(1703, 1, 45)
+            while(thread_manager[0] == 0 or thread_manager[1] == 0 or thread_manager[2] == 0 or thread_manager[3] == 0 or thread_manager[4] ==  0):
+                if(thread_manager[0] == 1 and thread_manager[1] == 1 and thread_manager[2] == 1 and thread_manager[3] == 1 and thread_manager[4] == 1):
+                    break
+                    
+            
+            xs_pca_test = x_inputs_test[key][JJ][None,:][0]
         
-        print("X")
-        print(xs_pca)
-
-        print("U")
-        print(us_pca)
+            q_pca = np.array(q_traj).reshape(30,19)
+            v_pca = np.array(v_traj).reshape(30,18)
+            x_pca = np.array(x_traj).reshape(30,8)
+            acc_pca = np.array(acc_traj).reshape(30,18)
+            u_pca = np.array(u_traj).reshape(30,4)
         
-        time.sleep(5)
-        loop = loop + 1
-        thread_manager[0] = 0
-        thread_manager[1] = 0
-        thread_manager[2] = 0
-        thread_manager[3] = 0
-        thread_manager[4] = 0
+            xs_pca = np.empty((0,45))
+            us_pca = np.empty((0,22))
+
+            for q, v, x in zip(q_pca, v_pca, x_pca):
+                xs_pca = np.append(xs_pca, np.array([np.concatenate([q, v, x])]), axis=0)
+            for a, u in zip(acc_pca, u_pca):
+                us_pca = np.append(us_pca, np.array([np.concatenate([a, u])]), axis=0)
+
+            for i  in range(0, 19):
+                us_pca[29][i] = xs_pca_test[i]
+
+            if loop == 0:
+                shared_x.doWriteShm(xs_pca)
+                shared_u.doWriteShm(us_pca)
+            else:
+                shared_x.memory.write(xs_pca)
+                shared_u.memory.write(us_pca)
+
+            newstart[0] = 1
+            ddp_start1.memory.write(newstart)
+            ddp_finish.memory.write(finish)
+
+            loop = loop + 1
+            thread_manager[0] = 0
+            thread_manager[1] = 0
+            thread_manager[2] = 0
+            thread_manager[3] = 0
+            thread_manager[4] = 0
+        elif a == 0:
+            finish[0] = 0
+            #ddp_finish.memory.write(finish)
+        elif a == 2:
+            break
     
 if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)

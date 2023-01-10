@@ -55,20 +55,12 @@ class CShmReader :
  
     def doReadShm(self, sizex, sizey) :
         memory_value = self.memory.read()
-        print(len(memory_value))
-        print(memory_value[0])
-        print(memory_value[1])
-        print(memory_value[2])
-        print(memory_value[3])
         c = np.ndarray((sizex,sizey), dtype=np.int32, buffer=memory_value)
-        print (c[0,0])
-        print ("memory_value")
+        return c
 
     def doReadShm1(self, sizex, sizey) :
         memory_value = self.memory.read()
         c = np.ndarray((sizex,sizey), dtype=np.float, buffer=memory_value)
-        print (c)
-        print ("memory_value1")
         return c
 
     def doWriteShm(self, Input) :
@@ -82,6 +74,10 @@ def talker():
 
     shared_x = CShmReader(100)
     shared_u = CShmReader(101)
+    ddp_start = CShmReader(103)
+    ddp_finish = CShmReader(103)
+    ddp_restart = CShmReader(104)
+    ddp_sol = CShmReader(105)
 
     f = open("/home/jhk/data/mpc/4_tocabi_.txt", 'r')
     f2 = open("/home/jhk/data/mpc/4_tocabi_.txt", 'r')
@@ -229,9 +225,7 @@ def talker():
     qddot = pinocchio.utils.zero(model.nv)
     q_init = [0, 0, 0.80783, 0, 0, 0, 1, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0, -0.55, 1.26, -0.71, 0]
     loop = 0
-    xs_pca_ = shared_x.doReadShm1(30, 45)
-    us_pca_ = shared_u.doReadShm1(30, 22)
-
+     
     xs_pca =[]
     us_pca =[]
     xs_pca_test = []
@@ -244,13 +238,9 @@ def talker():
     for q in zip(us_pca_[:N-1]):
         us_pca.append(np.concatenate([q[0]]))
 
-
     xs_pca_test = us_pca_[N-1]
     us_pca = us_pca[:N-1]
-    print("time")
-    print(us_pca)
-    print(xs_pca_test)
-    print("aaa")
+
     for i in range(0, len(q_)):
         q_[i] = xs_pca_test[i]
     
@@ -395,7 +385,7 @@ def talker():
     
     terminalModel = crocoddyl.IntegratedActionModelEuler(terminalDAM, dt_)
     problemWithRK4 = crocoddyl.ShootingProblem(x0, runningModelWithRK4_vector, terminalModel)
-    problemWithRK4.nthreads = 3
+    problemWithRK4.nthreads = 2
     ddp = crocoddyl.SolverBoxFDDP(problemWithRK4)
 
     walking_tick = 23
@@ -441,18 +431,67 @@ def talker():
     terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
     terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
 
-    problemWithRK4.x0 = xs[0]
-    ddp.th_stop = 5.0
-    c_start = time.time()
-    css = ddp.solve(xs_pca, us_pca, 300, False, 20.0)
-    c_end = time.time()
-    duration = (1e3 * (c_end - c_start))
+    finish = np.zeros((1,4), dtype=np.int32)
+    newstart = np.zeros((1,4), dtype=np.int32)
+    sol = np.zeros((1,45), dtype=np.double)
 
-    avrg_duration = duration
-    min_duration = duration #min(duration)
-    max_duration = duration #max(duration)
-    print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
-    print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, walking_tick))
+    while True:
+        a = np.ndarray((1,4), dtype=np.int32, buffer=ddp_start.memory.read())[0][0]
+        if a == 1:
+            #ddp_start
+            xs_pca =[]
+            us_pca =[]
+            xs_pca_test = []
+        
+            xs_pca_ = np.ndarray((30,45), dtype=np.float, buffer=shared_x.memory.read())
+            us_pca_ = np.ndarray((30,22), dtype=np.float, buffer=shared_u.memory.read())
+        
+            for q in zip(xs_pca_):
+                xs_pca.append(np.concatenate([q[0]]))
+            for q in zip(us_pca_[:N-1]):
+                us_pca.append(np.concatenate([q[0]]))
+
+            xs_pca_test = us_pca_[N-1]
+            us_pca = us_pca[:N-1]
+            
+            for i in range(0,len(q_init)):
+                x0[i] = xs_pca_test[i]
+
+            for i in range(0, len(q_)):
+                q_[i] = xs_pca_test[i]
+        
+            pinocchio.forwardKinematics(model, data, q_, qdot)
+            pinocchio.updateFramePlacements(model,data)
+            pinocchio.centerOfMass(model, data, q_, False)
+            pinocchio.computeCentroidalMomentum(model,data,q_,qdot)
+
+            x0[37] = data.com[0][0]
+            x0[39] = data.com[0][0]
+            x0[41] = data.com[0][1]
+            x0[43] = data.com[0][1]
+
+            problemWithRK4.x0 = x0
+            ddp.th_stop = 5.0
+            c_start = time.time()
+            css = ddp.solve(xs_pca, us_pca, 300, False, 20.0)
+            c_end = time.time()
+            duration = (1e3 * (c_end - c_start))
+            sol = ddp.xs[1]
+            ddp_sol.memory.write(sol)
+            newstart[0] = 1
+            ddp_restart.memory.write(newstart)
+            
+            avrg_duration = duration
+            min_duration = duration #min(duration)
+            max_duration = duration #max(duration)
+            print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
+            print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, walking_tick))
+            ddp_finish.memory.write(finish)
+        elif a == 0:
+            finish[0] = 0
+            #ddp_finish.memory.write(finish)
+        elif a == 2:
+            break
 
     '''
     global thread_manager
