@@ -187,8 +187,8 @@ def InversePCA4(model, rbf_num, pca, Phi, X, thread_manager):
     
 class timeseries(Dataset):
     def __init__(self,x,y):
-        self.x = torch.tensor(x,dtype=torch.float32)
-        self.y = torch.tensor(y,dtype=torch.float32)
+        self.x = x.clone().detach()#torch.tensor(x,dtype=torch.float32)
+        self.y = y.clone().detach()#torch.tensor(y,dtype=torch.float32)
         self.len = x.shape[0]
         
     def __getitem__(self,idx):

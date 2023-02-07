@@ -954,6 +954,7 @@ def talker():
     weight_quad_com = np.array([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
     weight_quad_rf = np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
     weight_quad_lf = np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
+    weight_quad_pelvis = np.array([weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
 
     lb_ = np.ones([2, N])
     ub_ = np.ones([2, N])
@@ -989,8 +990,11 @@ def talker():
     comBoundCost_vector = [None] *  (N)
     rf_foot_pos_vector = [None] *  (N)
     lf_foot_pos_vector = [None] *  (N)
+    pelvis_rot_vector = [None] *  (N)
     residual_FrameRF = [None] *  (N)
+    residual_FramePelvis = [None] *  (N)
     residual_FrameLF = [None] *  (N)
+    PelvisR = [None] *  (N)
     foot_trackR = [None] *  (N)
     foot_trackL = [None] *  (N)
     runningCostModel_vector = [None] * (N-1)
@@ -1013,9 +1017,12 @@ def talker():
         rf_foot_pos_vector[i] = pinocchio.SE3.Identity()
         rf_foot_pos_vector[i].translation = copy(RF_tran.translation)
         lf_foot_pos_vector[i] = pinocchio.SE3.Identity()
+        pelvis_rot_vector[i] = pinocchio.SE3.Identity()
         lf_foot_pos_vector[i].translation = copy(LF_tran.translation)
+        #residual_FramePelvis[i] = crocoddyl.ResidualFrameRotation(state_vector[i], Pelvis_id, pelvis_rot_vector[i], actuation_vector[i].nu + 4)
         residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
         residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
+        PelvisR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_pelvis), residual_FramePelvis[i])
         foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
         foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
         runningCostModel_vector[i] = crocoddyl.CostModelSum(state_vector[i], actuation_vector[i].nu+4)
@@ -1024,6 +1031,7 @@ def talker():
         runningCostModel_vector[i].addCost("comReg", comBoundCost_vector[i], 1.0)
         runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
         runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)
+    
         runningDAM_vector[i] = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[i], actuation_vector[i], runningCostModel_vector[i])
         runningModelWithRK4_vector[i] = crocoddyl.IntegratedActionModelEuler(runningDAM_vector[i], dt_)
     
@@ -1039,6 +1047,9 @@ def talker():
     rf_foot_pos_vector[N-1].translation = copy(RF_tran.translation)
     lf_foot_pos_vector[N-1] = pinocchio.SE3.Identity()
     lf_foot_pos_vector[N-1].translation = copy(LF_tran.translation)
+    pelvis_rot_vector[N-1] = pinocchio.SE3.Identity()
+    #residual_FramePelvis[N-1] = crocoddyl.ResidualFrameRotation(state_vector[N-1], Pelvis_id, pelvis_rot_vector[N-1], actuation_vector[N-1].nu + 4)
+    PelvisR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_pelvis), residual_FramePelvis[N-1])
     residual_FrameRF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], RFframe_id, rf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
     residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
     foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
@@ -1050,6 +1061,7 @@ def talker():
     terminalCostModel.addCost("comReg", comBoundCost_vector[N-1], 1.0)
     terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
     terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
+    terminalCostModel.addCost("pelvisReg1", PelvisR[N-1], 1.0)
     terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
 
     for i in range(0,N):

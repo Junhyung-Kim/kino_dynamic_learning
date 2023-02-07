@@ -13,181 +13,15 @@ from sklearn.model_selection import train_test_split
 
 global client
 
-def rotateWithY(pitch_angle):
-    rotate_with_y = np.zeros((3,3))
-
-    rotate_with_y[0, 0] = np.cos(pitch_angle)
-    rotate_with_y[1, 0] = 0.0
-    rotate_with_y[2, 0] = -1 * np.sin(pitch_angle)
-
-    rotate_with_y[0, 1] = 0.0
-    rotate_with_y[1, 1] = 1.0
-    rotate_with_y[2, 1] = 0.0
-
-    rotate_with_y[0, 2] = np.sin(pitch_angle)
-    rotate_with_y[1, 2] = 0.0
-    rotate_with_y[2, 2] = np.cos(pitch_angle)
-
-    return rotate_with_y 
-
-def rotateWithX(roll_angle):
-    rotate_with_x = np.zeros((3,3))
-
-    rotate_with_x[0, 0] = 1.0
-    rotate_with_x[1, 0] = 0.0
-    rotate_with_x[2, 0] = 0.0
-
-    rotate_with_x[0, 1] = 0.0
-    rotate_with_x[1, 1] = np.cos(roll_angle)
-    rotate_with_x[2, 1] = np.sin(roll_angle)
-
-    rotate_with_x[0, 2] = 0.0
-    rotate_with_x[1, 2] = -1 * np.sin(roll_angle)
-    rotate_with_x[2, 2] = np.cos(roll_angle)
-
-    return rotate_with_x  
-
-def rotateWithZ(yaw_angle):
-    rotate_with_z = np.zeros((3,3))
-
-    rotate_with_z[0, 0] = np.cos(yaw_angle)
-    rotate_with_z[1, 0] = np.sin(yaw_angle)
-    rotate_with_z[2, 0] = 0.0
-
-    rotate_with_z[0, 1] = -1 * np.sin(yaw_angle)
-    rotate_with_z[1, 1] = np.cos(yaw_angle)
-    rotate_with_z[2, 1] = 0.0
-
-    rotate_with_z[0, 2] = 0.0
-    rotate_with_z[1, 2] = 0.0
-    rotate_with_z[2, 2] = 1.0
-
-    return rotate_with_z
-
-
-def inverseKinematics(time, LF_rot_c, RF_rot_c, PELV_rot_c, LF_tran_c, RF_tran_c, PELV_tran_c, HRR_tran_init_c, HLR_tran_init_c, HRR_rot_init_c, HLR_rot_init_c, PELV_tran_init_c, PELV_rot_init_c, CPELV_tran_init_c):
-    global leg_q, leg_qdot, leg_qddot, leg_qs, leg_qdots, leg_qddots
-    M_PI = 3.14159265358979323846
-    if time == 0:
-        leg_q = np.zeros(12)
-        leg_qdot = np.zeros(12)
-        leg_qddot = np.zeros(12)
-        leg_qs = np.zeros((int(1), 12))
-        leg_qdots = np.zeros((int(1), 12))
-        leg_qddots = np.zeros((int(1), 12))
-
-    l_upper = 0.35
-    l_lower = 0.35
-
-    offset_hip_pitch = 0.0
-    offset_knee_pitch = 0.0
-    offset_ankle_pitch = 0.0
-
-    lpt = np.subtract(PELV_tran_c, LF_tran_c)
-    rpt = np.subtract(PELV_tran_c, RF_tran_c)
-    lp = np.matmul(np.transpose(LF_rot_c), lpt)
-    rp = np.matmul(np.transpose(RF_rot_c), rpt)
-    
-    PELF_rot = np.matmul(np.transpose(PELV_rot_c), LF_rot_c)
-    PERF_rot = np.matmul(np.transpose(PELV_rot_c), RF_rot_c)
-
-    ld = np.zeros(3)  
-    rd = np.zeros(3)
-
-    ld[0] = HLR_tran_init_c[0] - PELV_tran_init_c[0]
-    ld[1] = HLR_tran_init_c[1] - PELV_tran_init_c[1]
-    ld[2] = -(CPELV_tran_init_c[2] - HLR_tran_init_c[2]) + (CPELV_tran_init_c[2] - PELV_tran_init_c[2])
-
-    rd[0] = HRR_tran_init_c[0] - PELV_tran_init_c[0]
-    rd[1] = HRR_tran_init_c[1] - PELV_tran_init_c[1]
-    rd[2] = -(CPELV_tran_init_c[2] - HRR_tran_init_c[2]) + (CPELV_tran_init_c[2] - PELV_tran_init_c[2])
-
-    ld = np.matmul(np.transpose(LF_rot_c), ld)
-    rd = np.matmul(np.transpose(RF_rot_c), rd)
-
-    lr = np.add(lp, ld)
-    rr = np.add(rp, rd)
-
-    lc = np.linalg.norm(lr)
-
-    leg_q[3] = -1 * np.arccos((l_upper * l_upper + l_lower * l_lower - lc * lc) / (2 * l_upper * l_lower)) + M_PI
-    l_ankle_pitch = np.arcsin((l_upper * np.sin(M_PI - leg_q[3])) / lc)
-    leg_q[4] = -1 * np.arctan2(lr[0], np.sqrt(lr[1] * lr[1] + lr[2] * lr[2])) - l_ankle_pitch
-    leg_q[5] = np.arctan2(lr[1], lr[2])
-
-    r_tl2 = np.zeros((3,3))
-    r_l2l3 = np.zeros((3,3))
-    r_l3l4 = np.zeros((3,3))
-    r_l4l5 = np.zeros((3,3))
-
-    r_l2l3 = rotateWithY(leg_q[3])
-    r_l3l4 = rotateWithY(leg_q[4])
-    r_l4l5 = rotateWithX(leg_q[5])
-
-    r_tl2 = np.matmul(np.matmul(np.matmul(PELF_rot, np.transpose(r_l4l5)),np.transpose(r_l3l4)),np.transpose(r_l2l3))
-    leg_q[1] = np.arcsin(r_tl2[2, 1])
-
-    c_lq5 = np.divide(-r_tl2[0, 1], np.cos(leg_q[1]))
-
-    if c_lq5 > 1.0:
-        c_lq5 = 1.0
-    elif c_lq5 < -1.0:
-        c_lq5 = -1.0
-    
-    leg_q[0] = -1 * np.arcsin(c_lq5)
-    leg_q[2] = -1 * np.arcsin(r_tl2[2, 0] / np.cos(leg_q[1])) + offset_hip_pitch
-    leg_q[3] = leg_q[3] - offset_knee_pitch
-    leg_q[4] = leg_q[4] - offset_ankle_pitch
-
-    rc = np.linalg.norm(rr)
-    leg_q[9] = -1 * np.arccos((l_upper * l_upper + l_lower * l_lower - rc * rc) / (2 * l_upper * l_lower)) + M_PI
-
-    r_ankle_pitch = np.arcsin((l_upper * np.sin(M_PI - leg_q[9])) / rc)
-    leg_q[10] = -1 * np.arctan2(rr[0], np.sqrt(rr[1] * rr[1] + rr[2] * rr[2])) - r_ankle_pitch
-    leg_q[11] = np.arctan2(rr[1], rr[2])
-    r_tr2 = np.zeros((3,3))
-    r_r2r3 = np.zeros((3,3))
-    r_r3r4 = np.zeros((3,3))
-    r_r4r5 = np.zeros((3,3))
-
-    r_r2r3 = rotateWithY(leg_q[9])
-    r_r3r4 = rotateWithY(leg_q[10])
-    r_r4r5 = rotateWithX(leg_q[11])
-
-    r_tr2 = np.matmul(np.matmul(np.matmul(PERF_rot, np.transpose(r_r4r5)),np.transpose(r_r3r4)),np.transpose(r_r2r3))
-    leg_q[7] = np.arcsin(r_tr2[2,1])
-    c_rq5 = -r_tr2[0, 1] / np.cos(leg_q[7])
-
-    if c_rq5 > 1.0:
-        c_rq5 = 1.0
-    elif c_rq5 < -1.0:
-        c_rq5 = -1.0 
-    
-    leg_q[6] = -1* np.arcsin(c_rq5)
-    leg_q[8] = np.arcsin(r_tr2[2, 0] / np.cos(leg_q[7])) - offset_hip_pitch
-    leg_q[9] = -1 * leg_q[9] + offset_knee_pitch
-    leg_q[10] = -1 * leg_q[10] + offset_ankle_pitch
-
-    leg_q[0] = leg_q[0] * (-1)
-    leg_q[6] = leg_q[6] * (-1)
-    leg_q[8] = leg_q[8] * (-1)
-    leg_q[9] = leg_q[9] * (-1)
-    leg_q[10] = leg_q[10] * (-1)
-
-    #leg_qs[time,:] = leg_q
-    '''
-    else:
-        leg_qdots[time,:] = np.subtract(leg_qs[time,:], leg_qs[time-1,:]) * hz
-        leg_qddots[time,:] = np.subtract(leg_qdots[time,:], leg_qdots[time-1,:]) * hz
-    '''
 def talker():
     print("start")
     f = open("/home/jhk/data/mpc/4_tocabi_.txt", 'r')
     f2 = open("/home/jhk/data/mpc/4_tocabi_.txt", 'r')
-    f1 = open("/home/jhk/data/mpc/3_tocabi_.txt", 'r')
+    f1 = open("/home/jhk/data/mpc/10_tocabi_.txt", 'r')
 
     f6 = open("/home/jhk/data/mpc/6_tocabi_py1.txt", 'r')
-    f5 = open("/home/jhk/data/mpc/5_tocabi_py1.txt", 'r')
+    f7 = open("/home/jhk/data/mpc/6_tocabi_py.txt", 'r')
+    f5 = open("/home/jhk/data/mpc/5_tocabi_py_save.txt", 'r')
 
     f3 = open("/home/jhk/data/mpc/5_tocabi_py.txt", 'w')
     f4 = open("/home/jhk/data/mpc/6_tocabi_py.txt", 'w')
@@ -196,6 +30,8 @@ def talker():
     lines1 = f2.readlines()
     lines2 = f1.readlines()
     lines3 = f6.readlines()
+    lines4 = f5.readlines()
+    lines5 = f7.readlines()
     loop = 0
     count_q = 0
     count_qdot = 0
@@ -219,12 +55,6 @@ def talker():
     array_u = [[] for i in range(int(len(lines1)/208)*29)]
     array_qddot = [[] for i in range(int(len(lines1)/208)*29)]
 
-    array_boundx = [[] for i in range(int(len(lines1)/208) * 30)]
-    array_boundy = [[] for i in range(int(len(lines1)/208) * 30)]
-
-    array_boundRF = [[] for i in range(int(len(lines1)/208) * 30)]
-    array_boundLF = [[] for i in range(int(len(lines1)/208) * 30)]
-
     array_qdot1 = [[] for i in range(int(len(lines3)/208) * 30)]
     array_q1 = [[] for i in range(int(len(lines3)/208) * 30)]
     array_xstate1 = [[] for i in range(int(len(lines3)/208) * 30)]
@@ -233,17 +63,25 @@ def talker():
 
     bool_q = 0
 
-    N = 100
+    N = 40    
     T = 1
     MAXITER = 300
-    dt_ = 1.2 / float(N)
+    dt_ = 0.03
     lines1_array = []
     for i in range(0, len(lines3)):
         lines1_array.append(lines3[i].split())
 
     lines2_array = []
     for i in range(0, len(lines2)):
-        lines2_array.append(lines2[i].split()) 
+        lines2_array.append(lines2[i].split())
+
+    lines6_array = []
+    for i in range(0, len(lines5)):
+        lines6_array.append(lines5[i].split())
+    
+    lines5_array = []
+    for i in range(0, len(lines4)):
+        lines5_array.append(lines4[i].split())
 
     loop = 0
     count_q = 0
@@ -262,6 +100,13 @@ def talker():
     count_qddot_temp = 0
     count_u_temp = 0
     count_bound2 = 0
+
+
+    array_boundx = [[] for i in range(int(len(lines2_array)))]
+    array_boundy = [[] for i in range(int(len(lines2_array)))]
+
+    array_boundRF = [[] for i in range(int(len(lines2_array)))]
+    array_boundLF = [[] for i in range(int(len(lines2_array)))]
 
     for i in range(0, len(lines1_array)):
         if len(lines1_array[i]) == 21:
@@ -291,27 +136,19 @@ def talker():
                     count_u = count_u + 1 
 
     for i in range(0, len(lines2_array)):
-        for j in range(0, len(lines2_array[i])):
-            if divmod(int(j), int(len(lines2_array[i])))[1] == 3:
-                array_boundx[i].append(float(lines2_array[i][j].strip('ub')))
-            if divmod(int(j), int(len(lines2_array[i])))[1] == 4:
-                array_boundx[i].append(float(lines2_array[i][j]))
-            if divmod(int(j), int(len(lines2_array[i])))[1] == 6:
-                array_boundy[i].append(float(lines2_array[i][j].strip('ub')))
-            if divmod(int(j), int(len(lines2_array[i])))[1] == 7:
-                array_boundy[i].append(float(lines2_array[i][j]))
-            if divmod(int(j), int(len(lines2_array[i])))[1] == 8:
-                array_boundRF[i].append(float(lines2_array[i][j]))
-            if divmod(int(j), int(len(lines2_array[i])))[1] == 9:
-                array_boundRF[i].append(float(lines2_array[i][j]))
-            if divmod(int(j), int(len(lines2_array[i])))[1] == 10:
-                array_boundRF[i].append(float(lines2_array[i][j]))
-            if divmod(int(j), int(len(lines2_array[i])))[1] == 11:
-                array_boundLF[i].append(float(lines2_array[i][j]))
-            if divmod(int(j), int(len(lines2_array[i])))[1] == 12:
-                array_boundLF[i].append(float(lines2_array[i][j]))
-            if divmod(int(j), int(len(lines2_array[i])))[1] == 13:
-                array_boundLF[i].append(float(lines2_array[i][j]))
+        array_boundx[i].append(float(lines2_array[i][1]))
+        array_boundx[i].append(float(lines2_array[i][2]))
+        array_boundy[i].append(float(lines2_array[i][3]))
+        array_boundy[i].append(float(lines2_array[i][4]))
+
+        array_boundRF[i].append(float(lines2_array[i][5]))
+        array_boundRF[i].append(float(lines2_array[i][6]))
+        array_boundRF[i].append(float(lines2_array[i][7]))
+
+        array_boundLF[i].append(float(lines2_array[i][8]))
+        array_boundLF[i].append(float(lines2_array[i][9]))
+        array_boundLF[i].append(float(lines2_array[i][10]))
+
     f.close()
     f1.close()
     f2.close()
@@ -337,6 +174,7 @@ def talker():
     RFframe_id = model.getFrameId("R_Foot_Link")
     PELVframe_id = model.getFrameId("Pelvis_Link")
     PELVjoint_id = model.getJointId("root_joint")
+    Pelvis_id = model.getFrameId("Pelvis_Link")  
 
     contactPointLF = pinocchio.SE3.Identity()
     contactPointRF = pinocchio.SE3.Identity()
@@ -418,6 +256,8 @@ def talker():
     weight_quad_com = np.array([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
     weight_quad_rf = np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
     weight_quad_lf = np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
+    #weight_quad_pelvis = np.array([0.0] +[0.0] +[0.0] +[weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
+    weight_quad_pelvis = np.array([weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
 
     print(weight_quad_zmp)
     print(weight_quad_cam)
@@ -458,8 +298,11 @@ def talker():
     comBoundCost_vector = [None] *  (N)
     rf_foot_pos_vector = [None] *  (N)
     lf_foot_pos_vector = [None] *  (N)
+    pelvis_rot_vector = [None] *  (N)
     residual_FrameRF = [None] *  (N)
+    residual_FramePelvis = [None] *  (N)
     residual_FrameLF = [None] *  (N)
+    PelvisR = [None] *  (N)
     foot_trackR = [None] *  (N)
     foot_trackL = [None] *  (N)
     runningCostModel_vector = [None] * (N-1)
@@ -482,9 +325,12 @@ def talker():
         rf_foot_pos_vector[i] = pinocchio.SE3.Identity()
         rf_foot_pos_vector[i].translation = copy(RF_tran)
         lf_foot_pos_vector[i] = pinocchio.SE3.Identity()
+        pelvis_rot_vector[i] = pinocchio.SE3.Identity()
         lf_foot_pos_vector[i].translation = copy(LF_tran)
+        residual_FramePelvis[i] = crocoddyl.ResidualKinoFrameRotation(state_vector[i], Pelvis_id, pelvis_rot_vector[i].rotation, actuation_vector[i].nu + 4)
         residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
         residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
+        PelvisR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_pelvis), residual_FramePelvis[i])
         foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
         foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
         runningCostModel_vector[i] = crocoddyl.CostModelSum(state_vector[i], actuation_vector[i].nu+4)
@@ -493,8 +339,10 @@ def talker():
         runningCostModel_vector[i].addCost("comReg", comBoundCost_vector[i], 1.0)
         runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
         runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)
+        runningCostModel_vector[i].addCost("pelvisReg1", PelvisR[i], 1.0)
         runningDAM_vector[i] = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[i], actuation_vector[i], runningCostModel_vector[i])
         runningModelWithRK4_vector[i] = crocoddyl.IntegratedActionModelEuler(runningDAM_vector[i], dt_)
+
     
     state_vector[N-1] = crocoddyl.StateKinodynamic(model)
     actuation_vector[N-1] = crocoddyl.ActuationModelKinoBase(state_vector[N-1])
@@ -508,19 +356,23 @@ def talker():
     rf_foot_pos_vector[N-1].translation = copy(RF_tran)
     lf_foot_pos_vector[N-1] = pinocchio.SE3.Identity()
     lf_foot_pos_vector[N-1].translation = copy(LF_tran)
+    pelvis_rot_vector[N-1] = pinocchio.SE3.Identity()
+    residual_FramePelvis[N-1] = crocoddyl.ResidualKinoFrameRotation(state_vector[N-1], Pelvis_id, pelvis_rot_vector[N-1].rotation, actuation_vector[N-1].nu + 4)
+    PelvisR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_pelvis), residual_FramePelvis[N-1])
     residual_FrameRF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], RFframe_id, rf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
     residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
     foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
     foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])
-    
+
     terminalCostModel = crocoddyl.CostModelSum(state_vector[N-1], actuation_vector[N-1].nu + 4)
     terminalCostModel.addCost("stateReg", stateBoundCost_vector[N-1], weight_quad_zmp[0])
-    #terminalCostModel.addCost("camReg", camBoundCost_vector[N-1], 1.0)
+    terminalCostModel.addCost("camReg", camBoundCost_vector[N-1], 1.0)
     terminalCostModel.addCost("comReg", comBoundCost_vector[N-1], 1.0)
     terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
     terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
+    terminalCostModel.addCost("pelvisReg1", PelvisR[N-1], 1.0)
     terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
-
+    
     walking_tick = 23
 
     #model IK
@@ -536,18 +388,16 @@ def talker():
         xs[i] = copy(x0)
     for i in range(0,N-1):
         us[i] = copy(u0)
-    
+
     terminalModel = crocoddyl.IntegratedActionModelEuler(terminalDAM, dt_)
     problemWithRK4 = crocoddyl.ShootingProblem(x0, runningModelWithRK4_vector, terminalModel)
-    problemWithRK4.nthreads = 2
-    #SolverBoxFDDP
-    ddp = crocoddyl.SolverFDDP(problemWithRK4)
-    ddp.th_stop_ = 0.001
-    #ddp.solve(xs,us,1, False)
+    problemWithRK4.nthreads = 6
+    ddp = crocoddyl.SolverBoxFDDP(problemWithRK4)
+
     crocs_data = dict()
     crocs_data['left'] = dict()
     crocs_data['right'] = dict()
-
+    
     for key in crocs_data.keys():
         crocs_data[key]['foot_poses'] = []
         crocs_data[key]['trajs'] = []
@@ -560,42 +410,50 @@ def talker():
         crocs_data[key]['costs'] = []
         crocs_data[key]['iters'] = []
 
-    data_finish = True
-    while data_finish == True:
-        #data_finish =False
-        for k in range(0, len(q)):
-            q[k] = q_init[k]
+    
+    for k in range(0, len(q)):
+        q[k] = q_init[k]
         pinocchio.forwardKinematics(model, data, q, qdot)
         pinocchio.updateFramePlacements(model,data)
         pinocchio.updateGlobalPlacements(model,data)
         pinocchio.computeJointJacobians(model, data, q)
         pinocchio.centerOfMass(model, data, q, False)
-            
-        for l in range(0,len(q_init)):
-            x0[l] = q[l]
 
-        x0[37] = data.com[0][0]
-        x0[39] = data.com[0][0]
+    for l in range(0,len(q_init)):
+        x0[l] = q[l]
 
-        x0[41] = data.com[0][1]
-        x0[43] = data.com[0][1]
+    x0[37] = data.com[0][0]
+    x0[39] = data.com[0][0]
 
-        for l in range(0,N):
-            xs[l] = copy(x0)
+    x0[41] = data.com[0][1]
+    x0[43] = data.com[0][1]
 
+    xa = [-0.009382827210049295, -0.044176008994535845, 0.8037759351653524, -0.0002822091435760175, 0.0001368567960268929, -9.895868382979107e-06, 0.999999950765143, 6.965582276432355e-05, 0.07920334825297654, -0.5758418569533893, 1.2781141072272344, -0.7028097022565506, -0.07868533478184082, 6.484684056284059e-05, 0.07950212156410029, -0.5753645173310483, 1.2763975560466165, -0.7014716881032173, -0.07901431537458081,-0.03257943392307103, -0.08283845606009335, -0.027417862953676906, -0.005917352967832025, 0.0017532756022917667, 0.0018232099138384202, -0.000805666348945619, 0.15660234490275354, -0.13420751041183704, 0.1705078413781172, -0.04352827895038341, -0.15211130386525154, -0.002147801716301224, 0.1568012202890268, -0.09230901695330825, 0.06942862383677625, 0.022903118056381327, -0.14759295523535668,0.10799995674618354, -0.01918834876405507, 0.11223370004831743, -0.3678845102419561, -0.02702313884214806, -0.051285146723492214, -0.02851595239762792, 0.7372736317271776]
+
+    for l in range(0,len(x0)):
+        x0[l] = xa[l]
+    print(x0)
+    for l in range(0,N):
+        xs[l] = copy(x0)
+
+    #print(xs)
+
+    walking_tick = int(132)
+
+    while walking_tick <= 499:
         for l in range(0,N-1):
-            state_bounds[l].lb[0] = copy(array_boundx[30*(walking_tick)+l][0])
-            state_bounds[l].ub[0] = copy(array_boundx[30*(walking_tick)+l][1])
-            state_bounds[l].lb[1] = copy(array_boundy[30*(walking_tick)+l][0])
-            state_bounds[l].ub[1] = copy(array_boundy[30*(walking_tick)+l][1])
+            state_bounds[l].lb[0] = copy(array_boundx[walking_tick + 3*l][0])
+            state_bounds[l].ub[0] = copy(array_boundx[walking_tick + 3*l][1])
+            state_bounds[l].lb[1] = copy(array_boundy[walking_tick + 3*l][0])
+            state_bounds[l].ub[1] = copy(array_boundy[walking_tick + 3*l][1])
             state_activations[l].bounds = state_bounds[l]
             stateBoundCost_vector[l].activation_ = state_activations[l]
-            rf_foot_pos_vector[l].translation[0] = copy(array_boundRF[30*(walking_tick)+l][0])
-            rf_foot_pos_vector[l].translation[1] = copy(array_boundRF[30*(walking_tick)+l][1])
-            rf_foot_pos_vector[l].translation[2] = copy(array_boundRF[30*(walking_tick)+l][2])
-            lf_foot_pos_vector[l].translation[0] = copy(array_boundLF[30*(walking_tick)+l][0])
-            lf_foot_pos_vector[l].translation[1] = copy(array_boundLF[30*(walking_tick)+l][1])
-            lf_foot_pos_vector[l].translation[2] = copy(array_boundLF[30*(walking_tick)+l][2])
+            rf_foot_pos_vector[l].translation[0] = copy(array_boundRF[walking_tick + 3*l][0] + 0.0011286)
+            rf_foot_pos_vector[l].translation[1] = copy(array_boundRF[walking_tick + 3*l][1])
+            rf_foot_pos_vector[l].translation[2] = copy(array_boundRF[walking_tick + 3*l][2] - 0.016954)
+            lf_foot_pos_vector[l].translation[0] = copy(array_boundLF[walking_tick + 3*l][0] + 0.0011286)
+            lf_foot_pos_vector[l].translation[1] = copy(array_boundLF[walking_tick + 3*l][1])
+            lf_foot_pos_vector[l].translation[2] = copy(array_boundLF[walking_tick + 3*l][2] - 0.016954)
             residual_FrameRF[l] = crocoddyl.ResidualKinoFramePlacement(state_vector[l], RFframe_id, rf_foot_pos_vector[l], actuation_vector[l].nu + 4)
             residual_FrameLF[l] = crocoddyl.ResidualKinoFramePlacement(state_vector[l], LFframe_id, lf_foot_pos_vector[l], actuation_vector[l].nu + 4)
             foot_trackR[l] = crocoddyl.CostModelResidual(state_vector[l], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[l])
@@ -605,20 +463,20 @@ def talker():
             runningCostModel_vector[l].addCost("footReg1", foot_trackR[l], 1.0)
             runningCostModel_vector[l].addCost("footReg2", foot_trackL[l], 1.0)
 
-        state_bounds[N-1].lb[0] = copy(array_boundx[30*(walking_tick)+N-1][0])
-        state_bounds[N-1].ub[0] = copy(array_boundx[30*(walking_tick)+N-1][1])
-        state_bounds[N-1].lb[1] = copy(array_boundy[30*(walking_tick)+N-1][0])
-        state_bounds[N-1].ub[1] = copy(array_boundy[30*(walking_tick)+N-1][1])
+        state_bounds[N-1].lb[0] = copy(array_boundx[walking_tick + 3*(N-1)][0])
+        state_bounds[N-1].ub[0] = copy(array_boundx[walking_tick + 3*(N-1)][1])
+        state_bounds[N-1].lb[1] = copy(array_boundy[walking_tick + 3*(N-1)][0])
+        state_bounds[N-1].ub[1] = copy(array_boundy[walking_tick + 3*(N-1)][1])
         state_activations[N-1].bounds = state_bounds[N-1]
         stateBoundCost_vector[N-1].activation_ = state_activations[N-1]
-        rf_foot_pos_vector[N-1].translation[0] = copy(array_boundRF[30*(walking_tick)+N-1][0])
-        rf_foot_pos_vector[N-1].translation[1] = copy(array_boundRF[30*(walking_tick)+N-1][1])
-        rf_foot_pos_vector[N-1].translation[2] = copy(array_boundRF[30*(walking_tick)+N-1][2])
-        lf_foot_pos_vector[N-1].translation[0] = copy(array_boundLF[30*(walking_tick)+N-1][0])
-        lf_foot_pos_vector[N-1].translation[1] = copy(array_boundLF[30*(walking_tick)+N-1][1])
-        lf_foot_pos_vector[N-1].translation[2] = copy(array_boundLF[30*(walking_tick)+N-1][2])
+        rf_foot_pos_vector[N-1].translation[0] = copy(array_boundRF[walking_tick + 3*(N-1)][0] + 0.0011286)
+        rf_foot_pos_vector[N-1].translation[1] = copy(array_boundRF[walking_tick + 3*(N-1)][1])
+        rf_foot_pos_vector[N-1].translation[2] = copy(array_boundRF[walking_tick + 3*(N-1)][2]- 0.016954)
+        lf_foot_pos_vector[N-1].translation[0] = copy(array_boundLF[walking_tick + 3*(N-1)][0] + 0.0011286)
+        lf_foot_pos_vector[N-1].translation[1] = copy(array_boundLF[walking_tick + 3*(N-1)][1])
+        lf_foot_pos_vector[N-1].translation[2] = copy(array_boundLF[walking_tick + 3*(N-1)][2]- 0.016954)
         residual_FrameRF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], RFframe_id, rf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-        residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
+        residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)    
         foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
         foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])    
         terminalCostModel.removeCost("footReg1")
@@ -628,33 +486,28 @@ def talker():
         k_temp = 0
         iter_ = 0
         booltemp = True
-        problemWithRK4.x0 = xs[0]
-        c_start = time.time()
-        css = ddp.solve(xs, us, 1, False)
-        c_end = time.time()
-        duration = (1e3 * (c_end - c_start))
+        a_iter = 0
 
-        avrg_duration = duration
-        min_duration = duration #min(duration)
-        max_duration = duration #max(duration)
-        print("iter")
-        print(iter_)
-        print("kk")
-        print(i)
-        print(j)
-        print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
-        print('ddp.iter {0},{1},{2}'.format(ddp.iter, ddp.cost, walking_tick))
-        
-        print(LFframe_id)
-        print(RFframe_id)
-        Pelvis_id = model.getFrameId("Pelvis_Link")  
-        print(Pelvis_id)
-        '''
+        if(walking_tick < 60):
+            ddp.th_stop = 0.0001
+        else:
+            ddp.th_stop = 5e-5
+
+        if(walking_tick ==132):
+            problemWithRK4.x0 = x0            
+            ddp.solve(xs,us,3000,False)
+        else:
+            problemWithRK4.x0 = ddp.xs[1]
+            for i in range(0, N-1):
+                ddp.xs[i] = ddp.xs[i+1]
+            for i in range(0, N-2):
+                ddp.us[i] = ddp.us[i+1]
+
         while booltemp == True:
             booltemp1 = True
+
             c_start = time.time()
-            
-            css = ddp.solve(xs, us, 1, False)
+            css = ddp.solve(ddp.xs, ddp.us, 5000, False, 10.0)
             c_end = time.time()
             duration = (1e3 * (c_end - c_start))
 
@@ -663,97 +516,147 @@ def talker():
             max_duration = duration #max(duration)
             print("iter")
             print(iter_)
-            print("kk")
-            print(i)
-            print(j)
-            print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
-            print('ddp.iter {0},{1},{2}'.format(ddp.iter, ddp.cost, walking_tick))      
-            for l in range(0,N):
-                if l == 0:
-                    if(abs(ddp.xs[0][0]-xs[0][0])> 0.001):
-                        booltemp1 = False
-                        break
-                    if(abs(ddp.xs[0][1]-xs[1][1])> 0.001):
-                        booltemp1 = False
-                        break
-                    if(abs(ddp.xs[0][2]-xs[2][2])> 0.001):
-                        booltemp1 = False
-                        break
+            print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, css, max_duration))
+            print('ddp.iter {0},{1},{2}'.format(ddp.iter, ddp.cost, walking_tick))
+            if(walking_tick >= 496):
+                KKK = N
+            else:
+                KKK = N - 5
+            for l in range(1,KKK):
                 if l < N-1:
                     for a in range(0,3):
-                        if abs(runningCostModel_vector[l].costs['footReg1'].cost.residual.reference.translation[a]) > 0.006:
+                        if abs(runningCostModel_vector[l].costs['footReg1'].cost.residual.reference.translation[a]) > 0.008:
+                            print("11")
+                            print(l)
+                            print(runningCostModel_vector[l].costs['footReg1'].cost.residual.reference.translation)
                             booltemp1 = False
                             break
                     for a in range(0,3):
-                        if abs(runningCostModel_vector[l].costs['footReg2'].cost.residual.reference.translation[a]) > 0.006:
+                        if abs(runningCostModel_vector[l].costs['footReg2'].cost.residual.reference.translation[a]) > 0.008:
+                            print("22")
+                            print(l)
+                            print(runningCostModel_vector[l].costs['footReg2'].cost.residual.reference.translation)
                             booltemp1 = False
                             break
-                    for a in range(0,3):
+                    for a in range(0,2):
                         if abs(runningCostModel_vector[l].costs['comReg'].cost.residual.reference[a]) > 0.006:
+                            print("33")
+                            print(l)
+                            print(runningCostModel_vector[l].costs['comReg'].cost.residual.reference)
+                            booltemp1 = False
+                            break
+                    if abs(runningCostModel_vector[l].costs['comReg'].cost.residual.reference[2]) > 0.0065:
+                            print("33")
+                            print(l)
+                            print(runningCostModel_vector[l].costs['comReg'].cost.residual.reference)
                             booltemp1 = False
                             break
                     for a in range(0,3):
-                        if abs(runningCostModel_vector[l].costs['camReg'].cost.residual.reference[a]) > 0.01:
+                        if abs(runningCostModel_vector[l].costs['camReg'].cost.residual.reference[a]) > 0.008:
+                            print("44")
+                            print(l)
+                            print(runningCostModel_vector[l].costs['camReg'].cost.residual.reference)
                             booltemp1 = False
                             break
+                    
+                    for a in range(0,3):
+                        if abs(runningCostModel_vector[l].costs['footReg1'].cost.residual.reference.rotation[a,a]) > 0.02:
+                            print("ori1")
+                            print(l)
+                            print(runningCostModel_vector[l].costs['footReg1'].cost.residual.reference.rotation)
+                            booltemp1 = False
+                            break
+                    for a in range(0,3):
+                        if abs(runningCostModel_vector[l].costs['footReg2'].cost.residual.reference.rotation[a,a]) > 0.02:
+                            print("ori2")
+                            print(l)
+                            print(runningCostModel_vector[l].costs['footReg2'].cost.residual.reference.rotation)
+                            booltemp1 = False
+                            break
+                    for a in range(0,3):
+                        if abs(runningCostModel_vector[l].costs['pelvisReg1'].cost.residual.reference[a,a]) > 0.02:
+                            print("ori3")
+                            print(l)
+                            print(runningCostModel_vector[l].costs['pelvisReg1'].cost.residual.reference)
+                            booltemp1 = False
+                            break
+                    
                 else:
                     for a in range(0,3):
-                        if abs(terminalCostModel.costs['footReg1'].cost.residual.reference.translation[a]) > 0.006:
+                        if abs(terminalCostModel.costs['footReg1'].cost.residual.reference.translation[a]) > 0.008:
+                            print("111")
+                            print(terminalCostModel.costs['footReg1'].cost.residual.reference.translation)
                             booltemp1 = False
                             break
                     for a in range(0,3):
-                        if abs(terminalCostModel.costs['footReg2'].cost.residual.reference.translation[a]) > 0.006:
+                        if abs(terminalCostModel.costs['footReg2'].cost.residual.reference.translation[a]) > 0.008:
                             booltemp1 = False
+                            print("222")
+                            print(terminalCostModel.costs['footReg2'].cost.residual.reference.translation)
                             break
-                    for a in range(0,3):
+                    for a in range(0,2):
                         if abs(terminalCostModel.costs['comReg'].cost.residual.reference[a]) > 0.006:
                             booltemp1 = False
+                            print("333")
+                            print(terminalCostModel.costs['comReg'].cost.residual.reference)
+                            break
+                    if abs(terminalCostModel.costs['comReg'].cost.residual.reference[2]) > 0.0065:
+                            booltemp1 = False
+                            print("333")
+                            print(terminalCostModel.costs['comReg'].cost.residual.reference)
                             break
                     for a in range(0,3):
-                        if abs(terminalCostModel.costs['camReg'].cost.residual.reference[a]) > 0.01:
+                        if abs(terminalCostModel.costs['camReg'].cost.residual.reference[a]) > 0.008:
+                            print("444")
+                            print(terminalCostModel.costs['camReg'].cost.residual.reference)
+                            booltemp1 = False
+                            break
+                    
+                    for a in range(0,3):
+                        if abs(terminalCostModel.costs['footReg1'].cost.residual.reference.rotation[a,a]) > 0.02:
+                            print("ori11")
+                            booltemp1 = False
+                            break
+                    for a in range(0,3):
+                        if abs(terminalCostModel.costs['footReg2'].cost.residual.reference.rotation[a,a]) > 0.02:
+                            print("ori22")
+                            booltemp1 = False
+                            break
+                    for a in range(0,3):
+                        if abs(terminalCostModel.costs['pelvisReg1'].cost.residual.reference[a,a]) > 0.02:
+                            print("ori33")
                             booltemp1 = False
                             break
                 if booltemp1 == False:
                     print("booltemp1 error")
                     break
             
-            if booltemp1 == True and avrg_duration <= 30 and ddp.cost < 0.0016:
-                for key in crocs_data.keys():
-                    if key == 'left':
-                        for l in range(0,3):
-                            crocs_data[key]['foot_poses'].append([lf_foot_pos_vector[l].translation[0], lf_foot_pos_vector[l].translation[1], lf_foot_pos_vector[l].translation[2]])
-                    else:
-                        for l in range(0,3):
-                            crocs_data[key]['foot_poses'].append([rf_foot_pos_vector[l].translation[0], rf_foot_pos_vector[l].translation[1], rf_foot_pos_vector[l].translation[2]])
-                    #for l in range(0,N):
-                    traj = np.array(ddp.xs)[:,0:19]
-                    vel_traj = np.array(ddp.xs)[:,19:37]
-                    x_traj = np.array(ddp.xs)[:, 37:45]
+            '''
+            if(ddp.iter == 5000):
+                a_iter = a_iter + 1
 
-                    crocs_data[key]['x_inputs'].append(copy(ddp.xs[0][0:19]))
-                    crocs_data[key]['vel_trajs'].append(copy(vel_traj))
-                    crocs_data[key]['x_state'].append(copy(x_traj))
-                    crocs_data[key]['costs'].append(copy(ddp.cost))
-                    crocs_data[key]['iters'].append(copy(ddp.iter))
-                    crocs_data[key]['trajs'].append(copy(traj))
-
-                    #for l in range(0,N-1):
-                    u_traj = np.array(ddp.us)[:,18:22]
-                    acc_traj = np.array(ddp.us)[:, 0:18]
-                    crocs_data[key]['u_trajs'].append(copy(acc_traj))
-                    crocs_data[key]['acc_trajs'].append(copy(u_traj))
-
-                    f4.write("walking_tick ")
-                    f4.write(str(i))
-                    f4.write(" css ")
-                    f4.write(str(ddp.iter))
-                    f4.write(" ")
-                    f4.write(str(css))
-                    f4.write(" ")
-                    f4.write(str(j))
-                    f4.write("\n")
-                    
-                    for k in range(0, N-1):
+            if a_iter == 30:
+                a_iter = 0
+                print("a_iter finish")
+                booltemp1 = True
+            '''
+            if(iter_ == 80000):
+                booltemp1 = True
+            
+            if booltemp1 == True and css == True:# and ddp.cost < 0.02: 
+                a_iter = 0        
+                print(ddp.xs[1][:7])      
+                if(walking_tick >= 496):
+                    for k in range(0, N):
+                        f4.write("walking_tick ")
+                        f4.write(str(walking_tick + 3*k))
+                        f4.write(" css ")
+                        f4.write(str(ddp.iter))
+                        f4.write(" ")
+                        f4.write(str(css))
+                        f4.write(" ")
+                        f4.write(str(1.0))
+                        f4.write("\n")
                         f4.write("q ")
                         f4.write(str(k))
                         f4.write("\n")
@@ -776,36 +679,100 @@ def talker():
                         f4.write("u ")
                         f4.write(str(k))
                         f4.write("\n")  
-                        for a in range(0,18):
-                            f4.write(str(ddp.us[k][a]))
-                            f4.write(", ")
-                        f4.write("ustate ")
-            #            f4.write(str(i))
-                        f4.write("\n")  
-                        for a in range(18,22):
-                            f4.write(str(ddp.us[k][a]))
-                            f4.write(", ")
-                        f4.write("\n")
+                else:
+                    f4.write("walking_tick ")
+                    f4.write(str(walking_tick))
+                    
+                    f4.write(" css ")
+                    f4.write(str(ddp.iter))
+                    f4.write(" ")
+                    f4.write(str(css))
+                    f4.write(" ")
+                    f4.write(str(1.0))
+                    f4.write("\n")
                     f4.write("q ")
                     f4.write(str(N))
                     f4.write("\n")
                     for a in range(0,19):
-                        f4.write(str(ddp.xs[N-1][a]))
+                        f4.write(str(ddp.xs[1][a]))
                         f4.write(", ")
                     f4.write("qdot ")
                     f4.write(str(N-1))
                     f4.write("\n")            
                     for a in range(19,37):
-                        f4.write(str(ddp.xs[N-1][a]))
+                        f4.write(str(ddp.xs[1][a]))
                         f4.write(", ")
                     f4.write("x_state ")
                     f4.write(str(N-1))
                     f4.write("\n")  
                     for a in range(37,45):
-                        f4.write(str(ddp.xs[N-1][a]))
+                        f4.write(str(ddp.xs[1][a]))
                         f4.write(", ")
                     f4.write("\n")
+                    
+                #if iter_ == 80000:
+                for k in range(0, N-1):
+                    f3.write("walking_tick ")
+                    f3.write(str(walking_tick + 3*k))
+                    f3.write(" css ")
+                    f3.write(str(ddp.iter))
+                    f3.write(" ")
+                    f3.write(str(css))
+                    f3.write(" ")
+                    f3.write(str(1.0))
+                    f3.write("\n")
+                    f3.write("q ")
+                    f3.write(str(k))
+                    f3.write("\n")
+                    for a in range(0,19):
+                        f3.write(str(ddp.xs[k][a]))
+                        f3.write(", ")
+                    f3.write("qdot ")
+                    f3.write(str(k))
+                    f3.write("\n")            
+                    for a in range(19,37):
+                        f3.write(str(ddp.xs[k][a]))
+                        f3.write(", ")
+                    f3.write("x_state ")
+                    f3.write(str(k))
+                    f3.write("\n")  
+                    for a in range(37,45):
+                        f3.write(str(ddp.xs[k][a]))
+                        f3.write(", ")
+                    f3.write("\n")
+                    f3.write("u ")
+                    f3.write(str(k))
+                    f3.write("\n")
+                    for a in range(0,18):
+                        f3.write(str(ddp.us[k][a]))
+                        f3.write(", ")
+                    f3.write("ustate ")
+                    f3.write("\n")  
+                    for a in range(18,22):
+                        f3.write(str(ddp.us[k][a]))
+                        f3.write(", ")
+                    f3.write("\n")
+                f3.write("q ")
+                f3.write(str(N))
+                f3.write("\n")
+                for a in range(0,19):
+                    f3.write(str(ddp.xs[N-1][a]))
+                    f3.write(", ")
+                f3.write("qdot ")
+                f3.write(str(N-1))
+                f3.write("\n")            
+                for a in range(19,37):
+                    f3.write(str(ddp.xs[N-1][a]))
+                    f3.write(", ")
+                f3.write("x_state ")
+                f3.write(str(N-1))
+                f3.write("\n")  
+                for a in range(37,45):
+                    f3.write(str(ddp.xs[N-1][a]))
+                    f3.write(", ")
+                f3.write("\n")
                 print("Data save")
+                walking_tick = walking_tick + 3
                 booltemp = False
                 break
             else:
@@ -816,12 +783,35 @@ def talker():
             
             iter_ = iter_ + 1
             k_temp = k_temp + 1
-                                
-        '''
+
+    for k in range(0, N):
+        f4.write(str(walking_tick))
+        f4.write(" ")
+        f4.write(str(i))
+        f4.write(" ")
+        f4.write("lb")
+        f4.write(str(array_boundx[(walking_tick)+i*2][0]))
+        f4.write("ub ")
+        f4.write(str(array_boundx[(walking_tick)+i*2][1]))
+        f4.write(" ")
+        f4.write("lb ")
+        f4.write(str(array_boundy[(walking_tick)+i*2][0]))
+        f4.write("ub ")
+        f4.write(str(array_boundy[(walking_tick)+i*2][1]))
+        f4.write(" ")
+        f4.write(str(array_boundRF[(walking_tick)+i*2][0]))
+        f4.write(" ")
+        f4.write(str(array_boundRF[(walking_tick)+i*2][1]))
+        f4.write(" ")
+        f4.write(str(array_boundRF[(walking_tick)+i*2][2]))
+        f4.write(" ")
+        f4.write(str(array_boundLF[(walking_tick)+i*2][0]))
+        f4.write(" ")
+        f4.write(str(array_boundLF[(walking_tick)+i*2][1]))
+        f4.write(" ")
+        f4.write(str(array_boundLF[(walking_tick)+i*2][2]))
+        f4.write("\n")
 if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)
     client.run()
-    try:
-        talker()
-    except roslibpy.ROSInterruptException:
-        pass
+    talker()

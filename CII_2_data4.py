@@ -21,7 +21,7 @@ def talker():
 
     f6 = open("/home/jhk/data/mpc/6_tocabi_py1.txt", 'r')
     f7 = open("/home/jhk/data/mpc/6_tocabi_py.txt", 'r')
-    f5 = open("/home/jhk/data/mpc/6_tocabi_py_save.txt", 'r')
+    f5 = open("/home/jhk/data/mpc/5_tocabi_py_save.txt", 'r')
 
     f3 = open("/home/jhk/data/mpc/5_tocabi_py.txt", 'w')
     f4 = open("/home/jhk/data/mpc/6_tocabi_py.txt", 'w')
@@ -388,7 +388,10 @@ def talker():
         xs[i] = copy(x0)
     for i in range(0,N-1):
         us[i] = copy(u0)
-        #elif i >= 6 * end_k 
+
+    for i in range(0, len(lines5_array)):
+        if(i  == 13*20):
+            print(lines5_array[i])
 
 
     terminalModel = crocoddyl.IntegratedActionModelEuler(terminalDAM, dt_)
@@ -440,8 +443,8 @@ def talker():
 
     #print(xs)
 
-    walking_tick = int(192)
-    
+    walking_tick = int(132)
+
     for l in range(0,N-1):
         state_bounds[l].lb[0] = copy(array_boundx[walking_tick + 3*l][0])
         state_bounds[l].ub[0] = copy(array_boundx[walking_tick + 3*l][1])
@@ -492,40 +495,10 @@ def talker():
     if(walking_tick < 60):
         ddp.th_stop = 0.0001
     else:
-        ddp.th_stop = 1e-5
-    
-    start_k = 20
-    end_k = 34
-    x0_count = 0
-    '''
-    for i in range(0, len(lines5_array)):
-        if i >= 8*start_k and i <=8*end_k -1:
-            if(i == 8*start_k):
-                print(lines5_array[i])
-            if i % 8 == 2:
-                for j in range(0, 19): 
-                    xs[x0_count][j] = float(lines5_array[i][j].strip(','))
-            if i % 8 == 3:
-                for j in range(0, 18): 
-                    xs[x0_count][j+19] = float(lines5_array[i][j].strip(','))
-            if i % 8 == 4:
-                for j in range(0, 8): 
-                    xs[x0_count][j+37] = float(lines5_array[i][j].strip(','))
-            if i % 8 == 6:
-                for j in range(0, 18): 
-                    us[x0_count][j] = float(lines5_array[i][j].strip(','))
-            if i % 8 == 7:
-                for j in range(0, 4): 
-                    us[x0_count][j+18] = float(lines5_array[i][j].strip(','))
-                x0_count = x0_count +1
+        ddp.th_stop = 5e-5
 
-    for j in range(x0_count-1, N):
-        xs[j] = xs[x0_count-1]
-    x0 = xs[0]
-    '''
-    if(walking_tick ==192):
-        problemWithRK4.x0 = x0     
-        print(problemWithRK4.x0)       
+    if(walking_tick ==132):
+        problemWithRK4.x0 = x0            
         ddp.solve(xs,us,3000,False)
     else:
         problemWithRK4.x0 = ddp.xs[1]
@@ -533,7 +506,7 @@ def talker():
             ddp.xs[i] = ddp.xs[i+1]
         for i in range(0, N-2):
             ddp.us[i] = ddp.us[i+1]
-    
+    '''
     while booltemp == True:
         booltemp1 = True
 
@@ -804,7 +777,7 @@ def talker():
         
         iter_ = iter_ + 1
         k_temp = k_temp + 1
-    '''
+
     for k in range(0, N):
         f4.write(str(walking_tick))
         f4.write(" ")
@@ -837,4 +810,3 @@ if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)
     client.run()
     talker()
-
