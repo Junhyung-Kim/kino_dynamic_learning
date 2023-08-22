@@ -41,7 +41,7 @@ def InversePCA(model, rbf_num, pca, Phi, X, thread_manager):
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
             w_traj = model(c)
             w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
             t2 = time.time()
@@ -59,7 +59,7 @@ def InversePCA1(model, rbf_num, pca, Phi, X, thread_manager):
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
             w_traj = model(c)
             w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
             t2 = time.time()
@@ -77,7 +77,7 @@ def InversePCA2(model, rbf_num, pca, Phi, X, thread_manager):
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
             w_traj = model(c)
             w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
             t2 = time.time()
@@ -95,7 +95,7 @@ def InversePCA3(model, rbf_num, pca, Phi, X, thread_manager):
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
             w_traj = model(c)
             w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
             t2 = time.time()
@@ -113,7 +113,7 @@ def InversePCA4(model, rbf_num, pca, Phi, X, thread_manager):
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
             w_traj = model(c)
             w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
             t2 = time.time()
@@ -188,7 +188,7 @@ def PCAlearning():
     learn_type = 0
     database = dict()
     database['left'] = dict()
-    database['right'] = dict()
+    database['Right'] = dict()
 
     for key in database.keys():
         database[key]['foot_poses'] = []
@@ -243,7 +243,7 @@ def PCAlearning():
     
     #define dataset
     num_desired = 400
-    keys = ['right']
+    keys = ['Right']
     num_data = dict()
 
     for key in keys:
@@ -553,7 +553,7 @@ def PCAlearning():
     
 
     JJ = np.random.randint(x_inputs_test[key].shape[0])
-    X = x_inputs_test['right'][JJ][None,:]
+    X = x_inputs_test['Right'][JJ][None,:]
     X = X.reshape(1, sequence_length, input_size).to(device)
     print("old X")
     print(X)
@@ -600,10 +600,10 @@ def PCAlearning():
     p5.start()  
     
     JJ = np.random.randint(x_inputs_test[key].shape[0])
-    X = x_inputs_test['right'][JJ][None,:]
+    X = x_inputs_test['Right'][JJ][None,:]
     X = X.reshape(1, sequence_length, input_size).to(device)
 
-    #X_manager['right'] = X
+    #X_manager['Right'] = X
     
     time.sleep(2)
     

@@ -233,10 +233,10 @@ def talker():
 
     bool_q = 0
 
-    N = 100
+    N = 10
     T = 1
     MAXITER = 300
-    dt_ = 1.2 / float(N)
+    dt_ = 0.8 / float(N)
     lines1_array = []
     for i in range(0, len(lines3)):
         lines1_array.append(lines3[i].split())
@@ -488,11 +488,11 @@ def talker():
         foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
         foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
         runningCostModel_vector[i] = crocoddyl.CostModelSum(state_vector[i], actuation_vector[i].nu+4)
-        runningCostModel_vector[i].addCost("stateReg", stateBoundCost_vector[i], weight_quad_zmp[0])
-        runningCostModel_vector[i].addCost("camReg", camBoundCost_vector[i], 1.0)
+      #  runningCostModel_vector[i].addCost("stateReg", stateBoundCost_vector[i], weight_quad_zmp[0])
+      #  runningCostModel_vector[i].addCost("camReg", camBoundCost_vector[i], 1.0)
         runningCostModel_vector[i].addCost("comReg", comBoundCost_vector[i], 1.0)
-        runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
-        runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)
+      #  runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
+      #  runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)
         runningDAM_vector[i] = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[i], actuation_vector[i], runningCostModel_vector[i])
         runningModelWithRK4_vector[i] = crocoddyl.IntegratedActionModelEuler(runningDAM_vector[i], dt_)
     
@@ -514,14 +514,14 @@ def talker():
     foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])
     
     terminalCostModel = crocoddyl.CostModelSum(state_vector[N-1], actuation_vector[N-1].nu + 4)
-    terminalCostModel.addCost("stateReg", stateBoundCost_vector[N-1], weight_quad_zmp[0])
+    #terminalCostModel.addCost("stateReg", stateBoundCost_vector[N-1], weight_quad_zmp[0])
     #terminalCostModel.addCost("camReg", camBoundCost_vector[N-1], 1.0)
     terminalCostModel.addCost("comReg", comBoundCost_vector[N-1], 1.0)
-    terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
-    terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
+    #terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
+    #terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
     terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
 
-    walking_tick = 23
+    walking_tick = 17
 
     #model IK
     x0 = np.array([0.] * (state.nx + 8))
@@ -539,14 +539,14 @@ def talker():
     
     terminalModel = crocoddyl.IntegratedActionModelEuler(terminalDAM, dt_)
     problemWithRK4 = crocoddyl.ShootingProblem(x0, runningModelWithRK4_vector, terminalModel)
-    problemWithRK4.nthreads = 2
+    problemWithRK4.nthreads = 14
     #SolverBoxFDDP
     ddp = crocoddyl.SolverFDDP(problemWithRK4)
-    ddp.th_stop_ = 0.001
+    ddp.th_stop_ = 10.0
     #ddp.solve(xs,us,1, False)
     crocs_data = dict()
     crocs_data['left'] = dict()
-    crocs_data['right'] = dict()
+    crocs_data['Right'] = dict()
 
     for key in crocs_data.keys():
         crocs_data[key]['foot_poses'] = []
@@ -562,7 +562,7 @@ def talker():
 
     data_finish = True
     while data_finish == True:
-        #data_finish =False
+        data_finish =False
         for k in range(0, len(q)):
             q[k] = q_init[k]
         pinocchio.forwardKinematics(model, data, q, qdot)
@@ -573,7 +573,7 @@ def talker():
             
         for l in range(0,len(q_init)):
             x0[l] = q[l]
-
+        
         x0[37] = data.com[0][0]
         x0[39] = data.com[0][0]
 
@@ -582,7 +582,7 @@ def talker():
 
         for l in range(0,N):
             xs[l] = copy(x0)
-
+    '''
         for l in range(0,N-1):
             state_bounds[l].lb[0] = copy(array_boundx[30*(walking_tick)+l][0])
             state_bounds[l].ub[0] = copy(array_boundx[30*(walking_tick)+l][1])
@@ -602,8 +602,8 @@ def talker():
             foot_trackL[l] = crocoddyl.CostModelResidual(state_vector[l], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[l])
             runningCostModel_vector[l].removeCost("footReg1")
             runningCostModel_vector[l].removeCost("footReg2")
-            runningCostModel_vector[l].addCost("footReg1", foot_trackR[l], 1.0)
-            runningCostModel_vector[l].addCost("footReg2", foot_trackL[l], 1.0)
+            #runningCostModel_vector[l].addCost("footReg1", foot_trackR[l], 1.0)
+            #runningCostModel_vector[l].addCost("footReg2", foot_trackL[l], 1.0)
 
         state_bounds[N-1].lb[0] = copy(array_boundx[30*(walking_tick)+N-1][0])
         state_bounds[N-1].ub[0] = copy(array_boundx[30*(walking_tick)+N-1][1])
@@ -623,33 +623,39 @@ def talker():
         foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])    
         terminalCostModel.removeCost("footReg1")
         terminalCostModel.removeCost("footReg2")
-        terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
-        terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
-        k_temp = 0
-        iter_ = 0
-        booltemp = True
-        problemWithRK4.x0 = xs[0]
-        c_start = time.time()
-        css = ddp.solve(xs, us, 1, False)
-        c_end = time.time()
-        duration = (1e3 * (c_end - c_start))
+        #terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
+        #terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
+    '''
+    k_temp = 0
+    iter_ = 0
+    booltemp = True
+    problemWithRK4.x0 = xs[0]
+    c_start = time.time()
+    css = ddp.solve(xs, us, 3000, True)
+    c_end = time.time()
+    duration = (1e3 * (c_end - c_start))
 
-        avrg_duration = duration
-        min_duration = duration #min(duration)
-        max_duration = duration #max(duration)
-        print("iter")
-        print(iter_)
-        print("kk")
-        print(i)
-        print(j)
-        print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
-        print('ddp.iter {0},{1},{2}'.format(ddp.iter, ddp.cost, walking_tick))
+    avrg_duration = duration
+    min_duration = duration #min(duration)
+    max_duration = duration #max(duration)
+    print("iter")
+    print(iter_)
+    print("kk")
+    print(i)
+    print(j)
+    print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
+    print('ddp.iter {0},{1},{2}'.format(ddp.iter, ddp.cost, walking_tick))
         
-        print(LFframe_id)
-        print(RFframe_id)
-        Pelvis_id = model.getFrameId("Pelvis_Link")  
-        print(Pelvis_id)
-        '''
+    print(LFframe_id)
+    print(RFframe_id)
+    Pelvis_id = model.getFrameId("Pelvis_Link")  
+    print(Pelvis_id)
+    for i in range(0,N-1):
+        print(i)
+        print(ddp.xs[i])
+        print(ddp.us[i])
+    data_finish = False
+    '''
         while booltemp == True:
             booltemp1 = True
             c_start = time.time()
@@ -821,7 +827,7 @@ def talker():
 if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)
     client.run()
-    try:
-        talker()
-    except roslibpy.ROSInterruptException:
-        pass
+    #try:
+    talker()
+    #except roslibpy.ROSInterruptException:
+    #    pass

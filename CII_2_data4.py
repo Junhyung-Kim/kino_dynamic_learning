@@ -401,7 +401,7 @@ def talker():
 
     crocs_data = dict()
     crocs_data['left'] = dict()
-    crocs_data['right'] = dict()
+    crocs_data['Right'] = dict()
     
     for key in crocs_data.keys():
         crocs_data[key]['foot_poses'] = []

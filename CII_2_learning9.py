@@ -48,7 +48,7 @@ def InversePCA(model, rbf_num, pca, Phi, X, thread_manager):
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
             w_traj = model.forward(c)
             w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
             q_traj[:] = traj1.flatten()
@@ -67,7 +67,7 @@ def InversePCA1(model, rbf_num, pca, Phi, X, thread_manager):
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
             w_traj = model.forward(c)
             w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
             v_traj[:] = traj1.flatten()
@@ -86,7 +86,7 @@ def InversePCA2(model, rbf_num, pca, Phi, X, thread_manager):
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
             w_traj = model.forward(c)
             w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
             x_traj[:] = traj1.flatten()
@@ -105,7 +105,7 @@ def InversePCA3(model, rbf_num, pca, Phi, X, thread_manager):
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
             w_traj = model.forward(c)
             w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
             acc_traj[:] = traj1.flatten()
@@ -124,7 +124,7 @@ def InversePCA4(model, rbf_num, pca, Phi, X, thread_manager):
             c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
             w_traj = model.forward(c)
             w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['right'].inverse_transform([w_traj[None,:]])[0]
+            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
             traj1 = np.dot(Phi,w_traj)
             u_traj[:] = traj1.flatten()
@@ -202,7 +202,7 @@ def PCAlearning():
     learn_type = 1
     database = dict()
     database['left'] = dict()
-    database['right'] = dict()
+    database['Right'] = dict()
 
     for key in database.keys():
         database[key]['foot_poses'] = []
@@ -257,7 +257,7 @@ def PCAlearning():
     
     #define dataset
     num_desired = 400
-    keys = ['right']
+    keys = ['Right']
     num_data = dict()
 
     for key in keys:
@@ -566,7 +566,7 @@ def PCAlearning():
         model4.load_state_dict(torch.load('/home/jhk/data/mpc/cnn4.pkl'))
 
     JJ = np.random.randint(x_inputs_test[key].shape[0])
-    X = x_inputs_test['right'][JJ][None,:]
+    X = x_inputs_test['Right'][JJ][None,:]
     X = X.reshape(1, sequence_length, input_size).to(device)        
 
     thread_manager1 = []
@@ -594,7 +594,7 @@ def PCAlearning():
     p5.start()  
     
     JJ = np.random.randint(x_inputs_test[key].shape[0])
-    X = x_inputs_test['right'][JJ][None,:]
+    X = x_inputs_test['Right'][JJ][None,:]
     X = X.reshape(1, sequence_length, input_size).to(device)
     time.sleep(3)
     queue[:] = X.numpy()[0][0]
@@ -1118,369 +1118,18 @@ def talker():
     terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
 
     problemWithRK4.x0 = xs[0]
-    #ddp.alphas = [2**(-n) for n in range(10)]
     ddp.th_stop = 5.0
     c_start = time.time()
     css = ddp.solve(xs_pca, us_pca, 300, False, 1.0)
     c_end = time.time()
     duration = (1e3 * (c_end - c_start))
 
-    '''
-    print(ddp.xs[15])
-   
-    '''
     print("end")
     avrg_duration = duration
     min_duration = duration #min(duration)
     max_duration = duration #max(duration)
     print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
     print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, walking_tick))
-
-
-    '''
-    f4.write("walking_tick ")
-    f4.write(str(walking_tick))
-    f4.write(" css ")
-    f4.write(str(ddp.iter))
-    f4.write(" ")
-    f4.write(str(css))
-    f4.write(" ")
-    f4.write(str(0))
-    f4.write("\n")
-    
-    for i in range(0, N-1):
-        f4.write("q ")
-        f4.write(str(i))
-        f4.write("\n")
-        for j in range(0,19):
-            f4.write(str(ddp.xs[i][j]))
-            f4.write(", ")
-        f4.write("qdot ")
-        f4.write(str(i))
-        f4.write("\n")            
-        for j in range(19,37):
-            f4.write(str(ddp.xs[i][j]))
-            f4.write(", ")
-        f4.write("x_state ")
-        f4.write(str(i))
-        f4.write("\n")  
-        for j in range(37,45):
-            f4.write(str(ddp.xs[i][j]))
-            f4.write(", ")
-        f4.write("\n")
-        f4.write("u ")
-        f4.write(str(i))
-        f4.write("\n")  
-        for j in range(0,18):
-            f4.write(str(ddp.us[i][j]))
-            f4.write(", ")
-        f4.write("ustate ")
-#            f4.write(str(i))
-        f4.write("\n")  
-        for j in range(18,22):
-            f4.write(str(ddp.us[i][j]))
-            f4.write(", ")
-        f4.write("\n")
-    f4.write("q ")
-    f4.write(str(N))
-    f4.write("\n")
-    for j in range(0,19):
-        f4.write(str(ddp.xs[N-1][j]))
-        f4.write(", ")
-    f4.write("qdot ")
-    f4.write(str(N-1))
-    f4.write("\n")            
-    for j in range(19,37):
-        f4.write(str(ddp.xs[N-1][j]))
-        f4.write(", ")
-    f4.write("x_state ")
-    f4.write(str(N-1))
-    f4.write("\n")  
-    for j in range(37,45):
-        f4.write(str(ddp.xs[N-1][j]))
-        f4.write(", ")
-    f4.write("\n")
-
-    for i in range(0, N):
-        f3.write(str(walking_tick))
-        f3.write(" ")
-        f3.write(str(i))
-        f3.write(" ")
-        f3.write("lb")
-        f3.write(str(array_boundx[30*(walking_tick)+i][0]))
-        f3.write("ub ")
-        f3.write(str(array_boundx[30*(walking_tick)+i][1]))
-        f3.write(" ")
-        f3.write("lb ")
-        f3.write(str(array_boundy[30*(walking_tick)+i][0]))
-        f3.write("ub ")
-        f3.write(str(array_boundy[30*(walking_tick)+i][1]))
-        f3.write(" ")
-        f3.write(str(array_boundRF[30*(walking_tick)+i][0]))
-        f3.write(" ")
-        f3.write(str(array_boundRF[30*(walking_tick)+i][1]))
-        f3.write(" ")
-        f3.write(str(array_boundRF[30*(walking_tick)+i][2]))
-        f3.write(" ")
-        f3.write(str(array_boundLF[30*(walking_tick)+i][0]))
-        f3.write(" ")
-        f3.write(str(array_boundLF[30*(walking_tick)+i][1]))
-        f3.write(" ")
-        f3.write(str(array_boundLF[30*(walking_tick)+i][2]))
-        f3.write("\n")    
-     
-    c_start = time.time()
-    css = ddp.solve(xs, us, 300, True, 0.1)
-    c_end = time.time()
-    duration = (1e3 * (c_end - c_start))
-            
-    avrg_duration = duration
-    min_duration = duration #min(duration)
-    max_duration = duration #max(duration)
-    print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
-    print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, walking_tick))
-     '''
-    
-    '''
-    while client.is_connected:
-        for i in range(0,N-1):
-            state_bounds[i].lb[0] = copy(array_boundx[30*(walking_tick)+i][0])
-            state_bounds[i].ub[0] = copy(array_boundx[30*(walking_tick)+i][1])
-            state_bounds[i].lb[1] = copy(array_boundy[30*(walking_tick)+i][0])
-            state_bounds[i].ub[1] = copy(array_boundy[30*(walking_tick)+i][1])
-            state_activations[i].bounds = state_bounds[i]
-            stateBoundCost_vector[i].activation_ = state_activations[i]
-            rf_foot_pos_vector[i].translation[0] = copy(array_boundRF[30*(walking_tick)+i][0])
-            rf_foot_pos_vector[i].translation[1] = copy(array_boundRF[30*(walking_tick)+i][1])
-            rf_foot_pos_vector[i].translation[2] = copy(array_boundRF[30*(walking_tick)+i][2])
-            lf_foot_pos_vector[i].translation[0] = copy(array_boundLF[30*(walking_tick)+i][0])
-            lf_foot_pos_vector[i].translation[1] = copy(array_boundLF[30*(walking_tick)+i][1])
-            lf_foot_pos_vector[i].translation[2] = copy(array_boundLF[30*(walking_tick)+i][2])
-            #residual_FrameRF[i].pref = rf_foot_pos_vector[i]
-            #residual_FrameLF[i].pref = lf_foot_pos_vector[i]
-            #foot_trackR[i].residual_ = residual_FrameRF[i]
-            #foot_trackL[i].residual_ = residual_FrameLF[i]
-            residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-            residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-            foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
-            foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
-            runningCostModel_vector[i].removeCost("footReg1")
-            runningCostModel_vector[i].removeCost("footReg2")
-            runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
-            runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)   
-
-        state_bounds[N-1].lb[0] = copy(array_boundx[30*(walking_tick)+N-1][0])
-        state_bounds[N-1].ub[0] = copy(array_boundx[30*(walking_tick)+N-1][1])
-        state_bounds[N-1].lb[1] = copy(array_boundy[30*(walking_tick)+N-1][0])
-        state_bounds[N-1].ub[1] = copy(array_boundy[30*(walking_tick)+N-1][1])
-        state_activations[N-1].bounds = state_bounds[N-1]
-        stateBoundCost_vector[N-1].activation_ = state_activations[N-1]
-        rf_foot_pos_vector[N-1].translation[0] = copy(array_boundRF[30*(walking_tick)+N-1][0])
-        rf_foot_pos_vector[N-1].translation[1] = copy(array_boundRF[30*(walking_tick)+N-1][1])
-        rf_foot_pos_vector[N-1].translation[2] = copy(array_boundRF[30*(walking_tick)+N-1][2])
-        lf_foot_pos_vector[N-1].translation[0] = copy(array_boundLF[30*(walking_tick)+N-1][0])
-        lf_foot_pos_vector[N-1].translation[1] = copy(array_boundLF[30*(walking_tick)+N-1][1])
-        lf_foot_pos_vector[N-1].translation[2] = copy(array_boundLF[30*(walking_tick)+N-1][2])
-        foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
-        foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])    
-        terminalCostModel.removeCost("footReg1")
-        terminalCostModel.removeCost("footReg2")
-        terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
-        terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
-
-        
-        for j in range(0, N):
-            for k in range(0, 19):
-                xs[j][k] = copy(array_q1[30*(walking_tick) + j][k])
-            for k in range(19, 37):
-                xs[j][k] = copy(array_qdot1[30*(walking_tick) + j][k-19])
-            for k in range(37, 45):
-                xs[j][k] = copy(array_xstate1[30*(walking_tick) + j][k-37])
-        for j in range(0, N-1):
-            for k in range(0, 18):
-                us[j][k] = copy(array_qddot1[29*(walking_tick) + j][k])
-            for k in range(18, 22):
-                us[j][k] = copy(array_u1[29*(walking_tick) + j][k-18])
-        
-    #    duration = []
-    
-        iter_ = 0
-        T = 1
-        for i in range(0,T):
-            if walking_tick > 0:
-                problemWithRK4.x0 = ddp.xs[1]
-            
-            ddp.th_stop = 0.01
-            c_start = time.time()
-            css = ddp.solve(xs_pca, us_pca, 300, True, 0.1)
-            c_end = time.time()
-            duration = (1e3 * (c_end - c_start))
-            
-            avrg_duration = duration
-            min_duration = duration #min(duration)
-            max_duration = duration #max(duration)
-            print(iter_)
-            print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
-            print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, walking_tick))
-             
-         
-            for i in range(0,N):
-                if i < N-1:
-                    for j in range(0,3):
-                        if abs(runningCostModel_vector[i].costs['footReg1'].cost.residual.reference.translation[j]) > 0.008:
-                            booltemp1 = False
-                            break
-                    for j in range(0,3):
-                        if abs(runningCostModel_vector[i].costs['footReg2'].cost.residual.reference.translation[j]) > 0.008:
-                            booltemp1 = False
-                            break
-                    for j in range(0,3):
-                        if abs(runningCostModel_vector[i].costs['comReg'].cost.residual.reference[j]) > 0.008:
-                            booltemp1 = False
-                            break
-                    for j in range(0,3):
-                        if abs(runningCostModel_vector[i].costs['camReg'].cost.residual.reference[j]) > 0.05:
-                            booltemp1 = False
-                            break
-                else:
-                    for j in range(0,3):
-                        if abs(terminalCostModel.costs['footReg1'].cost.residual.reference.translation[j]) > 0.008:
-                            booltemp1 = False
-                            break
-                    for j in range(0,3):
-                        if abs(terminalCostModel.costs['footReg2'].cost.residual.reference.translation[j]) > 0.008:
-                            booltemp1 = False
-                            break
-                    for j in range(0,3):
-                        if abs(terminalCostModel.costs['comReg'].cost.residual.reference[j]) > 0.008:
-                            booltemp1 = False
-                            break
-                    for j in range(0,3):
-                        if abs(terminalCostModel.costs['camReg'].cost.residual.reference[j]) > 0.05:
-                            booltemp1 = False
-                            break
-                if booltemp1 == False:
-                    break
-
-                if booltemp1 == True and avrg_duration <= 30:
-                    booltemp = False
-                    break
-            print("success")
-            print(walking_tick)
-            
-            iter_ = iter_ + 1
-        booltemp = True  
-
-        for i in range(0,N-1):
-            print(runningCostModel_vector[i].costs['comReg'].cost.residual)
-            print(runningCostModel_vector[i].costs['camReg'].cost.residual)
-            #print(runningCostModel_vector[i].costs['stateReg'].cost.residual)
-            print(runningCostModel_vector[i].costs['footReg1'].cost.residual)
-            print(runningCostModel_vector[i].costs['footReg2'].cost.residual)
-        print(terminalCostModel.costs['comReg'].cost.residual)
-        print(terminalCostModel.costs['camReg'].cost.residual)
-        #print(runningCostModel_vector[i].costs['stateReg'].cost.residual)
-        print(terminalCostModel.costs['footReg1'].cost.residual)
-        print(terminalCostModel.costs['footReg2'].cost.residual)
-        print(ddp.xs[N-1])
-      
-        f4.write("walking_tick ")
-        f4.write(str(walking_tick))
-        f4.write(" css ")
-        f4.write(str(ddp.iter))
-        f4.write(" ")
-        f4.write(str(css))
-        f4.write(" ")
-        f4.write(str(0))
-        f4.write("\n")
-        
-        for i in range(0, N-1):
-            f4.write("q ")
-            f4.write(str(i))
-            f4.write("\n")
-            for j in range(0,19):
-                f4.write(str(ddp.xs[i][j]))
-                f4.write(", ")
-            f4.write("qdot ")
-            f4.write(str(i))
-            f4.write("\n")            
-            for j in range(19,37):
-                f4.write(str(ddp.xs[i][j]))
-                f4.write(", ")
-            f4.write("x_state ")
-            f4.write(str(i))
-            f4.write("\n")  
-            for j in range(37,45):
-                f4.write(str(ddp.xs[i][j]))
-                f4.write(", ")
-            f4.write("\n")
-            f4.write("u ")
-            f4.write(str(i))
-            f4.write("\n")  
-            for j in range(0,18):
-                f4.write(str(ddp.us[i][j]))
-                f4.write(", ")
-            f4.write("ustate ")
-#            f4.write(str(i))
-            f4.write("\n")  
-            for j in range(18,22):
-                f4.write(str(ddp.us[i][j]))
-                f4.write(", ")
-            f4.write("\n")
-        f4.write("q ")
-        f4.write(str(N))
-        f4.write("\n")
-        for j in range(0,19):
-            f4.write(str(ddp.xs[N-1][j]))
-            f4.write(", ")
-        f4.write("qdot ")
-        f4.write(str(N-1))
-        f4.write("\n")            
-        for j in range(19,37):
-            f4.write(str(ddp.xs[N-1][j]))
-            f4.write(", ")
-        f4.write("x_state ")
-        f4.write(str(N-1))
-        f4.write("\n")  
-        for j in range(37,45):
-            f4.write(str(ddp.xs[N-1][j]))
-            f4.write(", ")
-        f4.write("\n")
-
-        for i in range(0, N):
-            f3.write(str(walking_tick))
-            f3.write(" ")
-            f3.write(str(i))
-            f3.write(" ")
-            f3.write("lb")
-            f3.write(str(array_boundx[30*(walking_tick)+i][0]))
-            f3.write("ub ")
-            f3.write(str(array_boundx[30*(walking_tick)+i][1]))
-            f3.write(" ")
-            f3.write("lb ")
-            f3.write(str(array_boundy[30*(walking_tick)+i][0]))
-            f3.write("ub ")
-            f3.write(str(array_boundy[30*(walking_tick)+i][1]))
-            f3.write(" ")
-            f3.write(str(array_boundRF[30*(walking_tick)+i][0]))
-            f3.write(" ")
-            f3.write(str(array_boundRF[30*(walking_tick)+i][1]))
-            f3.write(" ")
-            f3.write(str(array_boundRF[30*(walking_tick)+i][2]))
-            f3.write(" ")
-            f3.write(str(array_boundLF[30*(walking_tick)+i][0]))
-            f3.write(" ")
-            f3.write(str(array_boundLF[30*(walking_tick)+i][1]))
-            f3.write(" ")
-            f3.write(str(array_boundLF[30*(walking_tick)+i][2]))
-            f3.write("\n")
-        walking_tick = walking_tick + 1
-        if walking_tick == 3:
-            break
-    f3.close()
-    f4.close()
-    client.terminate()
-    '''
     
 if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)

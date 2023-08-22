@@ -83,7 +83,7 @@ def talker():
     learn_type = 0
     database = dict()
     database['left'] = dict()
-    database['right'] = dict()
+    database['Right'] = dict()
 
     for key in database.keys():
         database[key]['foot_poses'] = []
@@ -136,7 +136,7 @@ def talker():
     
     #define dataset
     num_desired = 400
-    keys = ['right']
+    keys = ['Right']
     num_data = dict()
 
     for key in keys:
@@ -189,7 +189,7 @@ def talker():
         pca_u[key] = PCA(n_components=60)
         w_u_trajs_pca[key] = pca_u[key].fit_transform(w_u_trajs[key])
 
-    key = 'right'
+    key = 'Right'
     
     for i in range(10):
         w_pca = w_trajs_pca[key][i]
@@ -272,7 +272,7 @@ def talker():
         if i%2 == 0:
             key = 'left'
         else:
-            key = 'right'
+            key = 'Right'
             JJ = np.random.randint(x_inputs_test[key].shape[0])
             x = x_inputs_test[key][JJ][None,:]
 

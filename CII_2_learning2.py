@@ -73,12 +73,6 @@ class GPy_Regressor(Regressor):
             loss.backward()
             optimizer.step()
             losses.append(loss.item())
-            print(i)
-            print(loss.item())
-        plt.plot(losses)
-        plt.show()
-    
-
 
     def predict(self,x, is_transform = True):
         y,cov = self.gp.forward(x)
@@ -120,7 +114,7 @@ def PCAlearning():
     learn_type = 0
     database = dict()
     database['left'] = dict()
-    database['right'] = dict()
+    database['Right'] = dict()
 
     for key in database.keys():
         database[key]['foot_poses'] = []
@@ -175,7 +169,7 @@ def PCAlearning():
     
     #define dataset
     num_desired = 400
-    keys = ['right']
+    keys = ['Right']
     num_data = dict()
 
     for key in keys:
@@ -398,7 +392,7 @@ def PCAlearning():
         if i%2 == 0:
             key = 'left'
         else:
-            key = 'right'
+            key = 'Right'
             JJ = np.random.randint(x_inputs_test[key].shape[0])
             x_test = x_inputs_test[key][JJ][None,:]
             x = x_inputs_test[key][JJ][None,:]

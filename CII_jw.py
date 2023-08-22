@@ -189,7 +189,7 @@ def talker():
     print("start")
 
     global model, foot_distance, data, LFframe_id, RFframe_id, PELVjoint_id, LHjoint_id, RHjoint_id, LFjoint_id, q_init, RFjoint_id, LFcframe_id, RFcframe_id, q, qdot, qddot, LF_tran, RF_tran, PELV_tran, LF_rot, RF_rot, PELV_rot, qdot_z, qddot_z, HRR_rot_init, HLR_rot_init, HRR_tran_init, HLR_tran_init, LF_rot_init, RF_rot_init, LF_tran_init, RF_tran_init, PELV_tran_init, PELV_rot_init, CPELV_tran_init, q_command, qdot_command, qddot_command, robotIginit, q_c
-    model = pinocchio.buildModelFromUrdf("/home/jhk/catkin_ws/src/tocabi_cc/robots/dyros_tocabi_with_redhands2.urdf",pinocchio.JointModelFreeFlyer())  
+    model = pinocchio.buildModelFromUrdf("/home/jhk/catkin_ws/src/tocabi_cc/robots/dyros_tocabi_with_redhands.urdf",pinocchio.JointModelFreeFlyer())  
     
     pi = 3.14159265359
     data = model.createData()
@@ -201,11 +201,17 @@ def talker():
     qddot = pinocchio.utils.zero(model.nv)
     
     q_init = [0, 0, 0.80783, 0, 0, 0, 1, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0, -0.55, 1.26, -0.71, 0]
-   # q_init = [1.29841579e-01, 1.15478379e-01, 8.36317756e-01, 2.82240282e-01 ,-4.21603936e-02 ,-3.15800184e-03, 9.58411549e-01, 4.78929720e-02, -7.92976503e-01 ,6.55874021e-02 ,3.15550355e-01, -2.74068957e-01 ,2.20741823e-01, 1.63338935e-02, -8.94198121e-01, -3.27575966e-01 ,1.09761399e+00 ,-6.76801870e-01, 3.20828417e-01]
-    qdot_init = [1.15494671e-01 ,-6.80556205e-02 ,2.88687931e-02, 3.20367761e-01 ,-2.01226522e-01 ,3.20264799e-02, 6.69710577e-02, -2.04305792e-01 ,6.51984353e-01 ,-4.28502612e-01, 1.46059203e-03 ,-1.12669403e-01 ,7.82250640e-02 ,-2.40863027e-01 ,5.08282921e-01, -9.54466302e-02 ,-1.86775336e-01 ,-8.02493388e-02]
+    q_init = [0.11363161 ,-0.18341768,  1.1555157 ,  0.17879308,  0.26401635,  0.10616599,
+  0.94183713 ,-0.15896429 ,-0.2115861 , -0.9237448 ,  1.05840019, -0.77066255,
+ -0.08788558 ,-0.11192483, -0.19807116, -0.9252402 ,  1.14118755, -0.77312606,
+ -0.08781195]
+    qdot_init = [-0.23055242, -0.31445128,  0.0835999 ,  0.70254367,  1.30148494,
+  0.39196236, -0.38865854, -0.62590964, -0.81337598, -0.47783407, -0.12150462,
+ -0.21752914 ,-0.25896493, -0.58831107, -0.81620195 ,-0.27236269, -0.1329973,
+ -0.21657379 ]
    # q_init = [-0.0471697, -0.0319821,   0.845637, -0.0401819, -0.0252661,  0.0393611,   0.998097, -0.0503212,  0.0575037 , -0.656835 ,   1.32996 , -0.821296, -0.0848094, -0.0469608  ,  0.06052 , -0.656833  ,  1.32996 , -0.821296, -0.0848094]
     
-    for i in range(0, len(q)):
+    for i in range(0, len(q_init)):
         q[i] = q_init[i]
     for i in range(0, len(qdot_init)):
         qdot[i] = qdot_init[i]
@@ -292,8 +298,6 @@ def talker():
     print("com")
     print(data.com[0])
     print(data.hg)
-    print(RF_rot12)
-    print(LF_rot12)
    # print(data.mass[0])
    # print(data.mass[0] * data.com[0][2])
     #print(9.81 / data.com[0][2])
