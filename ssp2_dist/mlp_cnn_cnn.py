@@ -158,7 +158,9 @@ class CNN(nn.Module):
         )
         self.layer3 = torch.nn.Sequential(
             torch.nn.Linear(in_features = input_size, out_features= 50),
-            torch.nn.ReLU(),
+            torch.nn.LeakyReLU(),
+            #torch.nn.Linear(in_features = 44, out_features= 46),
+            #torch.nn.LeakyReLU(),
             torch.nn.Linear(in_features = 50, out_features = output_size)
             )
 
@@ -213,79 +215,112 @@ def PCAlearning(time_step):
         database[key]['costs'] = []
         database[key]['iters'] = []
 
-    naming = ["timestep=0_finish_re",
-        "timestep=2_finish_re",
-        "timestep=3_finish_re",
-        "timestep=4_finish_re",
-        "timestep=5_finish_re",
-        "timestep=6_finish_re",
-        "timestep=7_finish_re",
-        "timestep=8_finish_re",
-        "timestep=9_finish_re_re",
-         "timestep=10_finish_velre_re",
-        "timestep=11_finish_re_re",
-        "timestep=34_finish_re",
-        "timestep=35_finish_re",
-        "timestep=36_finish_re",
-        "timestep=37_finish_re",
-        "timestep=41_finish_re",
-        "timestep=45_finish_re",
-        "timestep=48_finish_re",
-        "timestep=49_finish_re",
+    naming = [
+    "timestep=0_finish",
+       "timestep=1_finish",
+       "timestep=2_finish",
+       "timestep=3_finish",
+       "timestep=4_finish",
+       "timestep=5_finish",
+       "timestep=6_finish",
+       "timestep=7_finish",
+       "timestep=8_finish",
+       "timestep=9_finish",
+       "timestep=10_finish",
+       "timestep=11_finish",
+       "timestep=12_finish",
+       "timestep=13_finish",
+       "timestep=14_finish",
+       "timestep=15_finish",
+       "timestep=16_finish",
+       "timestep=17_finish",
+       "timestep=18_finish",
+       "timestep=19_finish",
+       "timestep=20_finish",
+       "timestep=21_finish",
+       "timestep=22_finish",
+       "timestep=23_finish",
+       "timestep=24_finish",
+       "timestep=25_finish",
+       "timestep=26_finish",
+       "timestep=27_finish",
+       "timestep=28_finish",
+       "timestep=29_finish",
+"timestep=30_finish",  
+"timestep=31_finish",  
+"timestep=32_finish",  
+"timestep=33_finish",  
+"timestep=34_finish",     
+"timestep=35_finish",  
+"timestep=36_finish",      
+"timestep=37_finish",
+"timestep=38_finish",           
+"timestep=39_finish",
+"timestep=40_finish",  
+"timestep=41_finish",
+"timestep=42_finish",
+
+"timestep=43_finish",
+"timestep=44_finish",
+"timestep=45_finish",
+"timestep=46_finish",
+"timestep=47_finish",
+"timestep=48_finish",
+"timestep=49_finish",
 ] 
 
     naming1 = [
-        "timestep=0_finish_re",
-        "timestep=2_finish_re",
-        "timestep=3_finish_re",
-        "timestep=4_finish_re",
-        "timestep=5_finish_re",
-        "timestep=6_finish_re",
-        "timestep=7_finish_re",
-        "timestep=8_finish_re",
-        "timestep=9_finish_re_re",
-         "timestep=10_finish_velre_re",
-        "timestep=11_finish_re_re",
-        "timestep=34_finish_re",
-        "timestep=35_finish_re",
-        "timestep=36_finish_re",
-        "timestep=37_finish_re",
-        "timestep=41_finish_re",
-        "timestep=45_finish_re",
-        "timestep=48_finish_re",
-        "timestep=49_finish_re",
+       "timestep=0_finish",
+       "timestep=1_finish",
+       "timestep=2_finish",
+       "timestep=3_finish",
+       "timestep=4_finish",
+       "timestep=5_finish",
+       "timestep=6_finish",
+       "timestep=7_finish",
+       "timestep=8_finish",
+       "timestep=9_finish",
+       "timestep=10_finish",
+       "timestep=11_finish",
+       "timestep=12_finish",
+       "timestep=13_finish",
+       "timestep=14_finish",
+       "timestep=15_finish",
+       "timestep=16_finish",
+       "timestep=17_finish",
+       "timestep=18_finish",
+       "timestep=19_finish",
+       "timestep=20_finish",
+       "timestep=21_finish",
+       "timestep=22_finish",
+       "timestep=23_finish",
+       "timestep=24_finish",
+       "timestep=25_finish",
+       "timestep=26_finish",
+       "timestep=27_finish",
+       "timestep=28_finish",
+       "timestep=29_finish",
+"timestep=30_finish",  
+"timestep=31_finish",  
+"timestep=32_finish",  
+"timestep=33_finish",  
+"timestep=34_finish",     
+"timestep=35_finish",  
+"timestep=36_finish",      
+"timestep=37_finish",
+"timestep=38_finish",           
+"timestep=39_finish",
+"timestep=40_finish",  
+"timestep=41_finish",
+"timestep=42_finish",
 
-        #"timestep=18_finish_re_add",
- #"timestep=19_finish_re_add",
- #"timestep=20_finish_re_add",   
- #"timestep=23_finish_re_add",
- #"timestep=24_finish_re_add",
- #"timestep=26_finish_re_add", 
- #"timestep=28_finish_re_add", 
- #"timestep=29_finish_re_add", 
- #"timestep=30_finish_re_add",     
- #"timestep=31_finish_re_add", 
- #"timestep=33_finish_re_add", 
- #"timestep=38_finish_re_add", 
- #"timestep=39_finish_re_add", 
- #"timestep=40_finish_re_add", 
- #"timestep=49_finish_re_add", 
-        #"timestep=1_finish_re",
-#"timestep=14_finish_re",
-#"timestep=25_finish_re",
-#"timestep=27_finish_re_add",
-#"timestep=32_finish_re", 
-#"timestep=36_finish_re",
-#"timestep=42_finish_re",
-#"timestep=43_finish_re",
-#"timestep=44_finish_re",
-#"timestep=46_finish_re",
-#"timestep=47_finish_re", 
-#"timestep=12_finish_re_add",      #"timestep=17_finish_re_add",      #"timestep=21_finish_re_add",      #"timestep=26_finish_re_add",      #"timestep=30_finish_re_add",      #"timestep=39_finish_re_add",
-#"timestep=13_finish_re_add",       #"timestep=22_finish_re_add",      #"timestep=27_finish_re_add",      #"timestep=31_finish_re_add",      #"timestep=40_finish_re",
-#"timestep=15_finish_re_add",      #"timestep=19_finish_re_add",       #"timestep=28_finish_re_add",      #"timestep=33_finish_re_add",      
-#"timestep=16_finish_re_add",      #"timestep=20_finish_re_add",      #"timestep=24_finish_re_add",      #"timestep=29_finish_re_add",      #"timestep=38_finish_re_add",  
-     
+"timestep=43_finish",
+"timestep=44_finish",
+"timestep=45_finish",
+"timestep=46_finish",
+"timestep=47_finish",
+"timestep=48_finish",
+"timestep=49_finish",
 ] 
     '''
     param = [
@@ -342,92 +377,92 @@ def PCAlearning(time_step):
     ] 
     '''
     param=[
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
     ]
 
     print(len(naming))
     print(len(param))
     #a = adsfsdfs
-    #if time_step < 9:
-    #    file_name = "/home/jhk/ssd_mount3/beforedata/ssp1/"
+    #if time_step < 5:
+    #    file_name = "/home/jhk/walkingdata/beforedata/ssp2/"
     #else:
     '''
-    file_name = "/home/jhk/walkingdata/beforedata/ssp1/"#"/home/jhk/Downloads/"
+    file_name = "/home/jhk/Downloads/"
     file_name2 = "/timestep="
     file_name3 = file_name + naming1[time_step]#+'_re'
     print(file_name3)
@@ -584,7 +619,7 @@ def PCAlearning(time_step):
             w_x_trajs[key] = apply_RBF(x_trajs[key], Phi)
         #w_u_trajs[key] = apply_RBF(u_trajs[key], Phi)    
         #w_acc_trajs[key] = apply_RBF(acc_trajs[key], Phi)
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp1/'
+        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp2/'
         file_name2 = 'Phi_normal'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
@@ -605,7 +640,7 @@ def PCAlearning(time_step):
             #pca_u[key] = PCA(n_components=int(rbf_num))
             #w_u_trajs_pca[key] = pca_u[key].fit_transform(w_u_trajs[key])
 
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp1/'
+        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp2/'
         file_name2 = 'w_trajs_pca_Early_normal'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
@@ -645,7 +680,7 @@ def PCAlearning(time_step):
             #y_acc_train[key] = torch.FloatTensor( (y_acc_train[key]))
             y_x_train[key] = torch.FloatTensor( (y_x_train[key]))
 
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp1/'
+        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/fdyn/'
         file_name2 = 'x_inputs_train_Early_normal'
         file_name3 = '.pt'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
@@ -685,7 +720,7 @@ def PCAlearning(time_step):
         torch.save(y_x_train, file_name4)
         print("transform SAVE")
     else:
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp1/'
+        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/fdyn/'
         file_name2 = 'Phi_normal'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
@@ -693,7 +728,7 @@ def PCAlearning(time_step):
         print(file_name4)
         Phi = pickle.load(open(file_name4,"rb"))
 
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp1/'
+        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/fdyn/'
         file_name2 = 'x_inputs_train_Early_normal'
         file_name3 = '.pt'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
@@ -720,7 +755,7 @@ def PCAlearning(time_step):
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         y_x_train = torch.load(file_name4)
 
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp1/'
+        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/fdyn/'
         file_name2 = 'w_trajs_pca_Early_normal'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
@@ -848,7 +883,6 @@ def PCAlearning(time_step):
             train_num = 0
             model.train()
             for data in train_loader:
-                
                 train_num = train_num + 1
                 seq, target = data
                 X = seq.reshape(batch_size, sequence_length, input_size).to(device)
@@ -880,6 +914,7 @@ def PCAlearning(time_step):
         loss_graph[0] = [val_loss/val_num, train_loss/train_num]
         print("loss_graph")
         print(loss_graph[0])
+        print([train_num, val_num])
         criterion = nn.MSELoss()
         lr = 0.001
         num_epochs = 50
@@ -894,7 +929,6 @@ def PCAlearning(time_step):
             train_loss = 0
             model1.train()
             for data in train_vel_loader:
-                
                 seq, target = data
                 X = seq.reshape(batch_size, sequence_length, input_size).to(device)
                 out = model1(X)
@@ -951,7 +985,6 @@ def PCAlearning(time_step):
             train_loss = 0
             model2.train()
             for data in train_x_loader:
-                
                 seq, target = data
                 X = seq.reshape(batch_size, sequence_length, input_size).to(device)
                 out = model2(X)
@@ -990,7 +1023,7 @@ def PCAlearning(time_step):
         loss_graph[2] = [val_loss/val_num, train_loss/train_num]
         print("loss_graph")
         print(loss_graph[2])
-        file_name = '/home/jhk/ssd_mount/beforedata/ssp1/cnnEarly_normallow'
+        file_name = '/home/jhk/ssd_mount/beforedata/cnnEarly_normal_leakylow'
         file_name2 = '0_'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3       
@@ -1008,8 +1041,8 @@ def PCAlearning(time_step):
         print(loss_graph[2])
 
         best = np.array(loss_graph)
-        file_name = "/home/jhk/walkingdata/beforedata/ssp1/"
-        file_name3 = file_name +'loss_normals' +naming[time_step] +  '.txt'
+        file_name = "/home/jhk/walkingdata/beforedata/fdyn/"
+        file_name3 = file_name +'loss_normalsLeakylow' +naming[time_step] +  '.txt'
         np.savetxt(file_name3, best)
         
        
@@ -1043,12 +1076,13 @@ def talker():
 
     N = 60
     T = 1
+
     MAXITER = 300
     dt_ = 1.2 / float(N)
     learning_data_num = 27
     
     
-    for i in range(8, 49, 1):#learning_data_num):
+    for i in range(1, 49, 5):#learning_data_num):
         PCAlearning(i)
     k = adsfasdff
     print("start")

@@ -158,7 +158,7 @@ class CNN(nn.Module):
         )
         self.layer3 = torch.nn.Sequential(
             torch.nn.Linear(in_features = input_size, out_features= 50),
-            torch.nn.ReLU(),
+            torch.nn.LeakyReLU(),
             torch.nn.Linear(in_features = 50, out_features = output_size)
             )
 
@@ -320,7 +320,7 @@ def PCAlearning(time_step):
 "timestep=48_finish_ssp2",
 "timestep=49_finish_ssp2",
 ] 
-    '''
+    
     param = [
         [2,1,19,55], #0
         [2,1,13,55], #1
@@ -373,6 +373,7 @@ def PCAlearning(time_step):
         [2,1,11,53], #48
         [2,1,47,53], #49
     ] 
+    
     '''
     param=[
         [2,1,19,55],
@@ -452,7 +453,7 @@ def PCAlearning(time_step):
         [2,1,19,55],
         [2,1,19,55],
     ]
-
+    '''
     print(len(naming))
     print(len(param))
     #a = adsfsdfs
@@ -618,7 +619,7 @@ def PCAlearning(time_step):
         #w_u_trajs[key] = apply_RBF(u_trajs[key], Phi)    
         #w_acc_trajs[key] = apply_RBF(acc_trajs[key], Phi)
         file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp2/'
-        file_name2 = 'Phi_normal'
+        file_name2 = 'Phi'#'Phi_'#_normal'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pickle.dump(Phi, open(file_name4,"wb"))
@@ -639,14 +640,14 @@ def PCAlearning(time_step):
             #w_u_trajs_pca[key] = pca_u[key].fit_transform(w_u_trajs[key])
 
         file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp2/'
-        file_name2 = 'w_trajs_pca_Early_normal'
+        file_name2 = 'w_trajs_pca_Early_'#_normal'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pickle.dump(pca, open(file_name4,"wb"))
-        file_name2 = 'w_vel_trajs_pca_Early_normal'
+        file_name2 = 'w_vel_trajs_pca_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pickle.dump(pca_vel, open(file_name4,"wb"))
-        file_name2 = 'w_x_trajs_pca_Early_normal'
+        file_name2 = 'w_x_trajs_pca_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pickle.dump(pca_x, open(file_name4,"wb"))
         '''
@@ -679,47 +680,47 @@ def PCAlearning(time_step):
             y_x_train[key] = torch.FloatTensor( (y_x_train[key]))
 
         file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp2/'
-        file_name2 = 'x_inputs_train_Early_normal'
+        file_name2 = 'x_inputs_train_Early_'#_normal'
         file_name3 = '.pt'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(x_inputs_train, file_name4)
-        file_name2 = 'x_inputs_test_Early_normal'
+        file_name2 = 'x_inputs_test_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(x_inputs_test, file_name4)
-        file_name2 = 'y_test_Early_normal'
+        file_name2 = 'y_test_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_test, file_name4)
-        file_name2 = 'y_vel_test_Early_normal'
+        file_name2 = 'y_vel_test_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_vel_test, file_name4)
-        file_name2 = 'y_u_test_Early_normal'
+        file_name2 = 'y_u_test_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_u_test, file_name4)
-        file_name2 = 'y_acc_test_Early_normal'
+        file_name2 = 'y_acc_test_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_acc_test, file_name4)
-        file_name2 = 'y_x_test_Early_normal'
+        file_name2 = 'y_x_test_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_x_test, file_name4)
-        file_name2 = 'y_train_Early_normal'
+        file_name2 = 'y_train_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_train, file_name4)
-        file_name2 = 'y_vel_train_Early_normal'
+        file_name2 = 'y_vel_train_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_vel_train, file_name4)
-        file_name2 = 'y_u_train_Early_normal'
+        file_name2 = 'y_u_train_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_u_train, file_name4)
-        file_name2 = 'y_acc_train_Early_normal'
+        file_name2 = 'y_acc_train_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_acc_train, file_name4)
-        file_name2 = 'y_x_train_Early_normal'
+        file_name2 = 'y_x_train_Early__'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_x_train, file_name4)
         print("transform SAVE")
     else:
         file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp2/'
-        file_name2 = 'Phi'
+        file_name2 = 'Phi'#_normal'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         #print(torch.load(file_name4))
@@ -727,48 +728,48 @@ def PCAlearning(time_step):
         Phi = pickle.load(open(file_name4,"rb"))
 
         file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp2/'
-        file_name2 = 'x_inputs_train_Early_normal'
+        file_name2 = 'x_inputs_train_Early_'#_normal'
         file_name3 = '.pt'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         x_inputs_train = torch.load(file_name4)
-        file_name2 = 'x_inputs_test_Early_normal'
+        file_name2 = 'x_inputs_test_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         x_inputs_test = torch.load(file_name4)
-        file_name2 = 'y_test_Early_normal'
+        file_name2 = 'y_test_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         y_test = torch.load(file_name4)
-        file_name2 = 'y_vel_test_Early_normal'
+        file_name2 = 'y_vel_test_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         y_vel_test = torch.load(file_name4)
-        file_name2 = 'y_x_test_Early_normal'
+        file_name2 = 'y_x_test_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         y_x_test = torch.load(file_name4)
-        file_name2 = 'y_train_Early_normal'
+        file_name2 = 'y_train_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         y_train = torch.load(file_name4)
-        file_name2 = 'y_vel_train_Early_normal'
+        file_name2 = 'y_vel_train_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         y_vel_train = torch.load(file_name4)
-        file_name2 = 'y_x_train_Early_normal'
+        file_name2 = 'y_x_train_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         y_x_train = torch.load(file_name4)
 
         file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp2/'
-        file_name2 = 'w_trajs_pca_Early_normal'
+        file_name2 = 'w_trajs_pca_Early_'#_normal'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pca = pickle.load(open(file_name4,'rb'))
         
-        file_name2 = 'w_vel_trajs_pca_Early_normal'
+        file_name2 = 'w_vel_trajs_pca_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pca_vel = pickle.load(open(file_name4,'rb'))
-        file_name2 = 'w_x_trajs_pca_Early_normal'
+        file_name2 = 'w_x_trajs_pca_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pca_x= pickle.load(open(file_name4,'rb'))
-        file_name2 = 'w_u_trajs_pca_Early_normal'
+        file_name2 = 'w_u_trajs_pca_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         #pca_u = pickle.load(open(file_name4,'rb'))
-        file_name2 = 'w_acc_trajs_pca_Early_normal'
+        file_name2 = 'w_acc_trajs_pca_Early_'#_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         #pca_acc = pickle.load(open(file_name4,'rb'))
         #explain =pca_x[key].explained_variance_ratio_
@@ -1020,7 +1021,7 @@ def PCAlearning(time_step):
         loss_graph[2] = [val_loss/val_num, train_loss/train_num]
         print("loss_graph")
         print(loss_graph[2])
-        file_name = '/home/jhk/ssd_mount/beforedata/ssp2/cnnEarly_normallow'
+        file_name = '/home/jhk/ssd_mount/beforedata/ssp2/cnnEarlylow_leaky'#_normal
         file_name2 = '0_'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3       
@@ -1039,7 +1040,7 @@ def PCAlearning(time_step):
 
         best = np.array(loss_graph)
         file_name = "/home/jhk/walkingdata/beforedata/ssp2/"
-        file_name3 = file_name +'loss_normals' +naming[time_step] +  '.txt'
+        file_name3 = file_name +'lossLeakyLow_leaky' +naming[time_step] +  '.txt' #_normal
         np.savetxt(file_name3, best)
         
        
@@ -1079,7 +1080,7 @@ def talker():
     learning_data_num = 27
     
     
-    for i in range(8, 49, 9):#learning_data_num):
+    for i in range(3, 49, 4):#learning_data_num):
         PCAlearning(i)
     k = adsfasdff
     print("start")

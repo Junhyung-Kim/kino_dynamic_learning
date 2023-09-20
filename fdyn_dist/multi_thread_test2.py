@@ -50,6 +50,7 @@ def InversePCA(model, rbf_num, pca, Phi, tick, X, thread_manager):
     k = 0
     while True:
         if thread_manager[0] == 1:# and k == 0:
+            print(["KKKKK", k])
             c = torch.tensor(np.array(X[:]).reshape(1,1,43),dtype=torch.float32)
             w_traj = model[k].forward(c)[0].detach().numpy()
             w_traj = pca[k].inverse_transform([w_traj[None,:]])[0]
@@ -863,6 +864,7 @@ def talker():
     lb_ = np.ones([2, N])
     ub_ = np.ones([2, N])
 
+
     actuation_vector = [None] * (N)
     state_vector = [None] * (N)
     state_bounds = [None] * (N)
@@ -927,6 +929,8 @@ def talker():
     time_step = 1
     k = 1
     k3 = 1
+    total_cost = []
+    total_time_ = []
 
     for i in range(0, N):
         if i == 0:
@@ -1018,7 +1022,6 @@ def talker():
         
         if i >= 1:
             runningCostModel_vector[i].addCost("stateReg1", stateBoundCost_vector1[i], 1.0)
-            
             #runningCostModel_vector[i].addCost("stateReg", stateBoundCost_vector[i], 1.0)
             #runningCostModel_vector[i].addCost("stateReg2", stateBoundCost_vector2[i], 1.0)
             runningCostModel_vector[i].addCost("comReg", comBoundCost_vector[i], 1.0)
@@ -1057,7 +1060,7 @@ def talker():
     terminalCostModel = crocoddyl.CostModelSum(state_vector[N-1], actuation_vector[N-1].nu + 4)
     #terminalCostModel.addCost("stateReg", stateBoundCost_vector[N-1], 1.0)
     #terminalCostModel.addCost("stateReg1", stateBoundCost_vector1[N-1], 1.0)
-    #terminalCostModel.addCost("stateReg2", stateBoundCost_vector2[N-1], 1.0)
+    terminalCostModel.addCost("stateReg2", stateBoundCost_vector2[N-1], 1.0)
     terminalCostModel.addCost("comReg", comBoundCost_vector[N-1], 1.0)
     #terminalCostModel.addCost("camReg", camBoundCost_vector[N-1], 1.0)
     terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
@@ -1067,12 +1070,13 @@ def talker():
     terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
     terminalModel = crocoddyl.IntegratedActionModelEuler(terminalDAM, dt_)
     problemWithRK4 = crocoddyl.ShootingProblem(x0, runningModelWithRK4_vector, terminalModel)
-    problemWithRK4.nthreads = 20
+    problemWithRK4.nthreads = 15
+
     ddp = crocoddyl.SolverFDDP(problemWithRK4)
 
     for time_step in range(1, total_time):
         ok_ = False
-        for i in range(1, N-1):  
+        for i in range(1, N-1):
             traj_[43] = (array_boundx[i + time_step][0] + array_boundx[i + time_step][1])/2 #zmp_refx_[i][0]
             traj_[47] = (array_boundy[i + time_step][0] + array_boundy[i + time_step][1])/2#zmp_refy_[i][0]
             state_bounds[i].lb[0] = copy(array_boundx[i + time_step][0])
@@ -1085,7 +1089,6 @@ def talker():
 
             runningCostModel_vector[i].removeCost("stateReg1")
             runningCostModel_vector[i].addCost("stateReg1", stateBoundCost_vector1[i], 1.0)
-
             #runningCostModel_vector[i].removeCost("stateReg")
             #runningCostModel_vector[i].addCost("stateReg", stateBoundCost_vector[i], 1.0)
            
@@ -1144,28 +1147,34 @@ def talker():
             if mpc_signaldata[0] == 1:
                 x_initv  = x_init.read()
                 X = np.ndarray(shape=(49,), dtype=np.float64, buffer=x_initv)
-                X = np.array([ 0.00000000e+00,  0.00000000e+00,  8.24730000e-01,  0.00000000e+00,
-  0.00000000e+00,  0.00000000e+00,  1.00000000e+00,  0.00000000e+00,
-  0.00000000e+00, -5.50000000e-01,  1.26000000e+00, -7.10000000e-01,
-  0.00000000e+00,  0.00000000e+00,  0.00000000e+00, -5.50000000e-01,
-  1.26000000e+00, -7.10000000e-01,  0.00000000e+00,  0.00000000e+00,
-  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-  0.00000000e+00,  8.61938268e-02,  0.00000000e+00,  8.61938268e-02,
-  0.00000000e+00,  5.18219890e-06,  0.00000000e+00,  5.18219890e-06,
-  0.00000000e+00])
-
-                queue[:41] = X[:41]
-                queue[41] = X[43]
-                queue[42] = X[47]
+                K_time1 = time.time()
+                if time_step == 1:
+                    X = np.array([ 0.00000000e+00,  0.00000000e+00,  8.24730000e-01,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  1.00000000e+00,  0.00000000e+00,
+    0.00000000e+00, -5.50000000e-01,  1.26000000e+00, -7.10000000e-01,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00, -5.50000000e-01,
+    1.26000000e+00, -7.10000000e-01,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  8.61938268e-02,  0.00000000e+00,  8.61938268e-02,
+    0.00000000e+00,  5.18219890e-06,  0.00000000e+00,  5.18219890e-06,
+    0.00000000e+00])
+                    queue[:41] = X[:41]
+                    queue[41] = X[43]
+                    queue[42] = X[47]
+                else:
+                    x0 = ddp.xs[1]
+                    for i in range(0, len(q)):
+                        x0[i] = copy(X[i])
+                    for i in range(len(q), len(q)+len(qdot)):
+                        x0[i] = copy(X[i])
+                    #print("Aaaaa")
+                    #print(x0[len(q):41])
                 
-                if(time_step >= 2):
-                    print("ddp")
-                    print(ddp.xs[1])
-                    queue[:41] = ddp.xs[1][0:41]
+                    queue[:41] = x0[:41]
                     queue[41] = ddp.xs[1][43]
                     queue[42] = ddp.xs[1][47]
                 
@@ -1182,6 +1191,7 @@ def talker():
                             if i != 59:
                                 us_pca.append(np.concatenate([a_traj[i,:], u_traj[i,:]]))
                         break
+                K_time3 = time.time()
                 if(time_step == 1):
                     for i in range(0, len(x0)):
                         x0[i] = copy(X[i])
@@ -1189,12 +1199,11 @@ def talker():
                         q[i] = x0[i]    
                     for i in range(0, len(qdot)):
                         qdot[i] = x0[i+len(q)]                    
-
+        
                     pinocchio.forwardKinematics(model.model, data, q, qdot)
                     pinocchio.updateFramePlacements(model.model,data)
                     pinocchio.centerOfMass(model.model, data, q, qdot, False)
                     pinocchio.computeCentroidalMomentum(model.model,data,q,qdot)
-                    
                     
                     x0[41] = data.com[0][0] 
                     x0[45] = data.com[0][1]
@@ -1207,31 +1216,36 @@ def talker():
 
                     x0[44] = data.hg.angular[1] 
                     x0[48] = data.hg.angular[0] 
+
                 else:
-                    x0 = ddp.xs[1]
-
+                    #x0[:len(x0)] = X[:len(x0)]
+                      
+                    print("disting")
+                    print([ddp.xs[1][42], ddp.xs[1][46]])
+                    print([X[42], X[46]])
+                    print([x0[42], x0[46]])
+                    print([ddp.xs[1][41], ddp.xs[1][45]])
+                    print([X[41], X[45]])
+                    print([x0[41], x0[45]])
+    
+                    x0[41] = X[41]
+                    x0[45] = X[45]
+                    #x0[42] = X[42]
+                    #x0[46] = X[46]
+                    x0[44] = X[44]
+                    x0[48] = X[48]
+                    '''
                     for i in range(0, len(q)):
-                        q[i] = x0[i]    
+                        q[i] = x0[i]
                     for i in range(0, len(qdot)):
-                        qdot[i] = x0[i+len(q)]                    
-
-                    pinocchio.forwardKinematics(model.model, data, q, qdot)
-                    pinocchio.updateFramePlacements(model.model,data)
+                        qdot[i] = x0[i+len(q)]  
+                                  
                     pinocchio.centerOfMass(model.model, data, q, qdot, False)
-                    pinocchio.computeCentroidalMomentum(model.model,data,q,qdot)
-                    
-                    
-                    x0[41] = data.com[0][0] 
-                    x0[45] = data.com[0][1]
-                
-                    x0[42] = data.vcom[0][0] 
-                    x0[46] = data.vcom[0][1]
+                    print([data.vcom[0][0], data.vcom[0][1]])
+                    '''
+                    #x0[42] = data.vcom[0][0] 
+                    #x0[46] = data.vcom[0][1]
 
-                    x0[44] = data.hg.angular[1] 
-                    x0[48] = data.hg.angular[0] 
-                
-                #xs_pca_test = queue[:] 
-            
                 problemWithRK4.x0 = x0
                 ddp.th_stop = 0.0000001
                 c_start = time.time()
@@ -1242,6 +1256,7 @@ def talker():
                 X = ddp.xs[1]
                 desired_value.write(X)
                 statemachine.write(np.array([1, 0, 0], dtype=np.int8))
+                K_time2 = time.time()
 
                 print("end")
                 avrg_duration = duration
@@ -1253,7 +1268,8 @@ def talker():
                 print(x0)
                 print(ddp.xs[1])
                 print(["mpc_cycle", mpc_cycle, time_step])
-                #print(mpc_cycle)
+                total_cost.append(ddp.cost)
+                total_time_.append(avrg_duration)
 
                 ok_ = True
                 
@@ -1262,40 +1278,28 @@ def talker():
                     statemachine.write(np.array([2, 0, 0], dtype=np.int8))
                     time.sleep(1000)
                 mpc_cycle = mpc_cycle + 1  
-                
+
+                if(ddp.xs[1][43] < array_boundx[1 + time_step][0]) or (ddp.xs[1][43] > array_boundx[1 + time_step][1]):
+                    print("zmpx")
+                    print(ddp.xs[1][43])
+                    print([array_boundx[1 + time_step][0], array_boundx[1 + time_step][1]])
+
+                if(ddp.xs[1][47] < array_boundy[1 + time_step][0]) or (ddp.xs[1][47] > array_boundy[1 + time_step][1]):
+                    print("zmpy")
+                    print(ddp.xs[1][47])
+                    print([array_boundy[1 + time_step][0], array_boundy[1 + time_step][1]])
+
+                print(total_cost)
+                print(total_time_)
 
             elif mpc_signaldata[0] == 2:
                 statemachine.write(np.array([2, 0, 0], dtype=np.int8))
-                
-            '''
-            if time_step == 0:
-                a
-                print(x_initv)
-            else:
-                X = np.array(ddp.xs[1][0:21])
-                X = np.append(X, ddp.xs[1][43]) 
-                X = np.append(X, ddp.xs[1][47])
-                queue[:] = X
-            k = 0        
-            mpc_signalv  = mpc_signal.read()
-            mpc_signaldata =  np.ndarray(shape=(3,), dtype=np.int32, buffer=mpc_signalv)
-            thread_manager[:] = copy(mpc_signaldata[:])
-            if(thread_manager[2] == 1):
-                statemachinedata[0] = 2
-                statemachine.write(statemachinedata)
-                signal = True
-            '''
-            '''
-            if(thread_manager[0] == 0 and thread_manager[1] == 0 and  thread_manager[2] == 0):
-                break
-            '''
-
         
-       
-
 def print_heard_talkling(message):    
     if  message['data'] == 'stateestimation':
         talk.publish(roslibpy.Message({'data': 'stateestimation'}))
+    if  message['data'] == 'simvirtualjoint':
+        talk.publish(roslibpy.Message({'data': 'simvirtualjoint'}))
 
    
 if __name__=='__main__':
@@ -1312,4 +1316,3 @@ if __name__=='__main__':
     #talk.publish(roslibpy.Message({'data': 'Hello World!'}))
     #PCAlearning()
     talker()
-

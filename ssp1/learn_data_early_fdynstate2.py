@@ -31,7 +31,6 @@ import torch.optim as optim
 import torch.multiprocessing as multiprocessing
 import ctypes
 import pytorch_model_summary
-from pytorchtools import EarlyStopping
 
 #manager = multiprocessing.Manager()
 #thread_manager = manager.list()
@@ -158,7 +157,7 @@ class CNN(nn.Module):
         )
         self.layer3 = torch.nn.Sequential(
             torch.nn.Linear(in_features = input_size, out_features= int(input_size*2/3) + output_size),
-            torch.nn.ReLU(),
+            torch.nn.LeakyReLU(),
             torch.nn.Linear(in_features = int(input_size*2/3) + output_size, out_features = output_size)
             )
 
@@ -383,9 +382,89 @@ def PCAlearning(time_step):
                [1,1,35,54], #48
     ] 
 
+    param=[
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+    ]
+
     print(len(naming))
     print(len(param))
     #a = adsfsdfs
+    
     file_name = "/home/jhk/walkingdata/beforedata/fdyn/"
     file_name2 = "/timestep="
     file_name3 = file_name +naming[time_step]+'/'+naming1[time_step]#+'_re'
@@ -519,9 +598,9 @@ def PCAlearning(time_step):
         for key in keys:
             d = np.array([])
             for i in range(0, num_desired):
-                c = np.append(np.append(trajs[key][i][0], vel_trajs[key][i][0], axis=0), np.array([x_trajs[key][i][0][2], x_trajs[key][i][0][6]]), axis=0)
+                c = np.append(np.append(trajs[key][i][0], vel_trajs[key][i][0], axis=0), x_trajs[key][i][0], axis=0)
                 d = np.append(d, np.array([c]))
-            d = d.reshape(num_desired, 43)
+            d = d.reshape(num_desired, 49)
             x_inputs[key] = d
 
         #revise
@@ -536,7 +615,7 @@ def PCAlearning(time_step):
                 raw_u_trajs[i] = numpy.vstack([raw_u_trajs[i],newrow])
             u_trajs[key] = np.array(raw_u_trajs)
             acc_trajs[key] = np.array(raw_acc_trajs)
-
+        del(database)
         for key in keys:
             w_trajs[key] = apply_RBF(trajs[key], Phi)
             w_vel_trajs[key] = apply_RBF(vel_trajs[key], Phi)
@@ -544,7 +623,7 @@ def PCAlearning(time_step):
         #w_u_trajs[key] = apply_RBF(u_trajs[key], Phi)    
         #w_acc_trajs[key] = apply_RBF(acc_trajs[key], Phi)
         file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/fdyn/'
-        file_name2 = 'Phi'
+        file_name2 = 'Phi_normal'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pickle.dump(Phi, open(file_name4,"wb"))
@@ -565,14 +644,14 @@ def PCAlearning(time_step):
             #w_u_trajs_pca[key] = pca_u[key].fit_transform(w_u_trajs[key])
 
         file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/fdyn/'
-        file_name2 = 'w_trajs_pca_Early_'
+        file_name2 = 'w_trajs_pca_Early_normal'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pickle.dump(pca, open(file_name4,"wb"))
-        file_name2 = 'w_vel_trajs_pca_Early_'
+        file_name2 = 'w_vel_trajs_pca_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pickle.dump(pca_vel, open(file_name4,"wb"))
-        file_name2 = 'w_x_trajs_pca_Early_'
+        file_name2 = 'w_x_trajs_pca_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pickle.dump(pca_x, open(file_name4,"wb"))
         '''
@@ -605,387 +684,44 @@ def PCAlearning(time_step):
             y_x_train[key] = torch.FloatTensor( (y_x_train[key]))
 
         file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/fdyn/'
-        file_name2 = 'x_inputs_train_Early_'
+        file_name2 = 'x_inputs_train_Early_normal'
         file_name3 = '.pt'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(x_inputs_train, file_name4)
-        file_name2 = 'x_inputs_test_Early_'
+        file_name2 = 'x_inputs_test_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(x_inputs_test, file_name4)
-        file_name2 = 'y_test_Early_'
+        file_name2 = 'y_test_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_test, file_name4)
-        file_name2 = 'y_vel_test_Early_'
+        file_name2 = 'y_vel_test_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_vel_test, file_name4)
-        file_name2 = 'y_u_test_Early_'
+        file_name2 = 'y_u_test_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_u_test, file_name4)
-        file_name2 = 'y_acc_test_Early_'
+        file_name2 = 'y_acc_test_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_acc_test, file_name4)
-        file_name2 = 'y_x_test_Early_'
+        file_name2 = 'y_x_test_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_x_test, file_name4)
-        file_name2 = 'y_train_Early_'
+        file_name2 = 'y_train_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_train, file_name4)
-        file_name2 = 'y_vel_train_Early_'
+        file_name2 = 'y_vel_train_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_vel_train, file_name4)
-        file_name2 = 'y_u_train_Early_'
+        file_name2 = 'y_u_train_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_u_train, file_name4)
-        file_name2 = 'y_acc_train_Early_'
+        file_name2 = 'y_acc_train_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_acc_train, file_name4)
-        file_name2 = 'y_x_train_Early_'
+        file_name2 = 'y_x_train_Early_normal'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         torch.save(y_x_train, file_name4)
         print("transform SAVE")
-    else:
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/fdyn/'
-        file_name2 = 'Phi'
-        file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        #print(torch.load(file_name4))
-        print(file_name4)
-        Phi = pickle.load(open(file_name4,"rb"))
-
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/fdyn/'
-        file_name2 = 'x_inputs_train_'
-        file_name3 = '.pt'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        x_inputs_train = torch.load(file_name4)
-        file_name2 = 'x_inputs_test_'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        x_inputs_test = torch.load(file_name4)
-        file_name2 = 'y_test_'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        y_test = torch.load(file_name4)
-        file_name2 = 'y_vel_test_'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        y_vel_test = torch.load(file_name4)
-        file_name2 = 'y_x_test_'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        y_x_test = torch.load(file_name4)
-        file_name2 = 'y_train_'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        y_train = torch.load(file_name4)
-        file_name2 = 'y_vel_train_'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        y_vel_train = torch.load(file_name4)
-        file_name2 = 'y_x_train_'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        y_x_train = torch.load(file_name4)
-
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/fdyn/'
-        file_name2 = 'w_trajs_pca_'
-        file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        pca = pickle.load(open(file_name4,'rb'))
-        
-        file_name2 = 'w_vel_trajs_pca_'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        pca_vel = pickle.load(open(file_name4,'rb'))
-        file_name2 = 'w_x_trajs_pca_'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        pca_x= pickle.load(open(file_name4,'rb'))
-        file_name2 = 'w_u_trajs_pca_'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        #pca_u = pickle.load(open(file_name4,'rb'))
-        file_name2 = 'w_acc_trajs_pca_'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
-        #pca_acc = pickle.load(open(file_name4,'rb'))
-        #explain =pca_x[key].explained_variance_ratio_
-        #print(explain)
-        #k = asdfasdf
-    '''
-    for epoch in range(1):
-        losses = []
-        print(np.shape(trajs[key][0]))
-        for i in range(0,len(w_vel_trajs_pca[key])): 
-            data = w_vel_trajs_pca[key][i]
-            v_pred = pca_vel[key].inverse_transform(data)
-            v_pred = v_pred.reshape(rbf_num,-1)
-            v_pred = np.dot(Phi,v_pred)
-            #batch_loss = loss(vel_trajs[key][i].flatten(), torch.FloatTensor(v_pred.flatten())) # difference between actual and reconstructed                   #losses.append(batch_loss.item())
-             #running_loss = np.mean(losses)
-            running_loss = numpy.linalg.norm(np.subtract(vel_trajs[key][i].flatten(),v_pred.flatten()))
-            print(f"Epoch_vel {epoch}: {running_loss}")
-    '''
-    device = 'cpu'
-    train_y = timeseries(x_inputs_train[key], y_train[key])
-    test_y = timeseries(x_inputs_test[key], y_test[key])
-    train_yvel = timeseries(x_inputs_train[key], y_vel_train[key])
-    test_yvel = timeseries(x_inputs_test[key], y_vel_test[key])
-    #train_yacc = timeseries(x_inputs_train[key], y_acc_train[key])
-    #test_yacc = timeseries(x_inputs_test[key], y_acc_test[key])
-    #train_yu = timeseries(x_inputs_train[key], y_u_train[key])
-    #test_yu = timeseries(x_inputs_test[key], y_u_test[key])
-    train_yx = timeseries(x_inputs_train[key], y_x_train[key])
-    test_yx = timeseries(x_inputs_test[key], y_x_test[key])
-   
-    batch_size = 1
-    train_loader = torch.utils.data.DataLoader(dataset=train_y, batch_size=batch_size, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(dataset=test_y, batch_size=batch_size, shuffle=True)
-    train_vel_loader = torch.utils.data.DataLoader(dataset=train_yvel, batch_size=batch_size, shuffle=True)
-    test_vel_loader = torch.utils.data.DataLoader(dataset=test_yvel, batch_size=batch_size, shuffle=True)
-    #train_acc_loader = torch.utils.data.DataLoader(dataset=train_yacc, batch_size=batch_size, shuffle=True)
-    #test_acc_loader = torch.utils.data.DataLoader(dataset=test_yacc, batch_size=batch_size, shuffle=True)
-    #train_u_loader = torch.utils.data.DataLoader(dataset=train_yu, batch_size=batch_size, shuffle=True)
-    #test_u_loader = torch.utils.data.DataLoader(dataset=test_yu, batch_size=batch_size, shuffle=True)
-    train_x_loader = torch.utils.data.DataLoader(dataset=train_yx, batch_size=batch_size, shuffle=True)
-    test_x_loader = torch.utils.data.DataLoader(dataset=test_yx, batch_size=batch_size, shuffle=True)
-
-    #q
-    input_size = 43
-    model = CNN(input_size=input_size,
-                output_size = rbf_num,
-                device=device).to(device)
-       
-    #qdot
-    model1 = CNN(input_size=input_size,
-                output_size = rbf_num,
-                device=device).to(device)
-
-    #x
-    model2 = CNN(input_size=input_size,
-                output_size = rbf_num,
-                device=device).to(device)
-
-    '''
-    #acc
-    input_size = 21
-    sequence_length = 1
-    num_layers = 10
-    hidden_size = rbf_num
-
-    model3 = CNN(input_size=input_size,
-                hidden_size=hidden_size,
-                sequence_length=sequence_length,
-                num_layers=num_layers,
-                device=device).to(device)
-   
-    #u
-    input_size = 19
-    sequence_length = 1
-    num_layers = 5
-    hidden_size = rbf_num
-
-    model4 = CNN(input_size=input_size,
-                hidden_size=hidden_size,
-                sequence_length=sequence_length,
-                num_layers=num_layers,
-                device=device).to(device)
-    '''
-
-   
-    #model3.train()
-    #model4.train()
-
-    if learn_type == 0:
-        model.train()
-        model1.train()
-        model2.train()
-
-        criterion = nn.MSELoss()
-        lr = 0.001
-        num_epochs = 50
-        optimizer = optim.Adam(model.parameters(), lr=lr)
-        loss_graph = [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]
-        input_size = 43
-        sequence_length = 1
-        best_loss = 10 ** 15
-        patience_limit = 15
-        train_loss = 0
-        #model, optimizer = ipex.optimize(model, optimizer=optimizer)
-        early_stopping = EarlyStopping(patience=patience_limit, verbose=True)
-        
-        for epoch in range(num_epochs):
-            train_loss = 0
-            train_num = 0
-            model.train()
-            for data in train_loader:
-                train_num = train_num + 1
-                seq, target = data
-                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
-                out = model(X)
-                loss = criterion(out, target)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                train_loss += loss.item()
-
-            if epoch % 1 == 0:
-                print ('Epoch [{}/{}],  Loss: {:.6f}'
-                    .format(epoch+1, num_epochs, loss.item()))
-            #train_loss = loss.item()
-            model.eval()
-            val_loss = 0
-            val_num = 0
-            for data in test_loader:
-                seq, y = data
-                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
-                val_num = val_num + 1
-                y_pred = model(X)
-                loss = criterion(y_pred, y)
-                val_loss += loss.item()   
-            early_stopping(val_loss, model)
-            if early_stopping.early_stop: # 조건 만족 시 조기 종료
-                break
-        
-        loss_graph[0] = [val_loss/val_num, train_loss/train_num]
-        print("loss_graph")
-        print(loss_graph[0])
-        criterion = nn.MSELoss()
-        lr = 0.001
-        num_epochs = 50
-        optimizer1 = optim.Adam(model1.parameters(), lr=lr)
-        sequence_length = 1
-        best_loss = 10 ** 9
-        #model1, optimizer1 = ipex.optimize(model1, optimizer=optimizer1)
-        patience_limit = 15
-        patience_check = 0 
-        early_stopping = EarlyStopping(patience=patience_limit, verbose=True)
-        for epoch in range(num_epochs):
-            train_loss = 0
-            model1.train()
-            for data in train_vel_loader:
-                seq, target = data
-                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
-                out = model1(X)
-                loss = criterion(out, target)
-                optimizer1.zero_grad()
-                loss.backward()
-                optimizer1.step()
-                train_loss += loss.item()
-
-            if epoch % 1 == 0:
-                print ('1Epoch [{}/{}],  Loss: {:.6f}'
-                    .format(epoch+1, num_epochs, loss.item()))
-            #train_loss = loss.item()
-
-            model1.eval()
-            val_loss = 0
-            for data in test_vel_loader:
-                seq, y = data
-                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
-                y_pred = model1(X)
-                loss = criterion(y_pred, y)
-                val_loss += loss.item()   
-            ### early stopping 여부를 체크하는 부분 ###
-            early_stopping(val_loss, model1)
-            if early_stopping.early_stop: # 조건 만족 시 조기 종료
-                break
-            '''
-            if val_loss > best_loss: # loss가 개선되지 않은 경우
-                patience_check += 1
-                if patience_check >= patience_limit: # early stopping 조건 만족 시 조기 종료
-                    break
-            else: # loss가 개선된 경우
-                best_loss = val_loss
-                patience_check = 0
-            '''
-        criterion = nn.MSELoss()
-        lr = 0.001
-        num_epochs = 100
-        optimizer2 = optim.Adam(model2.parameters(), lr=lr)
-        loss_graph[1] = [val_loss/val_num, train_loss/train_num]
-        print("loss_graph")
-        print(loss_graph[1])
-        sequence_length = 1
-        best_loss = 10 ** 9
-        #model2, optimizer2 = ipex.optimize(model2, optimizer=optimizer2)
-        patience_limit = 15
-        patience_check = 0 
-        early_stopping = EarlyStopping(patience=patience_limit, verbose=True)
-
-        for epoch in range(num_epochs):
-            train_loss = 0
-            model2.train()
-            for data in train_x_loader:
-                seq, target = data
-                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
-                out = model2(X)
-                loss = criterion(out, target)
-                optimizer2.zero_grad()
-                loss.backward()
-                optimizer2.step()
-                train_loss += loss.item()
-            if epoch % 1 == 0:
-                print ('2Epoch [{}/{}],  Loss: {:.6f}'
-                    .format(epoch+1, num_epochs, loss.item()))
-            #train_loss = loss.item()
-
-            model2.eval()
-            val_loss = 0
-            for data in test_x_loader:
-                seq, y = data
-                X = seq.reshape(batch_size, sequence_length, input_size).to(device)
-                y_pred = model2(X)
-                loss = criterion(y_pred, y)
-                val_loss += loss.item()   
-            early_stopping(val_loss, model2)
-            if early_stopping.early_stop: # 조건 만족 시 조기 종료
-                break
-            '''
-            ### early stopping 여부를 체크하는 부분 ###
-            if val_loss > best_loss: # loss가 개선되지 않은 경우
-                patience_check += 1
-                if patience_check >= patience_limit: # early stopping 조건 만족 시 조기 종료
-                    break
-            else: # loss가 개선된 경우
-                best_loss = val_loss
-                patience_check = 0
-            '''
-        
-        file_name = '/home/jhk/ssd_mount/beforedata/fdyn/cnnEarly'
-        file_name2 = '0_'
-        file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3       
-        torch.save(model.state_dict(), file_name4)
-        file_name2 = '1_'
-        file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3   
-        torch.save(model1.state_dict(), file_name4)
-        file_name2 = '2_'
-        file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3   
-        torch.save(model2.state_dict(), file_name4)
-        loss_graph[2] = [val_loss/val_num, train_loss/train_num]
-        print("loss_graph")
-        print(loss_graph[2])
-
-        best = np.array(loss_graph)
-        file_name = "/home/jhk/walkingdata/beforedata/fdyn/"
-        file_name3 = file_name +naming[time_step]+'/'+'loss.txt'
-        np.savetxt(file_name3, best)
-        
-       
-    else:
-        file_name = '/home/jhk/ssd_mount/beforedata/cnn/fdyn/cnnEarly'
-        file_name2 = '0_'
-        file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3   
-        model.load_state_dict(torch.load(file_name4))
-        file_name2 = '1_'
-        file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3   
-        model1.load_state_dict(torch.load(file_name4))
-        file_name2 = '2_'
-        file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3   
-        model2.load_state_dict(torch.load(file_name4))
-    
-    #for i  in range(0, len(trajs[key])):
-    #    if(x_inputs_test[key][JJ][None,:][0][0] == trajs[key][i][0][0]) and (x_inputs_test[key][JJ][None,:][0][1] == trajs[key][i][0][1]) and (x_inputs_test[key][JJ][None,:][0][21] == x_trajs[key][i][0][2]) and (x_inputs_test[key][JJ][None,:][0][22] == x_trajs[key][i][0][6]):
-    #        KKK = i
-    #for i in range(0, 5):
-    #    print(i)
-    #    print(v_pca[i])
-    #    print(vel_trajs[key][KKK][i])
-    
    
 def talker():
     global xs_pca_test, xs_pca, us_pca
@@ -998,7 +734,7 @@ def talker():
     learning_data_num = 27
     
     
-    for i in range(0, 49, 5):#learning_data_num):
+    for i in range(0, 49, 1):#learning_data_num):
         PCAlearning(i)
     k = adsfasdff
     print("start")

@@ -1571,6 +1571,10 @@ def modelInitialize():
 
     TranVRi = np.matmul(np.linalg.inv(TranFVi),TranFRi)
     TranVLi = np.matmul(np.linalg.inv(TranFVi),TranFLi)
+    pinocchio.computeCentroidalMap(model.model, data, q)
+    print("ssss")
+    print(data.Ag[3:6, 18:21])
+    k = asdfsdfasdfas
 
 
 def modelUpdate(q_desired, qdot_desired, qddot_desired):

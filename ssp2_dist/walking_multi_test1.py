@@ -867,7 +867,7 @@ def talker():
         problemWithRK4.x0 = x0
         ddp.th_stop = 0.0000005
         c_start = time.time()
-        css = ddp.solve(xs_pca, us_pca, False, True, 0.00001)
+        css = ddp.solve(xs_pca, us_pca, 30, False, 0.00001)
         c_end = time.time()
         duration = (1e3 * (c_end - c_start))
 

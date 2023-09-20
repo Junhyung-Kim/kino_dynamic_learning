@@ -1,5 +1,6 @@
 import roslibpy
 import pickle
+import roslaunch
 import numpy as np
 import time
 from copy import copy
@@ -30,107 +31,68 @@ import torch.optim as optim
 import torch.multiprocessing as multiprocessing
 import ctypes
 import pytorch_model_summary
+from multiprocessing import shared_memory
+import sysv_ipc
 
-#manager = multiprocessing.Manager()
-#thread_manager = manager.list()
-#X_manager = manager.dict()
+class CShmReader : 
+    def __init__(self) :
+        pass
+ 
+    def doReadShm(self , key) :
+        memory = sysv_ipc.SharedMemory(key)
+        memory_value = memory.read()
+        c = np.ndarray((2,), dtype=np.double, buffer=memory_value)
 
-global q_traj, v_traj, acc_traj, x_traj, u_traj
+    def doWriteShm(self, Input) :
+        self.memory.write(Input)
 
-def InversePCA(model, rbf_num, pca, Phi, X, thread_manager):
+def InversePCA(model, rbf_num, pca, Phi, tick, X, thread_manager):
+    k = 0
     while True:
-        if thread_manager[0] == 0:
-            ti = time.time()
-            a = np.array(X[:])
-            c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
-            w_traj = model.forward(c)[0].detach().numpy()
-            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
+        if thread_manager[0] == 1:# and k == 0:
+            c = torch.tensor(np.array(X[:]).reshape(1,1,23),dtype=torch.float32)
+            w_traj = model[k].forward(c)[0].detach().numpy()
+            w_traj = pca[k].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
-            traj1 = np.dot(Phi,w_traj)
-            q_traj[:] = traj1.flatten()
-            t2 = time.time()
-            print("thread1")
-            print(ti)
-            print(t2)
-            print(t2 - ti)
-            thread_manager[0] = 1
+            q_traj[:] = np.dot(Phi[k],w_traj)
+            thread_manager[0] = 0
+            k = k + 1
 
-def InversePCA1(model, rbf_num, pca, Phi, X, thread_manager):
+def InversePCA1(model, rbf_num, pca, Phi, tick, X, thread_manager):
+    k = 0
     while True:
-        if thread_manager[1] == 0:
-            ti = time.time()
-            a = np.array(X[:])
-            c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
-            w_traj = model.forward(c)
-            w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
+        if thread_manager[1] == 1:# and k == 0:
+            c = torch.tensor(np.array(X[:]).reshape(1,1,23),dtype=torch.float32)
+            
+            w_traj = model[k].forward(c).detach().numpy()
+            #w_traj = w_traj[0].detach().numpy()
+            w_traj = pca[k].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
-            traj1 = np.dot(Phi,w_traj)
-            v_traj[:] = traj1.flatten()
-            t2 = time.time()
-            print("thread2")
-            print(ti)
-            print(t2)
-            print(t2 - ti)
-            thread_manager[1] = 1
+            v_traj[:] = np.dot(Phi[k],w_traj)
+            a_traj[:] = np.subtract(v_traj[1:60,:], v_traj[0:59,:])/0.02
+            thread_manager[1] = 0
+            #k = k + 1
 
-def InversePCA2(model, rbf_num, pca, Phi, X, thread_manager):
-    while True:
-        if thread_manager[2] == 0:
-            ti = time.time()
-            a = np.array(X[:])
-            c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
-            w_traj = model.forward(c)
-            w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
-            w_traj = w_traj.reshape(rbf_num,-1)
-            traj1 = np.dot(Phi,w_traj)
-            x_traj[:] = traj1.flatten()
-            t2 = time.time()
-            print("thread3")
-            print(ti)
-            print(t2)
-            print(t2 - ti)
-            thread_manager[2] = 1
 
-def InversePCA3(model, rbf_num, pca, Phi, X, thread_manager):
+def InversePCA2(model, rbf_num, pca, Phi, tick, X, thread_manager):
+    k = 0
     while True:
-        if thread_manager[3] == 0:
-            ti = time.time()
-            a = np.array(X[:])
-            c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
-            w_traj = model.forward(c)
-            w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
+        if thread_manager[2] == 1:# and k == 0:
+            c = torch.tensor(np.array(X[:]).reshape(1,1,23),dtype=torch.float32)
+            w_traj = model[k].forward(c).detach().numpy()
+            #w_traj = w_traj[0].detach().numpy()
+            w_traj = pca[k].inverse_transform([w_traj[None,:]])[0]
             w_traj = w_traj.reshape(rbf_num,-1)
-            traj1 = np.dot(Phi,w_traj)
-            acc_traj[:] = traj1.flatten()
-            t2 = time.time()
-            print("thread4")
-            print(ti)
-            print(t2)
-            print(t2 - ti)
-            thread_manager[3] = 1
-
-def InversePCA4(model, rbf_num, pca, Phi, X, thread_manager):
-    while True:
-        if thread_manager[4] == 0:
-            ti = time.time()
-            a = np.array(X[:])
-            c = torch.tensor(a.reshape(1,1,19),dtype=torch.float32)
-            w_traj = model.forward(c)
-            w_traj = w_traj[0].detach().numpy()
-            w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
-            w_traj = w_traj.reshape(rbf_num,-1)
-            traj1 = np.dot(Phi,w_traj)
-            u_traj[:] = traj1.flatten()
-            t2 = time.time()
-            print("thread5")
-            print(ti)
-            print(t2)
-            print(t2 - ti)
-            thread_manager[4] = 1
-   
+            x_traj[:] = np.dot(Phi[k],w_traj)
+            
+            u_traj[:,0:2] = np.subtract(x_traj[1:60,2:4], x_traj[0:59,2:4])/0.02
+            u_traj[:,2:4] = np.subtract(x_traj[1:60,6:8], x_traj[0:59,6:8])/0.02
+            
+            #x_traj = np.dot(Phi[k],pca[k].inverse_transform([model[k].forward(c)[0].detach().numpy()[None,:]])[0].reshape(rbf_num,-1))
+            
+            thread_manager[2] = 0
+            #k = k + 1
+            
 class timeseries(Dataset):
     def __init__(self,x,y):
         self.x = torch.tensor(x,dtype=torch.float32)
@@ -155,9 +117,9 @@ class CNN(nn.Module):
             torch.nn.Flatten()
         )
         self.layer3 = torch.nn.Sequential(
-            torch.nn.Linear(in_features = input_size, out_features= 50),
+            torch.nn.Linear(in_features = input_size, out_features= int(input_size*2/3) + output_size),
             torch.nn.ReLU(),
-            torch.nn.Linear(in_features = 50, out_features = output_size)
+            torch.nn.Linear(in_features = int(input_size*2/3) + output_size, out_features = output_size)
             )
 
     def forward(self, x):
@@ -189,12 +151,10 @@ def inverse_transform(w_pca, pca, Phi, rbf_num):
     return traj
 
 def PCAlearning(time_step):
-    global xs_pca_test
+    global xs_pca_test, rbf_num
     global xs_pca
     global us_pca
 
-    learn_type = 1
-    learn_type1 = 0
     database = dict()
     database['left'] = dict()
     database['Right'] = dict()
@@ -211,15 +171,264 @@ def PCAlearning(time_step):
         database[key]['costs'] = []
         database[key]['iters'] = []
 
-    file_name = '/home/jhk/ssd_mount/beforedata/ssp2/timestep='
-    file_name2 = '/filename3_5_0.pkl'
-    file_name3 = file_name + str(time_step) +file_name2
+    naming = [
+        "timestep=0_finish_ssp2",  
+"timestep=1_finish_ssp2", 
+"timestep=2_finish_ssp2", 
+"timestep=3_finish_ssp2",       
+"timestep=4_finish_ssp2",    
+"timestep=5_finish_ssp2",
+"timestep=6_finish_ssp2",
+"timestep=7_finish_ssp2",
+"timestep=8_finish_ssp2",
+"timestep=9_finish_ssp2",
+"timestep=10_finish_ssp2",      
+"timestep=11_finish_ssp2",
+"timestep=12_finish_ssp2",      
+"timestep=13_finish_ssp2",      
+"timestep=14_finish_ssp2",      
+"timestep=15_finish_ssp2",      
+"timestep=16_finish_ssp2",      
+"timestep=17_finish_ssp2",      
+"timestep=18_finish_ssp2",      
+"timestep=19_finish_ssp2",      
+"timestep=20_finish_ssp2",
+"timestep=21_finish_ssp2",
+"timestep=22_finish_ssp2",
+"timestep=23_finish_ssp2",  
+"timestep=24_finish_ssp2",
+"timestep=25_finish_ssp2",
+"timestep=26_finish_ssp2",
+"timestep=27_finish_ssp2",
+"timestep=28_finish_ssp2",
+"timestep=29_finish_ssp2",
+"timestep=30_finish_ssp2",
+"timestep=31_finish_ssp2",
+"timestep=32_finish_ssp2",
+"timestep=33_finish_ssp2",
+"timestep=34_finish_ssp2",     
+"timestep=35_finish_ssp2",  
+"timestep=36_finish_ssp2",      
+"timestep=37_finish_ssp2",
+"timestep=38_finish_ssp2",        
+"timestep=39_finish_ssp2",
+"timestep=40_finish_ssp2",  
+"timestep=41_finish_ssp2",
+"timestep=42_finish_ssp2",
+"timestep=43_finish_ssp2",
+"timestep=44_finish_ssp2",
+"timestep=45_finish_ssp2",
+"timestep=46_finish_ssp2",
+"timestep=47_finish_ssp2",
+"timestep=48_finish_ssp2",
+"timestep=49_finish_ssp2",
+    ]
+
+    naming1 = [
+    "timestep=0_finish_ssp2",  
+"timestep=1_finish_ssp2", 
+"timestep=2_finish_ssp2", 
+"timestep=3_finish_ssp2",       
+"timestep=4_finish_ssp2",    
+"timestep=5_finish_ssp2",
+"timestep=6_finish_ssp2",
+"timestep=7_finish_ssp2",
+"timestep=8_finish_ssp2",
+"timestep=9_finish_ssp2",
+"timestep=10_finish_ssp2",      
+"timestep=11_finish_ssp2",
+"timestep=12_finish_ssp2",      
+"timestep=13_finish_ssp2",      
+"timestep=14_finish_ssp2",      
+"timestep=15_finish_ssp2",      
+"timestep=16_finish_ssp2",      
+"timestep=17_finish_ssp2",      
+"timestep=18_finish_ssp2",      
+"timestep=19_finish_ssp2",      
+"timestep=20_finish_ssp2",
+"timestep=21_finish_ssp2",
+"timestep=22_finish_ssp2",
+"timestep=23_finish_ssp2",  
+"timestep=24_finish_ssp2",
+"timestep=25_finish_ssp2",
+"timestep=26_finish_ssp2",
+"timestep=27_finish_ssp2",
+"timestep=28_finish_ssp2",
+"timestep=29_finish_ssp2",
+"timestep=30_finish_ssp2",
+"timestep=31_finish_ssp2",
+"timestep=32_finish_ssp2",
+"timestep=33_finish_ssp2",
+"timestep=34_finish_ssp2",     
+"timestep=35_finish_ssp2",  
+"timestep=36_finish_ssp2",      
+"timestep=37_finish_ssp2",
+"timestep=38_finish_ssp2",        
+"timestep=39_finish_ssp2",
+"timestep=40_finish_ssp2",  
+"timestep=41_finish_ssp2",
+"timestep=42_finish_ssp2",
+"timestep=43_finish_ssp2",
+"timestep=44_finish_ssp2",
+"timestep=45_finish_ssp2",
+"timestep=46_finish_ssp2",
+"timestep=47_finish_ssp2",
+"timestep=48_finish_ssp2",
+"timestep=49_finish_ssp2",
+    ]
+    '''
+    param=[
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+    ]
+    '''
+    param = [
+        [2,1,19,55], #0
+        [2,1,13,55], #1
+        [1,1,33,52], #2
+        [1,1,45,55], #3
+        [1,1,3,54], #4
+        [1,1,13,54], #5
+        [1,1,27,54], #6
+        [1,1,35,53], #7
+        [2,1,17,55], #8
+        [2,1,19,54], #9
+        [2,1,3,53], #10
+        [2,1,23,53], #11
+        [1,1,27,54], #12
+        [2,1,23,53], #13
+        [1,1,33,55], #14
+        [1,1,23,55], #15
+        [1,1,33,55], #16
+        [1,1,35,54], #17
+        [2,1,49,53], #18
+        [2,1,3,53], #19
+        [1,1,15,54], #20
+        [2,1,25,52], #21
+        [1,1,19,54], #22
+        [1,1,13,55], #23
+        [1,1,39,55], #24
+        [3,1,35,55], #25
+        [1,1,19,54], #26
+        [1,1,19,54], #27
+        [2,1,49,53], #28
+        [1,1,27,54], #29
+        [2,1,13,55], #30
+        [1,1,17,53], #31
+        [2,1,15,52], #32
+        [1,1,7,55], #33
+        [1,1,45,55], #34
+        [1,1,7,55], #35
+        [1,1,23,55], #36
+        [1,1,49,53], #37
+        [2,1,7,55], #38
+        [3,1,17,53], #39
+        [1,1,13,55], #40
+        [2,1,35,54], #41
+        [2,1,7,53], #42
+        [1,1,19,55], #43
+        [2,1,43,53], #44
+        [1,1,41,55], #45
+        [2,1,11,53], #46
+        [2,1,21,52], #47
+        [2,1,11,53], #48
+        [2,1,47,53], #49
+    ] 
+
+    learn_type = 1
+    learn_type1 = 1
+    '''
+    if time_step <= 9:
+        file_name = "/home/jhk/ssd_mount3/beforedata/ssp2/"
+    else:
+        file_name = "/home/jhk/Downloads/"
+    file_name2 = "/timestep="
+    file_name3 = file_name + naming1[time_step]#+'_re'
     print(file_name3)
-    
 
     with open(file_name3, 'rb') as f:
         database = pickle.load(f,  encoding='iso-8859-1')
     f.close()
+    
+    print(database['Right']['trajs'][0][0])
+    k = asdfasdfasds
+    '''
+
+    file_name ='/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp2/'
 
     init_trajs = dict()
     trajs = dict()
@@ -257,10 +466,11 @@ def PCAlearning(time_step):
     pca_u = dict()
    
     #define dataset
-    num_desired = 4995
+    num_desired = 11130
     keys = ['Right']
     num_data = dict()
-
+    key = 'Right'
+    '''
     for key in keys:
         x_inputs[key] = []
         x_inputs[key] = np.array(database[key]['x_inputs'])[:num_desired]
@@ -290,10 +500,10 @@ def PCAlearning(time_step):
             raw_u_trajs[i] = numpy.vstack([raw_u_trajs[i],newrow])
         u_trajs[key] = np.array(raw_u_trajs)
         acc_trajs[key] = np.array(raw_acc_trajs)
-
+    '''
     timestep = 60
-    rbf_num = 36
-    Phi = define_RBF(dof=19, nbStates =rbf_num, offset = 4, width = 2, T = timestep, coeff =47)
+    rbf_num = param[time_step][3]
+    Phi = define_RBF(dof=19, nbStates =rbf_num, offset = param[time_step][0], width = param[time_step][1], T = timestep, coeff =param[time_step][2])
 
     x_inputs_train = dict()
     x_inputs_test = dict()
@@ -324,17 +534,18 @@ def PCAlearning(time_step):
     y_x_train_temp = dict()
     y_x_test_temp = dict()
 
-    print(np.shape(x_inputs[key]))
-    print(np.shape(x_inputs[key]))
-   
-    for key in keys:
-        w_trajs[key] = apply_RBF(trajs[key], Phi)
-        w_vel_trajs[key] = apply_RBF(vel_trajs[key], Phi)
-        w_x_trajs[key] = apply_RBF(x_trajs[key], Phi)
-        w_u_trajs[key] = apply_RBF(u_trajs[key], Phi)    
-        w_acc_trajs[key] = apply_RBF(acc_trajs[key], Phi)
-
     if learn_type1 == 0:
+        for key in keys:
+            w_trajs[key] = apply_RBF(trajs[key], Phi)
+            w_vel_trajs[key] = apply_RBF(vel_trajs[key], Phi)
+            w_x_trajs[key] = apply_RBF(x_trajs[key], Phi)
+            w_u_trajs[key] = apply_RBF(u_trajs[key], Phi)    
+            w_acc_trajs[key] = apply_RBF(acc_trajs[key], Phi)
+
+        file_name2 = '/Phi.pkl'
+        file_name3 = file_name + str(time_step) + file_name2
+        pickle.dump(Phi, open(file_name3,"wb"))
+       
         for key in keys:
             pca[key] = PCA(n_components = int(rbf_num))
             w_trajs_pca[key] = pca[key].fit_transform(w_trajs[key])
@@ -344,14 +555,7 @@ def PCAlearning(time_step):
 
             pca_x[key] = PCA(n_components= int(rbf_num))
             w_x_trajs_pca[key] = pca_x[key].fit_transform(w_x_trajs[key])
-
-            pca_acc[key] = PCA(n_components=int(rbf_num))
-            w_acc_trajs_pca[key] = pca_acc[key].fit_transform(w_acc_trajs[key])
-
-            pca_u[key] = PCA(n_components=int(rbf_num))
-            w_u_trajs_pca[key] = pca_u[key].fit_transform(w_u_trajs[key])
-
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/'
+       
         file_name2 = 'w_trajs_pca_'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
@@ -362,34 +566,22 @@ def PCAlearning(time_step):
         file_name2 = 'w_x_trajs_pca_'
         file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
         pickle.dump(pca_x, open(file_name4,"wb"))
-        file_name2 = 'w_u_trajs_pca_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
-        pickle.dump(pca_u, open(file_name4,"wb"))
-        file_name2 = 'w_acc_trajs_pca_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
-        pickle.dump(pca_acc, open(file_name4,"wb"))
-
+       
         for key in keys:
             x_inputs_train[key], x_inputs_test[key], y_train[key], y_test[key] = train_test_split(x_inputs[key], w_trajs_pca[key], test_size = 0.1, random_state=1)
             _,_, y_vel_train[key], y_vel_test[key] = train_test_split(x_inputs[key],w_vel_trajs_pca[key], test_size = 0.1, random_state=1)
-            #_,_, y_u_train[key], y_u_test[key] = train_test_split(x_inputs[key],w_u_trajs_pca[key], test_size = 0.1, random_state=1)
-            #_,_, y_acc_train[key], y_acc_test[key] = train_test_split(x_inputs[key],w_acc_trajs_pca[key], test_size = 0.1, random_state=1)
             _,_, y_x_train[key], y_x_test[key] = train_test_split(x_inputs[key],w_x_trajs_pca[key], test_size = 0.1, random_state=1)
 
             x_inputs_train[key] = torch.FloatTensor(x_inputs_train[key])
             x_inputs_test[key] = torch.FloatTensor(x_inputs_test[key])
             y_test[key] = torch.FloatTensor( (y_test[key]))
             y_vel_test[key] = torch.FloatTensor( (y_vel_test[key]))
-            #y_u_test[key] = torch.FloatTensor( (y_u_test[key]))
-            #y_acc_test[key] = torch.FloatTensor( (y_acc_test[key]))
             y_x_test[key] = torch.FloatTensor( (y_x_test[key]))
             y_train[key] = torch.FloatTensor( (y_train[key]))
             y_vel_train[key] = torch.FloatTensor( (y_vel_train[key]))
-            #y_u_train[key] = torch.FloatTensor( (y_u_train[key]))
-            #y_acc_train[key] = torch.FloatTensor( (y_acc_train[key]))
             y_x_train[key] = torch.FloatTensor( (y_x_train[key]))
 
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/'
+        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset1/'
         file_name2 = 'x_inputs_train_'
         file_name3 = '.pt'
         file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
@@ -429,74 +621,34 @@ def PCAlearning(time_step):
         torch.save(y_x_train, file_name4)
         print("transform SAVE")
     else:
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/'
-        file_name2 = 'x_inputs_train_'
-        file_name3 = '.pt'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
-        x_inputs_train = torch.load(file_name4)
-        file_name2 = 'x_inputs_test_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
-        x_inputs_test = torch.load(file_name4)
-        file_name2 = 'y_test_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
-        y_test = torch.load(file_name4)
-        file_name2 = 'y_vel_test_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
-        y_vel_test = torch.load(file_name4)
-        file_name2 = 'y_x_test_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
-        y_x_test = torch.load(file_name4)
-        file_name2 = 'y_train_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
-        y_train = torch.load(file_name4)
-        file_name2 = 'y_vel_train_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
-        y_vel_train = torch.load(file_name4)
-        file_name2 = 'y_x_train_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
-        y_x_train = torch.load(file_name4)
-
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/'
-        file_name2 = 'w_trajs_pca_'
+        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp2/'
+        file_name2 = 'Phi'
         file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
+        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
+        #print(torch.load(file_name4))
+        print(file_name4)
+        Phi = pickle.load(open(file_name4,"rb"))
+        
+        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/ssp2/'
+        file_name2 = 'w_trajs_pca_Early_'
+        file_name3 = '.pkl'
+        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pca = pickle.load(open(file_name4,'rb'))
-        file_name2 = 'w_vel_trajs_pca_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
+        
+        file_name2 = 'w_vel_trajs_pca_Early_'
+        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pca_vel = pickle.load(open(file_name4,'rb'))
-        file_name2 = 'w_x_trajs_pca_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
+        file_name2 = 'w_x_trajs_pca_Early_'
+        file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pca_x= pickle.load(open(file_name4,'rb'))
-        file_name2 = 'w_u_trajs_pca_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
-        pca_u = pickle.load(open(file_name4,'rb'))
-        file_name2 = 'w_acc_trajs_pca_'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
-        pca_acc = pickle.load(open(file_name4,'rb'))
-
-    for epoch in range(1):
-        losses = []
-        print(np.shape(trajs[key][0]))
-        for i in range(0,len(w_vel_trajs_pca[key])): 
-            data = w_vel_trajs_pca[key][i]
-            v_pred = pca_vel[key].inverse_transform(data)
-            v_pred = v_pred.reshape(rbf_num,-1)
-            v_pred = np.dot(Phi,v_pred)
-            #batch_loss = loss(vel_trajs[key][i].flatten(), torch.FloatTensor(v_pred.flatten())) # difference between actual and reconstructed                   #losses.append(batch_loss.item())
-             #running_loss = np.mean(losses)
-            running_loss = numpy.linalg.norm(np.subtract(vel_trajs[key][i].flatten(),v_pred.flatten()))
-            print(f"Epoch_vel {epoch}: {running_loss}")
-    k=ajaajaj
-
+        
+       
     device = 'cpu'
+    '''
     train_y = timeseries(x_inputs_train[key], y_train[key])
     test_y = timeseries(x_inputs_test[key], y_test[key])
     train_yvel = timeseries(x_inputs_train[key], y_vel_train[key])
     test_yvel = timeseries(x_inputs_test[key], y_vel_test[key])
-    #train_yacc = timeseries(x_inputs_train[key], y_acc_train[key])
-    #test_yacc = timeseries(x_inputs_test[key], y_acc_test[key])
-    #train_yu = timeseries(x_inputs_train[key], y_u_train[key])
-    #test_yu = timeseries(x_inputs_test[key], y_u_test[key])
     train_yx = timeseries(x_inputs_train[key], y_x_train[key])
     test_yx = timeseries(x_inputs_test[key], y_x_test[key])
    
@@ -505,15 +657,17 @@ def PCAlearning(time_step):
     test_loader = torch.utils.data.DataLoader(dataset=test_y, batch_size=batch_size, shuffle=True)
     train_vel_loader = torch.utils.data.DataLoader(dataset=train_yvel, batch_size=batch_size, shuffle=True)
     test_vel_loader = torch.utils.data.DataLoader(dataset=test_yvel, batch_size=batch_size, shuffle=True)
-    #train_acc_loader = torch.utils.data.DataLoader(dataset=train_yacc, batch_size=batch_size, shuffle=True)
-    #test_acc_loader = torch.utils.data.DataLoader(dataset=test_yacc, batch_size=batch_size, shuffle=True)
-    #train_u_loader = torch.utils.data.DataLoader(dataset=train_yu, batch_size=batch_size, shuffle=True)
-    #test_u_loader = torch.utils.data.DataLoader(dataset=test_yu, batch_size=batch_size, shuffle=True)
     train_x_loader = torch.utils.data.DataLoader(dataset=train_yx, batch_size=batch_size, shuffle=True)
     test_x_loader = torch.utils.data.DataLoader(dataset=test_yx, batch_size=batch_size, shuffle=True)
-
+    '''
     #q
-    input_size = 23
+
+    
+
+    input_size = 43
+    print("rbf")
+    print(time_step)
+    print(rbf_num)
     model = CNN(input_size=input_size,
                 output_size = rbf_num,
                 device=device).to(device)
@@ -527,37 +681,7 @@ def PCAlearning(time_step):
     model2 = CNN(input_size=input_size,
                 output_size = rbf_num,
                 device=device).to(device)
-
-    '''
-    #acc
-    input_size = 21
-    sequence_length = 1
-    num_layers = 10
-    hidden_size = rbf_num
-
-    model3 = CNN(input_size=input_size,
-                hidden_size=hidden_size,
-                sequence_length=sequence_length,
-                num_layers=num_layers,
-                device=device).to(device)
-   
-    #u
-    input_size = 19
-    sequence_length = 1
-    num_layers = 5
-    hidden_size = rbf_num
-
-    model4 = CNN(input_size=input_size,
-                hidden_size=hidden_size,
-                sequence_length=sequence_length,
-                num_layers=num_layers,
-                device=device).to(device)
-    '''
-
-   
-    #model3.train()
-    #model4.train()
-
+    
     if learn_type == 0:
         model.train()
         model1.train()
@@ -570,8 +694,7 @@ def PCAlearning(time_step):
         loss_graph = []
         input_size = 23
         sequence_length = 1
-
-        #model, optimizer = ipex.optimize(model, optimizer=optimizer)
+        i = 0
         for epoch in range(num_epochs):
             for data in train_loader:
                 seq, target = data
@@ -581,8 +704,8 @@ def PCAlearning(time_step):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
- 
-                if epoch % 1 == 0:
+                i = i + 1
+                if i % 1000 == 0:
                     print ('Epoch [{}/{}],  Loss: {:.6f}'
                        .format(epoch+1, num_epochs, loss.item()))
        
@@ -592,8 +715,7 @@ def PCAlearning(time_step):
         optimizer1 = optim.Adam(model1.parameters(), lr=lr)
         loss_graph = []
         sequence_length = 1
-        #model1, optimizer1 = ipex.optimize(model1, optimizer=optimizer1)
-
+        i = 0
         for epoch in range(num_epochs):
             for data in train_vel_loader:
                 seq, target = data
@@ -603,8 +725,8 @@ def PCAlearning(time_step):
                 optimizer1.zero_grad()
                 loss.backward()
                 optimizer1.step()
-
-                if epoch % 1 == 0:
+                i = i + 1
+                if i % 1000 == 0:
                     print ('1Epoch [{}/{}],  Loss: {:.6f}'
                         .format(epoch+1, num_epochs, loss.item()))
    
@@ -614,8 +736,7 @@ def PCAlearning(time_step):
         optimizer2 = optim.Adam(model2.parameters(), lr=lr)
         loss_graph = []
         sequence_length = 1
-        #model2, optimizer2 = ipex.optimize(model2, optimizer=optimizer2)
-
+        i = 0
         for epoch in range(num_epochs):
             for data in train_x_loader:
                 seq, target = data
@@ -626,135 +747,113 @@ def PCAlearning(time_step):
                 optimizer2.zero_grad()
                 loss.backward()
                 optimizer2.step()
-                if epoch % 1 == 0:
+                i = i + 1
+                if i % 1000 == 0:
                     print ('2Epoch [{}/{}],  Loss: {:.6f}'
                        .format(epoch+1, num_epochs, loss.item()))
-        
-        file_name = '/home/jhk/ssd_mount/cnn'
-        file_name2 = '0_'
-        file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3       
-        torch.save(model.state_dict(), file_name4)
-        file_name2 = '1_'
-        file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3   
-        torch.save(model1.state_dict(), file_name4)
-        file_name2 = '2_'
-        file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3   
-        torch.save(model2.state_dict(), file_name4)
+                   
+        file_name2 = '/cnn.pkl'
+        file_name3 = file_name + str(time_step) + file_name2
+        torch.save(model.state_dict(), file_name3)
+        file_name2 = '/cnn1.pkl'
+        file_name3 = file_name + str(time_step) + file_name2
+        torch.save(model1.state_dict(), file_name3)
+        file_name2 = '/cnn2.pkl'
+        file_name3 = file_name + str(time_step) + file_name2
+        torch.save(model2.state_dict(), file_name3)
        
     else:
-        file_name = '/home/jhk/ssd_mount/cnn'
+        file_name = '/home/jhk/ssd_mount/beforedata/ssp2/cnnEarly'
         file_name2 = '0_'
         file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3   
+        file_name4 = file_name  +file_name2+ naming[time_step] + file_name3   
         model.load_state_dict(torch.load(file_name4))
         file_name2 = '1_'
         file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3   
+        file_name4 = file_name  +file_name2+ naming[time_step] + file_name3   
         model1.load_state_dict(torch.load(file_name4))
         file_name2 = '2_'
         file_name3 = '.pkl'
-        file_name4 = file_name  +file_name2+ str(time_step)+ file_name3   
+        file_name4 = file_name  +file_name2+ naming[time_step] + file_name3   
         model2.load_state_dict(torch.load(file_name4))
-    
+
+    PCA_.append(pca[key])
+    PCA_VEL.append(pca_vel[key])
+    PCA_X.append(pca_x[key])
+
+    NN_.append(model)
+    NN_VEL.append(model1)
+    NN_X.append(model2)
     '''
-    JJ = np.random.randint(x_inputs_test[key].shape[0])
-    X = x_inputs_test['Right'][JJ][None,:]
-    X = X.reshape(1, 1, input_size).to(device)        
-   
-    ti = time.time()
-    c = torch.tensor(X,dtype=torch.float32)
-    w_traj = model.forward(c)
-    w_traj = w_traj[0].detach().numpy()
-    w_traj = pca['Right'].inverse_transform([w_traj[None,:]])[0]
-    w_traj = w_traj.reshape(rbf_num,-1)
-    traj1 = np.dot(Phi,w_traj)
-    q_traj = traj1.flatten()
-    t2 = time.time()  
-    print(t2 - ti)
-
-    ti = time.time()
-    a = np.array(X[:])
-    c = torch.tensor(a.reshape(1,1,input_size),dtype=torch.float32)
-    w_traj_dot = model1.forward(c)
-    w_traj_dot = w_traj_dot[0].detach().numpy()
-    w_traj_dot = pca_vel['Right'].inverse_transform([w_traj_dot[None,:]])[0]
-    w_traj_dot = w_traj_dot.reshape(rbf_num,-1)
-    traj1 = np.dot(Phi,w_traj_dot)
-    v_traj = traj1.flatten()
-    t2 = time.time()
-    acc_traj = np.subtract(traj1[1:60,:], traj1[0:59,:])/0.02
-    t3 = time.time()
-    print(t2 - ti)
-    print(t3 - ti)
-
-    ti = time.time()
-    a = np.array(X[:])
-    c = torch.tensor(a.reshape(1,1,input_size),dtype=torch.float32)
-    w_traj_x = model2.forward(c)
-    w_traj_x = w_traj_x[0].detach().numpy()
-    w_traj_x = pca_x['Right'].inverse_transform([w_traj_x[None,:]])[0]
-    w_traj_x = w_traj_x.reshape(rbf_num,-1)
-    traj1 = np.dot(Phi,w_traj_x)
-    x_traj = traj1.flatten()
-    t2 = time.time()
-    print(t2 - ti)
-    u_traj = np.zeros([59, 4])
-    for i in range(0, 59):
-        u_traj[i][0] = (traj1[i + 1][2] - traj1[i][2])/0.02
-        u_traj[i][1] = (traj1[i + 1][3] - traj1[i][3])/0.02
-        u_traj[i][2] = (traj1[i + 1][6] - traj1[i][6])/0.02
-        u_traj[i][3] = (traj1[i + 1][7] - traj1[i][7])/0.02
-
-    q_pca = np.array(q_traj).reshape(60,21)
-    v_pca = np.array(v_traj).reshape(60,20)
-    x_pca = np.array(x_traj).reshape(60,8)
-    acc_pca = np.array(acc_traj).reshape(59,20)
-    u_pca = np.array(u_traj).reshape(59,4)
-
-    xs_pca = []
-    us_pca = []
-
-    for q, v, x in zip(q_pca, v_pca, x_pca):
-        xs_pca.append(np.concatenate([q, v, x]))
-    for a, u in zip(acc_pca, u_pca):
-        i = i + 1
-        us_pca.append(np.concatenate([a, u]))
-
-    xs_pca_test = x_inputs_test[key][JJ][None,:][0]
-
-    for i  in range(0, len(trajs[key])):
-        if(x_inputs_test[key][JJ][None,:][0][0] == trajs[key][i][0][0]) and (x_inputs_test[key][JJ][None,:][0][1] == trajs[key][i][0][1]) and (x_inputs_test[key][JJ][None,:][0][21] == x_trajs[key][i][0][2]) and (x_inputs_test[key][JJ][None,:][0][22] == x_trajs[key][i][0][6]):
-            KKK = i
-    for i in range(0, 5):
-        print(i)
-        print(v_pca[i])
-        print(vel_trajs[key][KKK][i])
+    if time_step == 0:
+        global X_INIT
+        X_INIT = x_inputs_test[key]
     '''
-   
+    PHI_.append(Phi)
+
 def talker():
-    global xs_pca_test, xs_pca, us_pca
+    global xs_pca_test, xs_pca, us_pca, rbf_num
+    global q_traj, v_traj, a_traj, x_traj, u_traj
+    global PCA_, NN_, PCA_VEL, NN_VEL, PCA_X, NN_X, X_INIT, PHI_
+    PCA_ = []
+    NN_ = []
+    PCA_VEL = []
+    NN_VEL = []
+    PCA_X = []
+    NN_X = []
+    PHI_= []
+    X_INIT = np.array([])
+    '''
     print("start")
-
+    mpc_signal = sysv_ipc.SharedMemory(1)
+    mpc_signalv  = mpc_signal.read()
+    mpc_signaldata =  np.ndarray(shape=(3,), dtype=np.int32, buffer=mpc_signalv)
+    x_init = sysv_ipc.SharedMemory(2)
+    x_initv  = x_init.read()
+    statemachine = sysv_ipc.SharedMemory(3)
+    statemachinedata = np.array([0], dtype=np.int8)
+    
+    thread_manager1 = []
+    for i in range(0,40):
+        thread_manager1.append(0)
+    '''
+    #thread_manager = multiprocessing.Array(ctypes.c_int, thread_manager1)
+   
     N = 60
     T = 1
     MAXITER = 300
     dt_ = 1.2 / float(N)
-    learning_data_num = 1
-    
-    for i in range(0, learning_data_num):
+    total_time = 49
+    cost_total = []
+    latency_total = []
+    crocs_data = dict()
+    crocs_data['left'] = dict()
+    crocs_data['Right'] = dict()
+
+    for key in crocs_data.keys():
+        crocs_data[key]['foot_poses'] = []
+        crocs_data[key]['trajs'] = []
+        crocs_data[key]['acc_trajs'] = []
+        crocs_data[key]['x_inputs'] = []
+        crocs_data[key]['vel_trajs'] = []
+        crocs_data[key]['x_state'] = []        
+        crocs_data[key]['u_trajs'] = []
+        crocs_data[key]['data_phases_set'] = []
+        crocs_data[key]['costs'] = []
+        crocs_data[key]['iters'] = []
+
+    for i in range(0, total_time):
+        print("learning")
+        print(i)
         PCAlearning(i)
-    
+
     print("start")
-    aa =kadjhflkasdjlfa
-    f = open("/home/jhk/ssd_mount/lfoot.txt", 'r')
-    f1 = open("/home/jhk/ssd_mount/rfoot.txt", 'r')
-    f2 = open("/home/jhk/ssd_mount/zmp.txt", 'r')
+    f = open("/home/jhk/walkingdata/beforedata/ssp2/lfoot1.txt", 'r')
+    f1 = open("/home/jhk/walkingdata/beforedata/ssp2/rfoot2.txt", 'r')
+    f2 = open("/home/jhk/walkingdata/beforedata/ssp2/zmp3.txt", 'r')
     f3 = open("/home/jhk/data/mpc/5_tocabi_data.txt", 'w')
     f4 = open("/home/jhk/data/mpc/6_tocabi_data.txt", 'w')
-    f5 = open("/home/jhk/ssd_mount/zmp1.txt", 'r')
+    f5 = open("/home/jhk/walkingdata/beforedata/ssp2/zmp3.txt", 'r')
 
     lines = f.readlines()
     lines2 = f2.readlines()
@@ -762,8 +861,6 @@ def talker():
     lines1 = f1.readlines()
 
     N = 60
-    time_step = 1
-
     array_boundx = [[] for i in range(int(len(lines2)))]
     array_boundy = [[] for i in range(int(len(lines2)))]
 
@@ -781,7 +878,139 @@ def talker():
 
     zmp_refx_ = [[] for i in range(N)]
     zmp_refy_ = [[] for i in range(N)]
-   
+    '''
+    param=[
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+        [2,1,19,55],
+    ]
+    '''
+    param = [
+        [2,1,19,55], #0
+        [2,1,13,55], #1
+        [1,1,33,52], #2
+        [1,1,45,55], #3
+        [1,1,3,54], #4
+        [1,1,13,54], #5
+        [1,1,27,54], #6
+        [1,1,35,53], #7
+        [2,1,17,55], #8
+        [2,1,19,54], #9
+        [2,1,3,53], #10
+        [2,1,23,53], #11
+        [1,1,27,54], #12
+        [2,1,23,53], #13
+        [1,1,33,55], #14
+        [1,1,23,55], #15
+        [1,1,33,55], #16
+        [1,1,35,54], #17
+        [2,1,49,53], #18
+        [2,1,3,53], #19
+        [1,1,15,54], #20
+        [2,1,25,52], #21
+        [1,1,19,54], #22
+        [1,1,13,55], #23
+        [1,1,39,55], #24
+        [3,1,35,55], #25
+        [1,1,19,54], #26
+        [1,1,19,54], #27
+        [2,1,49,53], #28
+        [1,1,27,54], #29
+        [2,1,13,55], #30
+        [1,1,17,53], #31
+        [2,1,15,52], #32
+        [1,1,7,55], #33
+        [1,1,45,55], #34
+        [1,1,7,55], #35
+        [1,1,23,55], #36
+        [1,1,49,53], #37
+        [2,1,7,55], #38
+        [3,1,17,53], #39
+        [1,1,13,55], #40
+        [2,1,35,54], #41
+        [2,1,7,53], #42
+        [1,1,19,55], #43
+        [2,1,43,53], #44
+        [1,1,41,55], #45
+        [2,1,11,53], #46
+        [2,1,21,52], #47
+        [2,1,11,53], #48
+        [2,1,47,53], #49
+    ] 
+
     T = 1
     MAXITER = 300
     dt_ = 1.2 / float(N)
@@ -814,12 +1043,6 @@ def talker():
                 array_boundRF[i].append(float(lines_array[i][j]))
             if j == 2:
                 array_boundRF[i].append(float(lines_array[i][j]))
-   
-    for i in range(0, N):
-        if i == 0:
-            array_boundRF_[i] = np.sum([array_boundRF[k*i + time_step - 1], [-0.03, 0.0, 0.15842]], axis = 0)
-        else:
-            array_boundRF_[i] = np.sum([array_boundRF[k*i + time_step - 1], [-0.03, 0.0, 0.15842]], axis = 0)
     
     for i in range(0, len(lines1_array)):
         for j in range(0, len(lines1_array[i])):
@@ -829,13 +1052,7 @@ def talker():
                 array_boundLF[i].append(float(lines1_array[i][j]))
             if j == 2:
                 array_boundLF[i].append(float(lines1_array[i][j]))
-
-    for i in range(0, N):
-        if i == 0:
-            array_boundLF_[i] = np.sum([array_boundLF[k*i + time_step - 1], [-0.03, 0.0, 0.15842]], axis = 0)
-        else:
-            array_boundLF_[i] = np.sum([array_boundLF[k*i + time_step - 1], [-0.03, 0.0, 0.15842]], axis = 0)
-
+    
     for i in range(0, len(lines2_array)):
         for j in range(0, len(lines2_array[i])):
             if j == 0:
@@ -847,49 +1064,17 @@ def talker():
             if j == 3:
                 array_boundy[i].append(float(lines2_array[i][j]))
 
-    for i in range(0, N):
-        if i == 0:
-            array_boundx_[i] = array_boundx[k3*i + time_step-1]
-            array_boundy_[i] = array_boundy[k3*i + time_step-1]
-        else:
-            array_boundx_[i] = array_boundx[k3*(i) + time_step-1]
-            array_boundy_[i] = array_boundy[k3*(i) + time_step-1]
-    
     for i in range(0, len(lines3_array)):
         for j in range(0, len(lines3_array[i])):
             if j == 0:
                 zmp_refx[i].append(float(lines3_array[i][j]))
             if j == 1:
                 zmp_refy[i].append(float(lines3_array[i][j]))
-           
-    for i in range(0, N):
-        if i == 0:
-            zmp_refx_[i] = zmp_refx[k*i + time_step -1]
-            zmp_refy_[i] = zmp_refy[k*i + time_step -1]
-        else:
-            zmp_refx_[i] = zmp_refx[k*(i)+ time_step -1]
-            zmp_refy_[i] = zmp_refy[k*(i)+ time_step -1]
 
     f.close()
     f1.close()
     f2.close()
 
-    crocs_data = dict()
-    crocs_data['left'] = dict()
-    crocs_data['Right'] = dict()
-
-    for key in crocs_data.keys():
-        crocs_data[key]['foot_poses'] = []
-        crocs_data[key]['trajs'] = []
-        crocs_data[key]['acc_trajs'] = []
-        crocs_data[key]['x_inputs'] = []
-        crocs_data[key]['vel_trajs'] = []
-        crocs_data[key]['x_state'] = []        
-        crocs_data[key]['u_trajs'] = []
-        crocs_data[key]['data_phases_set'] = []
-        crocs_data[key]['costs'] = []
-        crocs_data[key]['iters'] = []
-       
     global model, foot_distance, data, LFframe_id, RFframe_id, PELVjoint_id, LHjoint_id, RHjoint_id, LFjoint_id, q_init, RFjoint_id, LFcframe_id, RFcframe_id, q, qdot, qddot, LF_tran, RF_tran, PELV_tran, LF_rot, RF_rot, PELV_rot, qdot_z, qddot_z, HRR_rot_init, HLR_rot_init, HRR_tran_init, HLR_tran_init, LF_rot_init, RF_rot_init, LF_tran_init, RF_tran_init, PELV_tran_init, PELV_rot_init, CPELV_tran_init, q_command, qdot_command, qddot_command, robotIginit, q_c
     model = RobotWrapper.BuildFromURDF("/usr/local/lib/python3.8/dist-packages/robot_properties_tocabi/resources/urdf/tocabi.urdf","/home/jhk/catkin_ws/src/dyros_tocabi_v2/tocabi_description/meshes",pinocchio.JointModelFreeFlyer())  
    
@@ -920,12 +1105,44 @@ def talker():
     qdot = pinocchio.utils.zero(model.nv)
     qdot_init = pinocchio.utils.zero(model.nv)
     qddot = pinocchio.utils.zero(model.nv)
-    q_init = [0, 0, 0.82473, 0, 0, 0, 1, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0, -0.55, 1.26, -0.71, 0]
+    q_init = [2.03577140e-03,  2.18003917e-02,  8.24142832e-01,  6.67965343e-04,
+ -5.68193194e-03,  1.88934542e-04,  9.99983617e-01, -7.34696327e-04,
+ -3.69614712e-02, -6.24124480e-01,  1.26428882e+00, -6.31053303e-01,
+  3.82965049e-02, -8.21293530e-04, -3.69418243e-02, -4.26893771e-01,
+  1.22127068e+00, -7.83004340e-01,  3.82777623e-02,  0.00000000e+00,
+  0.00000000e+00]
 
-    e = 0
-    for time1 in range(0, 1):
-        for i in range(0, len(q)):    
-            q[i] = xs_pca_test[i]
+    for time_step in range(0, total_time):
+        for i in range(0, N):
+            if i == 0:
+                array_boundRF_[i] = np.sum([array_boundRF[k*i + time_step], [-0.03, 0.0, 0.15842]], axis = 0)
+            else:
+                array_boundRF_[i] = np.sum([array_boundRF[k*i + time_step], [-0.03, 0.0, 0.15842]], axis = 0)
+   
+        for i in range(0, N):
+            if i == 0:
+                array_boundLF_[i] = np.sum([array_boundLF[k*i + time_step], [-0.03, 0.0, 0.15842]], axis = 0)
+            else:
+                array_boundLF_[i] = np.sum([array_boundLF[k*i + time_step], [-0.03, 0.0, 0.15842]], axis = 0)
+
+        for i in range(0, N):
+            if i == 0:
+                array_boundx_[i] = array_boundx[k3*i + time_step]
+                array_boundy_[i] = array_boundy[k3*i + time_step]
+            else:
+                array_boundx_[i] = array_boundx[k3*(i) + time_step]
+                array_boundy_[i] = array_boundy[k3*(i) + time_step]
+            
+        for i in range(0, N):
+            if i == 0:
+                zmp_refx_[i] = zmp_refx[k*i + time_step]
+                zmp_refy_[i] = zmp_refy[k*i + time_step]
+            else:
+                zmp_refx_[i] = zmp_refx[k*(i)+ time_step]
+                zmp_refy_[i] = zmp_refy[k*(i)+ time_step]
+        if time_step == 0:
+            for i in range(0, len(q)):    
+                q[i] = q_init[i]
        
         state = crocoddyl.StateKinodynamic(model.model)
         actuation = crocoddyl.ActuationModelKinoBase(state)
@@ -949,12 +1166,202 @@ def talker():
 
         LF_tran = data.oMi[LFjoint_id]
         RF_tran = data.oMi[RFjoint_id]
-       
+
         x0[41] = data.com[0][0]
-        x0[43] = xs_pca_test[21]
+        x0[43] = data.com[0][0]
         x0[45] = data.com[0][1]
-        x0[47] = xs_pca_test[22]
-       
+        x0[47] = data.com[0][1]
+        
+        if time_step == 0:    
+            '''
+            JJ = np.random.randint(X_INIT.shape[0])
+            X = X_INIT[JJ][None,:]
+            X = X.reshape(1, 1, 21).to('cpu')   
+            '''
+            time_step_ = time_step
+            
+            X = np.zeros(43)
+            for i in range(0, len(q)):
+                X[i] = q[i]
+            for i in range(len(q), len(q) + len(qdot)):
+                X[i] = qdot[i - len(q)]
+            X[41] = x0[43]
+            X[42] = x0[47]
+
+            X = X.reshape(1, 1, 43)  
+            
+            ti = time.time()
+            c = torch.tensor(X,dtype=torch.float32)
+            w_traj = NN_[time_step_].forward(c)
+            w_traj = w_traj[0].detach().numpy()
+            w_traj = PCA_[time_step_].inverse_transform([w_traj[None,:]])[0]
+            w_traj = w_traj.reshape(param[time_step][3],-1)
+            traj1 = np.dot(PHI_[time_step_],w_traj)
+            q_traj = traj1.flatten()
+            t2 = time.time()  
+            print(t2 - ti)
+
+            ti = time.time()
+            a = np.array(X[:])
+            c = torch.tensor(a.reshape(1,1,43),dtype=torch.float32)
+            w_traj_dot = NN_VEL[time_step_].forward(c)
+            w_traj_dot = w_traj_dot[0].detach().numpy()
+            w_traj_dot = PCA_VEL[time_step_].inverse_transform([w_traj_dot[None,:]])[0]
+            w_traj_dot = w_traj_dot.reshape(param[time_step][3],-1)
+            traj1 = np.dot(PHI_[time_step_],w_traj_dot)
+            v_traj = traj1.flatten()
+            t2 = time.time()
+            acc_traj = np.subtract(traj1[1:60,:], traj1[0:59,:])/0.02
+            t3 = time.time()
+            print(t2 - ti)
+            print(t3 - ti)
+
+            ti = time.time()
+            a = np.array(X[:])
+            c = torch.tensor(a.reshape(1,1,43),dtype=torch.float32)
+            w_traj_x = NN_X[time_step_].forward(c)
+            w_traj_x = w_traj_x[0].detach().numpy()
+            w_traj_x = PCA_X[time_step_].inverse_transform([w_traj_x[None,:]])[0]
+            w_traj_x = w_traj_x.reshape(param[time_step][3],-1)
+            traj1 = np.dot(PHI_[time_step_], w_traj_x)
+            x_traj = traj1.flatten()
+            t2 = time.time()
+            print(t2 - ti)
+            u_traj = np.zeros([59, 4])
+            for i in range(0, 59):
+                u_traj[i][0] = (traj1[i + 1][2] - traj1[i][2])/0.02
+                u_traj[i][1] = (traj1[i + 1][3] - traj1[i][3])/0.02
+                u_traj[i][2] = (traj1[i + 1][6] - traj1[i][6])/0.02
+                u_traj[i][3] = (traj1[i + 1][7] - traj1[i][7])/0.02
+
+            q_pca = np.array(q_traj).reshape(60,21)
+            v_pca = np.array(v_traj).reshape(60,20)
+            x_pca = np.array(x_traj).reshape(60,8)
+            acc_pca = np.array(acc_traj).reshape(59,20)
+            u_pca = np.array(u_traj).reshape(59,4)
+
+            xs_pca = []
+            us_pca = []
+
+            for q, v, x in zip(q_pca, v_pca, x_pca):
+                xs_pca.append(np.concatenate([q, v, x]))
+            for a, u in zip(acc_pca, u_pca):
+                i = i + 1
+                us_pca.append(np.concatenate([a, u]))
+        else:
+            #JJ = np.random.randint(X_INIT.shape[0])
+            #X = np.array([ddp.xs[1][0:21], ddp.xs[1][21:41], ddp.xs[1][43], ddp.xs[1][47]])
+            
+            x0 = ddp.xs[1]
+            
+            time_step_ = time_step
+
+            X = np.array(ddp.xs[1][0:21])
+            X = np.append(X, ddp.xs[1][21:41])
+            X = np.append(X, ddp.xs[1][43]) 
+            X = np.append(X, ddp.xs[1][47])
+            #print("ddp")
+            #print(X)
+            X = X.reshape(1, 1, 43)    
+
+            
+            for i in range(0, 21):
+                q[i] = ddp.xs[1][i]
+            for i in range(0, 20):
+                qdot[i] = ddp.xs[1][i+21]
+
+            pinocchio.forwardKinematics(model.model, data, q, qdot)
+            pinocchio.updateFramePlacements(model.model,data)
+            pinocchio.centerOfMass(model.model, data, q, qdot, False)
+            pinocchio.computeCentroidalMomentum(model.model,data,q,qdot)
+            
+            print("com")
+            print(data.com[0])
+            print([ddp.xs[1][41], ddp.xs[1][45]])
+            print([data.hg.angular[0], data.hg.angular[1]])
+            print([ddp.xs[1][48], ddp.xs[1][44]])
+            print(data.oMf[RFframe_id].translation)
+            print(array_boundRF_[1])
+            print(data.oMf[LFframe_id].translation)
+            print(array_boundLF_[1])
+            print("joint")
+            print([ddp.xs[1][20], ddp.xs[1][21]])
+            
+            x0[41] = data.com[0][0] 
+            x0[45] = data.com[0][1]
+        
+            x0[42] = data.vcom[0][0] 
+            x0[46] = data.vcom[0][1]
+
+            x0[44] = data.hg.angular[1] 
+            x0[48] = data.hg.angular[0] 
+            
+            '''
+            if(time_step_ == 37):
+                k = afasdfsdf
+            elif time_step_ == 36:
+                total_time = time_step_ + 1
+            '''
+            #print("kkk")
+            ti = time.time()
+            c = torch.tensor(X,dtype=torch.float32)
+            w_traj = NN_[time_step_].forward(c)
+            w_traj = w_traj[0].detach().numpy()
+            w_traj = PCA_[time_step_].inverse_transform([w_traj[None,:]])[0]
+            w_traj = w_traj.reshape(param[time_step][3],-1)
+            traj1 = np.dot(PHI_[time_step_],w_traj)
+            q_traj = traj1.flatten()
+            t2 = time.time()  
+            #print(t2 - ti)
+
+            ti = time.time()
+            a = np.array(X[:])
+            c = torch.tensor(a.reshape(1,1,43),dtype=torch.float32)
+            w_traj_dot = NN_VEL[time_step_].forward(c)
+            w_traj_dot = w_traj_dot[0].detach().numpy()
+            w_traj_dot = PCA_VEL[time_step_].inverse_transform([w_traj_dot[None,:]])[0]
+            w_traj_dot = w_traj_dot.reshape(param[time_step][3],-1)
+            traj1 = np.dot(PHI_[time_step_],w_traj_dot)
+            v_traj = traj1.flatten()
+            t2 = time.time()
+            acc_traj = np.subtract(traj1[1:60,:], traj1[0:59,:])/0.02
+            t3 = time.time()
+            #print(t2 - ti)
+            #print(t3 - ti)
+
+            ti = time.time()
+            a = np.array(X[:])
+            c = torch.tensor(a.reshape(1,1,43),dtype=torch.float32)
+            w_traj_x = NN_X[time_step_].forward(c)
+            w_traj_x = w_traj_x[0].detach().numpy()
+            w_traj_x = PCA_X[time_step_].inverse_transform([w_traj_x[None,:]])[0]
+            w_traj_x = w_traj_x.reshape(param[time_step][3],-1)
+            traj1 = np.dot(PHI_[time_step_], w_traj_x)
+            x_traj = traj1.flatten()
+            t2 = time.time()
+            #print(t2 - ti)
+            u_traj = np.zeros([59, 4])
+            for i in range(0, 59):
+                u_traj[i][0] = (traj1[i + 1][2] - traj1[i][2])/0.02
+                u_traj[i][1] = (traj1[i + 1][3] - traj1[i][3])/0.02
+                u_traj[i][2] = (traj1[i + 1][6] - traj1[i][6])/0.02
+                u_traj[i][3] = (traj1[i + 1][7] - traj1[i][7])/0.02
+
+            q_pca = np.array(q_traj).reshape(60,21)
+            v_pca = np.array(v_traj).reshape(60,20)
+            x_pca = np.array(x_traj).reshape(60,8)
+            acc_pca = np.array(acc_traj).reshape(59,20)
+            u_pca = np.array(u_traj).reshape(59,4)
+
+            xs_pca = []
+            us_pca = []
+
+            for q, v, x in zip(q_pca, v_pca, x_pca):
+                xs_pca.append(np.concatenate([q, v, x]))
+            for a, u in zip(acc_pca, u_pca):
+                i = i + 1
+                us_pca.append(np.concatenate([a, u]))
+
         weight_quad_zmpx  = client.get_param("/dyros_practice/weight_quad_zmpx")
         weight_quad_zmpy  = client.get_param("/dyros_practice/weight_quad_zmpy")
         weight_quad_camx  = client.get_param("/dyros_practice/weight_quad_camx")
@@ -976,14 +1383,13 @@ def talker():
         weight_quad_lfyaw  = client.get_param("/dyros_practice/weight_quad_lfyaw")
         weight_quad_camx = 2.9
         weight_quad_camy = 2.9
-        weight_quad_zmp = np.array([0.0, 0.0])#([weight_quad_zmpx] + [weight_quad_zmpy])
-        weight_quad_zmp1 = np.array([4.0, 4.0]) ##11
-        weight_quad_cam = np.array([0.05, 0.05])#([weight_quad_camy] + [weight_quad_camx])
-        weight_quad_upper = np.array([0.9, 0.9])
-        weight_quad_com = np.array([2.0, 2.0, 1.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
-        weight_quad_rf = np.array([2.0, 1.0, 1.0, 0.5, 0.5, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
-        weight_quad_lf = np.array([2.0, 1.0, 1.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
-        weight_quad_pelvis = np.array([weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
+        weight_quad_zmp = np.array([1.0, 1.0])#([weight_quad_zmpx] + [weight_quad_zmpy])
+        weight_quad_zmp1 = np.array([10.0, 10.0]) ##11
+        weight_quad_cam = np.array([0.001, 0.001])#([weight_quad_camy] + [weight_quad_camx])
+        weight_quad_upper = np.array([0.003, 0.003])
+        weight_quad_com = np.array([20.0,20.0, 3.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
+        weight_quad_rf = np.array([30.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
+        weight_quad_lf = np.array([30.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
         lb_ = np.ones([2, N])
         ub_ = np.ones([2, N])
        
@@ -1037,7 +1443,7 @@ def talker():
             rf_foot_pos_vector[i].translation = copy(RF_tran.translation)
             lf_foot_pos_vector[i] = pinocchio.SE3.Identity()
             pelvis_rot_vector[i] = pinocchio.SE3.Identity()
-            lf_foot_pos_vector[i].translation = copy(LF_tran.translation)
+            lf_foot_pos_vector[i].translastion = copy(LF_tran.translation)
             #residual_FramePelvis[i] = crocoddyl.ResidualFrameRotation(state_vector[i], Pelvis_id, pelvis_rot_vector[i], actuation_vector[i].nu + 4)
             residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
             residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
@@ -1046,22 +1452,23 @@ def talker():
             foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
             runningCostModel_vector[i] = crocoddyl.CostModelSum(state_vector[i], actuation_vector[i].nu + 4)
            
-            if i >= 2:
+            #if i >= 0:
+            if i>=1 :
+                runningCostModel_vector[i].addCost("comReg", comBoundCost_vector[i], 1.0)
+            
                 runningCostModel_vector[i].addCost("stateReg1", stateBoundCost_vector1[i], 1.0)
-           
-            #runningCostModel_vector[i].addCost("stateReg", stateBoundCost_vector[i], 1.0)
-            #runningCostModel_vector[i].addCost("stateReg2", stateBoundCost_vector2[i], 1.0)
-            runningCostModel_vector[i].addCost("comReg", comBoundCost_vector[i], 1.0)
-            runningCostModel_vector[i].addCost("camReg", camBoundCost_vector[i], 1.0)
-            runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
-            runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)
+                #runningCostModel_vector[i].addCost("stateReg", stateBoundCost_vector[i], 1.0)
+                
+                runningCostModel_vector[i].addCost("camReg", camBoundCost_vector[i], 1.0)
+                runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
+                runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)
            
             runningDAM_vector[i] = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[i], actuation_vector[i], runningCostModel_vector[i])
             runningModelWithRK4_vector[i] = crocoddyl.IntegratedActionModelEuler(runningDAM_vector[i], dt_)
 
-        traj_[43] = zmp_refx_[N-1][0]
-        traj_[47] = zmp_refy_[N-1][0]
-           
+        #traj_[43] = zmp_refx_[N-1][0]
+        #traj_[47] = zmp_refy_[N-1][0]
+        #weight_quad_upper = np.array([0.001, 0.001])
         state_vector[N-1] = crocoddyl.StateKinodynamic(model.model)
         actuation_vector[N-1] = crocoddyl.ActuationModelKinoBase(state_vector[N-1])
         state_bounds[N-1] = crocoddyl.ActivationBounds(lb_[:,N-1],ub_[:,N-1])
@@ -1083,10 +1490,10 @@ def talker():
         residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
         foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
         foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])
-       
+
         terminalCostModel = crocoddyl.CostModelSum(state_vector[N-1], actuation_vector[N-1].nu + 4)
         #terminalCostModel.addCost("stateReg", stateBoundCost_vector[N-1], 1.0)
-        terminalCostModel.addCost("stateReg1", stateBoundCost_vector1[N-1], 1.0)
+        #terminalCostModel.addCost("stateReg1", stateBoundCost_vector1[N-1], 1.0)
         #terminalCostModel.addCost("stateReg2", stateBoundCost_vector2[N-1], 1.0)
         terminalCostModel.addCost("comReg", comBoundCost_vector[N-1], 1.0)
         #terminalCostModel.addCost("camReg", camBoundCost_vector[N-1], 1.0)
@@ -1097,11 +1504,12 @@ def talker():
         terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
         terminalModel = crocoddyl.IntegratedActionModelEuler(terminalDAM, dt_)
         problemWithRK4 = crocoddyl.ShootingProblem(x0, runningModelWithRK4_vector, terminalModel)
-        problemWithRK4.nthreads = 6
-        ddp = crocoddyl.SolverBoxFDDP(problemWithRK4)
+        problemWithRK4.nthreads = 20
+        #if time_step == 1:
+        ddp = crocoddyl.SolverFDDP(problemWithRK4)
        
-        for i in range(0,N-1):
-           
+
+        for i in range(1, N-1):  
             state_bounds[i].lb[0] = copy(array_boundx_[i][0])
             state_bounds[i].ub[0] = copy(array_boundx_[i][1])
             state_bounds[i].lb[1] = copy(array_boundy_[i][0])
@@ -1128,7 +1536,6 @@ def talker():
             runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
             runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)  
            
-           
         state_bounds[N-1].lb[0] = copy(array_boundx_[N-1][0])
         state_bounds[N-1].ub[0] = copy(array_boundx_[N-1][1])
         state_bounds[N-1].lb[1] = copy(array_boundy_[N-1][0])
@@ -1154,46 +1561,94 @@ def talker():
        
         #terminalCostModel.removeCost("stateReg")
         #terminalCostModel.addCost("stateReg", stateBoundCost_vector[N-1], 1.0)
-        print(xs_pca_test)
-        print(x0)
-        problemWithRK4.x0 = x0#xs_pca_test.detach().numpy() #xs[0]
+        #print(x0)
+        #time.sleep(1)
+        problemWithRK4.x0 = x0
+        
+        #a = ㅁㄴㅇㄹㄴㅇㄹㅁㄴㅇㄹㄴㅇ
         ddp.th_stop = 0.000001
         c_start = time.time()
-        css = ddp.solve(xs_pca, us_pca, 300, False, 0.001)
+        if time_step == 41:
+            css = ddp.solve(xs_pca, us_pca, 50, False, 0.00001)
+        else:
+            css = ddp.solve(xs_pca, us_pca, 50, False, 0.00001)
         c_end = time.time()
         duration = (1e3 * (c_end - c_start))
 
         #costs.cost.ref
-        print("end")
+        print("timestep")
+        print(time_step)
         avrg_duration = duration
         min_duration = duration #min(duration)
         max_duration = duration #max(duration)
         print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
         print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, ddp.cost))
-
-
+        print("Start")
+        #print(x0)
+        #print(ddp.xs[1])
+        print("End")
+        cost_total.append(ddp.cost)
+        latency_total.append(duration)
+        print(ddp.xs[1][43])
+        print([array_boundx_[0], array_boundx_[1]])
+        print(ddp.xs[1][47])
+        print([array_boundy_[0], array_boundy_[1]])
+        '''
         traj = np.array(ddp.xs)[:,0:21]
         vel_traj = np.array(ddp.xs)[:,21:41]
         x_traj = np.array(ddp.xs)[:, 41:49]
         u_traj = np.array(ddp.us)[:,20:24]
         acc_traj = np.array(ddp.us)[:, 0:20]
-
+        
         crocs_data['Right']['x_inputs'].append(copy(ddp.xs[0][0:21]))
-        crocs_data['Right']['vel_trajs'].append(copy(vel_traj))
-        crocs_data['Right']['x_state'].append(copy(x_traj))
+        crocs_data['Right']['vel_trajs'].append(copy(vel_traj[0][0:20]))
+        crocs_data['Right']['x_state'].append(copy(x_traj[0][0:8]))
         crocs_data['Right']['costs'].append(copy(ddp.cost))
         crocs_data['Right']['iters'].append(copy(ddp.iter))
-        crocs_data['Right']['trajs'].append(copy(traj))
-        crocs_data['Right']['u_trajs'].append(copy(acc_traj))
-        crocs_data['Right']['acc_trajs'].append(copy(u_traj))
+        crocs_data['Right']['trajs'].append(copy(traj[0][0:21]))
+        crocs_data['Right']['u_trajs'].append(copy(acc_traj[0][0:20]))
+        crocs_data['Right']['acc_trajs'].append(copy(u_traj[0][0:4]))
            
         with open('/home/jhk/ssd_mount/filename3.pkl', 'wb') as f:
 	        pickle.dump(crocs_data, f, protocol=pickle.HIGHEST_PROTOCOL)
         print("success")
-   
+        '''
+        if time_step == total_time - 1:
+            traj = np.array(ddp.xs)[:,0:21]
+            vel_traj = np.array(ddp.xs)[:,21:41]
+            x_traj = np.array(ddp.xs)[:, 41:49]
+            u_traj = np.array(ddp.us)[:,20:24]
+            acc_traj = np.array(ddp.us)[:, 0:20]
+
+            crocs_data['Right']['x_inputs'].append(copy(ddp.xs[0][0:21]))
+            crocs_data['Right']['vel_trajs'].append(copy(vel_traj))
+            crocs_data['Right']['x_state'].append(copy(x_traj))
+            crocs_data['Right']['costs'].append(copy(ddp.cost))
+            crocs_data['Right']['iters'].append(copy(ddp.iter))
+            crocs_data['Right']['trajs'].append(copy(traj))
+            crocs_data['Right']['u_trajs'].append(copy(acc_traj))
+            crocs_data['Right']['acc_trajs'].append(copy(u_traj))
+            print(len(crocs_data['Right']['trajs']))
+            
+            with open('/home/jhk/ssd_mount/filename3.pkl', 'wb') as f:
+                pickle.dump(crocs_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+            print("success")
+            print(cost_total)
+            print(latency_total)
+            #print(x_traj[0])
+            #print(x_traj[1])
+            
+        
 if __name__=='__main__':
+    '''
+    uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+    roslaunch.configure_logging(uuid)
+    launch = roslaunch.parent.ROSLaunchParent(uuid, ['/home/jhk/catkin_ws/src/dyros_tocabi_v2/tocabi_controller/launch/simulation.launch'])
+    launch.start()
+    '''
     client = roslibpy.Ros(host='localhost', port=9090)
     client.run()
+    
     #PCAlearning()
     talker()
-

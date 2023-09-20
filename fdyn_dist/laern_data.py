@@ -156,7 +156,7 @@ class CNN(nn.Module):
         )
         self.layer3 = torch.nn.Sequential(
             torch.nn.Linear(in_features = input_size, out_features= 50),
-            torch.nn.ReLU(),
+            torch.nn.LeakyReLU(),
             torch.nn.Linear(in_features = 50, out_features = output_size)
             )
 
@@ -194,11 +194,11 @@ def PCAlearning(time_step):
     global us_pca
 
     learn_type = 0
-    learn_type1 = 0
+    learn_type1 = 1
     database = dict()
     database['left'] = dict()
     database['Right'] = dict()
-
+    
     for key in database.keys():
         database[key]['foot_poses'] = []
         database[key]['trajs'] = []
@@ -210,7 +210,7 @@ def PCAlearning(time_step):
         database[key]['data_phases_set'] = []
         database[key]['costs'] = []
         database[key]['iters'] = []
-
+    '''
     file_name = '/home/jhk/walkingdata/beforedata/fdyn/timestep='
     file_name2 = '_finish/timestep='
     file_name3 = file_name +str(time_step)+file_name2+str(time_step)+'_finish'
@@ -220,7 +220,7 @@ def PCAlearning(time_step):
     with open(file_name3, 'rb') as f:
         database = pickle.load(f,  encoding='iso-8859-1')
     f.close()
-
+    '''
     init_trajs = dict()
     trajs = dict()
     x_inputs_init = dict()
@@ -387,7 +387,7 @@ def PCAlearning(time_step):
             #pca_u[key] = PCA(n_components=int(rbf_num))
             #w_u_trajs_pca[key] = pca_u[key].fit_transform(w_u_trajs[key])
 
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/'
+        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset1/'
         file_name2 = 'w_trajs_pca_'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
@@ -467,7 +467,7 @@ def PCAlearning(time_step):
         torch.save(y_x_train, file_name4)
         print("transform SAVE")
     else:
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/'
+        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset1/'
         file_name2 = 'Phi'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
@@ -475,7 +475,7 @@ def PCAlearning(time_step):
         print(file_name4)
         Phi = pickle.load(open(file_name4,"rb"))
 
-        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset2/'
+        file_name = '/home/jhk/kino_dynamic_learning/dataset/dataset1/'
         file_name2 = 'x_inputs_train_'
         file_name3 = '.pt'
         file_name4 = file_name  +file_name2+ str(time_step)+ file_name3
@@ -523,6 +523,8 @@ def PCAlearning(time_step):
         #explain =pca_x[key].explained_variance_ratio_
         #print(explain)
         #k = asdfasdf
+    #print(y_train['Right'][0])
+    #k = adsfsdfasdf
     '''
     for epoch in range(1):
         losses = []
@@ -811,7 +813,7 @@ def talker():
     learning_data_num = 27
     
     
-    for i in range(13, 49):#learning_data_num):
+    for i in range(1, 50, 6):#learning_data_num):
         PCAlearning(i)
     k = adsfasdff
     print("start")

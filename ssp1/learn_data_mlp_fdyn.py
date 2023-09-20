@@ -734,7 +734,7 @@ def talker():
     learning_data_num = 27
     
     
-    for i in range(1, 49, 1):#learning_data_num):
+    for i in range(15, 49, 100000):#learning_data_num):
         PCAlearning(i)
     k = adsfasdff
     print("start")

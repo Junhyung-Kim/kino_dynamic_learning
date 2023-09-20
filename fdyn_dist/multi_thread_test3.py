@@ -50,10 +50,10 @@ def InversePCA(model, rbf_num, pca, Phi, tick, X, thread_manager):
     k = 0
     while True:
         if thread_manager[0] == 1:# and k == 0:
-            c = torch.tensor(np.array(X[:]).reshape(1,1,23),dtype=torch.float32)
+            c = torch.tensor(np.array(X[:]).reshape(1,1,43),dtype=torch.float32)
             w_traj = model[k].forward(c)[0].detach().numpy()
             w_traj = pca[k].inverse_transform([w_traj[None,:]])[0]
-            w_traj = w_traj.reshape(rbf_num,-1)
+            w_traj = w_traj.reshape(rbf_num[k][3],-1)
             q_traj[:] = np.dot(Phi[k],w_traj)
             thread_manager[0] = 0
             k = k + 1
@@ -62,36 +62,32 @@ def InversePCA1(model, rbf_num, pca, Phi, tick, X, thread_manager):
     k = 0
     while True:
         if thread_manager[1] == 1:# and k == 0:
-            c = torch.tensor(np.array(X[:]).reshape(1,1,23),dtype=torch.float32)
-            
-            w_traj = model[k].forward(c).detach().numpy()
-            #w_traj = w_traj[0].detach().numpy()
-            w_traj = pca[k].inverse_transform([w_traj[None,:]])[0]
-            w_traj = w_traj.reshape(rbf_num,-1)
-            v_traj[:] = np.dot(Phi[k],w_traj)
+            c = torch.tensor(np.array(X[:]).reshape(1,1,43),dtype=torch.float32)
+            w_traj1 = model[k].forward(c).detach().numpy()
+            w_traj1 = pca[k].inverse_transform([w_traj1[None,:]])[0]
+            w_traj1 = w_traj1.reshape(rbf_num[k][3],-1)
+            v_traj[:] = np.dot(Phi[k],w_traj1)
             a_traj[:] = np.subtract(v_traj[1:60,:], v_traj[0:59,:])/0.02
             thread_manager[1] = 0
-            #k = k + 1
+            k = k + 1
 
 
 def InversePCA2(model, rbf_num, pca, Phi, tick, X, thread_manager):
     k = 0
     while True:
         if thread_manager[2] == 1:# and k == 0:
-            c = torch.tensor(np.array(X[:]).reshape(1,1,23),dtype=torch.float32)
-            w_traj = model[k].forward(c).detach().numpy()
-            #w_traj = w_traj[0].detach().numpy()
-            w_traj = pca[k].inverse_transform([w_traj[None,:]])[0]
-            w_traj = w_traj.reshape(rbf_num,-1)
-            x_traj[:] = np.dot(Phi[k],w_traj)
+            c = torch.tensor(np.array(X[:]).reshape(1,1,43),dtype=torch.float32)
+            w_traj2 = model[k].forward(c).detach().numpy()
+            w_traj2 = pca[k].inverse_transform([w_traj2[None,:]])[0]
+            w_traj2 = w_traj2.reshape(rbf_num[k][3],-1)
+            x_traj[:] = np.dot(Phi[k],w_traj2)
             
             u_traj[:,0:2] = np.subtract(x_traj[1:60,2:4], x_traj[0:59,2:4])/0.02
             u_traj[:,2:4] = np.subtract(x_traj[1:60,6:8], x_traj[0:59,6:8])/0.02
             
             #x_traj = np.dot(Phi[k],pca[k].inverse_transform([model[k].forward(c)[0].detach().numpy()[None,:]])[0].reshape(rbf_num,-1))
-            
             thread_manager[2] = 0
-            #k = k + 1
+            k = k + 1
             
 class timeseries(Dataset):
     def __init__(self,x,y):
@@ -118,7 +114,7 @@ class CNN(nn.Module):
         )
         self.layer3 = torch.nn.Sequential(
             torch.nn.Linear(in_features = input_size, out_features= 50),
-            torch.nn.ReLU(),
+            torch.nn.LeakyReLU(),
             torch.nn.Linear(in_features = 50, out_features = output_size)
             )
 
@@ -573,10 +569,91 @@ def PCAlearning(time_step):
 
     PHI_.append(Phi)
 
+
 def talker():
-    global xs_pca_test, xs_pca, us_pca, rbf_num
-    global q_traj, v_traj, a_traj, x_traj, u_traj
+    global xs_pca_test, xs_pca, us_pca, rbf_num, talk
+    global q_traj, v_traj, a_traj, x_traj, u_traj, param
     global PCA_, NN_, PCA_VEL, NN_VEL, PCA_X, NN_X, X_INIT, PHI_
+
+    param = [
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+        [2,1,19,47],
+    ] 
+
     PCA_ = []
     NN_ = []
     PCA_VEL = []
@@ -585,22 +662,6 @@ def talker():
     NN_X = []
     PHI_= []
     X_INIT = np.array([])
-    '''
-    print("start")
-    mpc_signal = sysv_ipc.SharedMemory(1)
-    mpc_signalv  = mpc_signal.read()
-    mpc_signaldata =  np.ndarray(shape=(3,), dtype=np.int32, buffer=mpc_signalv)
-    x_init = sysv_ipc.SharedMemory(2)
-    x_initv  = x_init.read()
-    statemachine = sysv_ipc.SharedMemory(3)
-    statemachinedata = np.array([0], dtype=np.int8)
-    
-    thread_manager1 = []
-    for i in range(0,40):
-        thread_manager1.append(0)
-    '''
-    #thread_manager = multiprocessing.Array(ctypes.c_int, thread_manager1)
-   
     N = 60
     T = 1
     MAXITER = 300
@@ -622,12 +683,12 @@ def talker():
         crocs_data[key]['data_phases_set'] = []
         crocs_data[key]['costs'] = []
         crocs_data[key]['iters'] = []
-
+    
     for i in range(1, total_time):
         print("learning")
         print(i)
         PCAlearning(i)
-
+    
     print("start")
     f = open("/home/jhk/walkingdata/beforedata/fdyn/lfoot2_final.txt", 'r')
     f1 = open("/home/jhk/walkingdata/beforedata/fdyn/rfoot2_final.txt", 'r')
@@ -701,6 +762,11 @@ def talker():
                 array_boundLF[i].append(float(lines1_array[i][j]))
             if j == 2:
                 array_boundLF[i].append(float(lines1_array[i][j]))
+
+    for i in range(0, len(lines_array)):
+        array_boundRF[i] = np.sum([array_boundRF[i], [-0.03, 0.0, 0.15842]], axis = 0)
+    for i in range(0, len(lines1_array)):
+        array_boundLF[i] = np.sum([array_boundLF[i], [-0.03, 0.0, 0.15842]], axis = 0)
     
     for i in range(0, len(lines2_array)):
         for j in range(0, len(lines2_array[i])):
@@ -756,421 +822,287 @@ def talker():
     qddot = pinocchio.utils.zero(model.nv)
     q_init = [0, 0, 0.82473, 0, 0, 0, 1, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0]
 
-    for time_step in range(1, total_time):
-        for i in range(0, N):
-            if i == 0:
-                array_boundRF_[i] = np.sum([array_boundRF[k*i + time_step], [-0.03, 0.0, 0.15842]], axis = 0)
-            else:
-                array_boundRF_[i] = np.sum([array_boundRF[k*i + time_step], [-0.03, 0.0, 0.15842]], axis = 0)
+    state = crocoddyl.StateKinodynamic(model.model)
+    actuation = crocoddyl.ActuationModelKinoBase(state)
+    x0 = np.array([0.] * (state.nx + 8))
+    u0 = np.array([0.] * (22))
+    for i in range(0,len(q_init)):
+        x0[i] = q_init[i]
+        q[i] = q_init[i]
+    
+    RFjoint_id = model.model.getJointId("R_AnkleRoll_Joint")
+    LFjoint_id = model.model.getJointId("L_AnkleRoll_Joint")
+    LFframe_id = model.model.getFrameId("L_Foot_Link")
+    RFframe_id = model.model.getFrameId("R_Foot_Link")    
+    data = model.model.createData()
+
+    pinocchio.forwardKinematics(model.model, data, q, qdot)
+    pinocchio.updateFramePlacements(model.model,data)
+    pinocchio.centerOfMass(model.model, data, q, False)
+    pinocchio.computeCentroidalMomentum(model.model,data,q,qdot)
+    LF_tran = data.oMf[LFframe_id]
+    RF_tran = data.oMf[RFframe_id]
+
+    LF_tran = data.oMi[LFjoint_id]
+    RF_tran = data.oMi[RFjoint_id]
+
+    x0[41] = data.com[0][0]
+    x0[43] = data.com[0][0]
+    x0[45] = data.com[0][1]
+    x0[47] = data.com[0][1]
+    
+    weight_quad_camx = 2.9
+    weight_quad_camy = 2.9
+    weight_quad_zmp = np.array([0.05, 0.05])#([weight_quad_zmpx] + [weight_quad_zmpy])
+    weight_quad_zmp1 = np.array([15.0, 15.0]) ##11
+    weight_quad_zmp2 = np.array([55.0, 55.0]) ##11
+    weight_quad_cam = np.array([0.008, 0.008])#([weight_quad_camy] + [weight_quad_camx])
+    weight_quad_upper = np.array([0.0005, 0.0005])
+    weight_quad_com = np.array([30.0, 30.0, 3.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
+    weight_quad_rf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
+    weight_quad_lf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
+    lb_ = np.ones([2, N])
+    ub_ = np.ones([2, N])
+
+
+    actuation_vector = [None] * (N)
+    state_vector = [None] * (N)
+    state_bounds = [None] * (N)
+    state_bounds2 = [None] * (N)
+    state_bounds3 = [None] * (N)
+    state_activations = [None] * (N)
+    state_activations1 = [None] * (N)
+    state_activations2 = [None] * (N)
+    state_activations3 = [None] * (N)
+    xRegCost_vector = [None] * (N)
+    uRegCost_vector = [None] * (N)
+    stateBoundCost_vector = [None] * (N)
+    stateBoundCost_vector1 = [None] * (N)
+    stateBoundCost_vector2 = [None] * (N)
+    camBoundCost_vector = [None] *  (N)
+    comBoundCost_vector = [None] *  (N)
+    rf_foot_pos_vector = [None] *  (N)
+    lf_foot_pos_vector = [None] *  (N)
+    pelvis_rot_vector = [None] *  (N)
+    residual_FrameRF = [None] *  (N)
+    residual_FramePelvis = [None] *  (N)
+    residual_FrameLF = [None] *  (N)
+    PelvisR = [None] *  (N)
+    foot_trackR = [None] *  (N)
+    foot_trackL = [None] *  (N)
+    runningCostModel_vector = [None] * (N-1)
+    runningDAM_vector = [None] * (N-1)
+    runningModelWithRK4_vector = [None] * (N-1)
+    xs = [None] * (N)
+    us = [None] * (N-1)
+    traj_= np.array([0.] * (state.nx + 8))
+    
+    rbf_num = 47
+    tick = shared_memory.SharedMemory(create=True, size=sys.getsizeof(1))
+    tick.buf[0] = 0
+    
+    time.sleep(1)
+
+    print("Python start")
+    mpc_signal = sysv_ipc.SharedMemory(1)
+    mpc_signalv  = mpc_signal.read()
+    mpc_signaldata =  np.ndarray(shape=(3,), dtype=np.int32, buffer=mpc_signalv)
+    x_init = sysv_ipc.SharedMemory(2)
+    x_initv  = x_init.read()
+    statemachine = sysv_ipc.SharedMemory(3)
+    statemachinedata = np.array([0, 0, 0], dtype=np.int8)
+    statemachine.write(statemachinedata)
+    desired_value = sysv_ipc.SharedMemory(4)
+     
+    thread_manager1 = []
+    for i in range(0,3):
+        thread_manager1.append(0)
    
-        for i in range(0, N):
-            if i == 0:
-                array_boundLF_[i] = np.sum([array_boundLF[k*i + time_step], [-0.03, 0.0, 0.15842]], axis = 0)
-            else:
-                array_boundLF_[i] = np.sum([array_boundLF[k*i + time_step], [-0.03, 0.0, 0.15842]], axis = 0)
+    thread_manager = multiprocessing.Array(ctypes.c_int, thread_manager1)
+   
+    N = 60
+    T = 1
+    mpc_cycle = 0
+   
+    MAXITER = 300
+    dt_ = 1.2 / float(N)
+    time_step = 1
+    k = 1
+    k3 = 1
+    total_cost = []
+    total_time_ = []
 
-        for i in range(0, N):
-            if i == 0:
-                array_boundx_[i] = array_boundx[k3*i + time_step]
-                array_boundy_[i] = array_boundy[k3*i + time_step]
-            else:
-                array_boundx_[i] = array_boundx[k3*(i) + time_step]
-                array_boundy_[i] = array_boundy[k3*(i) + time_step]
-            
-        for i in range(0, N):
-            if i == 0:
-                zmp_refx_[i] = zmp_refx[k*i + time_step]
-                zmp_refy_[i] = zmp_refy[k*i + time_step]
-            else:
-                zmp_refx_[i] = zmp_refx[k*(i)+ time_step]
-                zmp_refy_[i] = zmp_refy[k*(i)+ time_step]
-        if time_step == 1:
-            for i in range(0, len(q)):    
-                q[i] = q_init[i]
-       
-        state = crocoddyl.StateKinodynamic(model.model)
-        actuation = crocoddyl.ActuationModelKinoBase(state)
-        x0 = np.array([0.] * (state.nx + 8))
-        u0 = np.array([0.] * (22))
-        for i in range(0,len(q_init)):
-            x0[i] = q[i]
-       
-        RFjoint_id = model.model.getJointId("R_AnkleRoll_Joint")
-        LFjoint_id = model.model.getJointId("L_AnkleRoll_Joint")
-        LFframe_id = model.model.getFrameId("L_Foot_Link")
-        RFframe_id = model.model.getFrameId("R_Foot_Link")    
-        data = model.model.createData()
-
-        pinocchio.forwardKinematics(model.model, data, q, qdot)
-        pinocchio.updateFramePlacements(model.model,data)
-        pinocchio.centerOfMass(model.model, data, q, False)
-        pinocchio.computeCentroidalMomentum(model.model,data,q,qdot)
-        LF_tran = data.oMf[LFframe_id]
-        RF_tran = data.oMf[RFframe_id]
-
-        LF_tran = data.oMi[LFjoint_id]
-        RF_tran = data.oMi[RFjoint_id]
-
-        x0[41] = data.com[0][0]
-        x0[43] = data.com[0][0]
-        x0[45] = data.com[0][1]
-        x0[47] = data.com[0][1]
-        
-        if time_step == 1:    
-            '''
-            JJ = np.random.randint(X_INIT.shape[0])
-            X = X_INIT[JJ][None,:]
-            X = X.reshape(1, 1, 21).to('cpu')   
-            '''
-            time_step_ = time_step
-            
-            X = np.zeros(43)
-            for i in range(0, len(q)):
-                X[i] = q[i]
-            for i in range(len(q), len(q) + len(qdot)):
-                X[i] = qdot[i - len(q)]
-            X[41] = x0[43]
-            X[42] = x0[47]
-
-            X = X.reshape(1, 1, 43)  
-            
-            ti = time.time()
-            c = torch.tensor(X,dtype=torch.float32)
-            w_traj = NN_[time_step_-1].forward(c)
-            w_traj = w_traj[0].detach().numpy()
-            w_traj = PCA_[time_step_-1].inverse_transform([w_traj[None,:]])[0]
-            w_traj = w_traj.reshape(47,-1)
-            traj1 = np.dot(PHI_[time_step_-1],w_traj)
-            q_traj = traj1.flatten()
-            t2 = time.time()  
-            print(t2 - ti)
-
-            ti = time.time()
-            a = np.array(X[:])
-            c = torch.tensor(a.reshape(1,1,43),dtype=torch.float32)
-            w_traj_dot = NN_VEL[time_step_-1].forward(c)
-            w_traj_dot = w_traj_dot[0].detach().numpy()
-            w_traj_dot = PCA_VEL[time_step_-1].inverse_transform([w_traj_dot[None,:]])[0]
-            w_traj_dot = w_traj_dot.reshape(47,-1)
-            traj1 = np.dot(PHI_[time_step_-1],w_traj_dot)
-            v_traj = traj1.flatten()
-            t2 = time.time()
-            acc_traj = np.subtract(traj1[1:60,:], traj1[0:59,:])/0.02
-            t3 = time.time()
-            print(t2 - ti)
-            print(t3 - ti)
-
-            ti = time.time()
-            a = np.array(X[:])
-            c = torch.tensor(a.reshape(1,1,43),dtype=torch.float32)
-            w_traj_x = NN_X[time_step_-1].forward(c)
-            w_traj_x = w_traj_x[0].detach().numpy()
-            w_traj_x = PCA_X[time_step_-1].inverse_transform([w_traj_x[None,:]])[0]
-            w_traj_x = w_traj_x.reshape(47,-1)
-            traj1 = np.dot(PHI_[time_step_-1], w_traj_x)
-            x_traj = traj1.flatten()
-            t2 = time.time()
-            print(t2 - ti)
-            u_traj = np.zeros([59, 4])
-            for i in range(0, 59):
-                u_traj[i][0] = (traj1[i + 1][2] - traj1[i][2])/0.02
-                u_traj[i][1] = (traj1[i + 1][3] - traj1[i][3])/0.02
-                u_traj[i][2] = (traj1[i + 1][6] - traj1[i][6])/0.02
-                u_traj[i][3] = (traj1[i + 1][7] - traj1[i][7])/0.02
-
-            q_pca = np.array(q_traj).reshape(60,21)
-            v_pca = np.array(v_traj).reshape(60,20)
-            x_pca = np.array(x_traj).reshape(60,8)
-            acc_pca = np.array(acc_traj).reshape(59,20)
-            u_pca = np.array(u_traj).reshape(59,4)
-
-            xs_pca = []
-            us_pca = []
-
-            for q, v, x in zip(q_pca, v_pca, x_pca):
-                xs_pca.append(np.concatenate([q, v, x]))
-            for a, u in zip(acc_pca, u_pca):
-                i = i + 1
-                us_pca.append(np.concatenate([a, u]))
+    for i in range(0, N):
+        if i == 0:
+            array_boundRF_[i] = array_boundRF[k*i + time_step]
         else:
-            x0 = ddp.xs[1]
-            
-            time_step_ = time_step
+            array_boundRF_[i] = array_boundRF[k*i + time_step]
 
-            X = np.array(ddp.xs[1][0:21])
-            X = np.append(X, ddp.xs[1][21:41])
-            X = np.append(X, ddp.xs[1][43]) 
-            X = np.append(X, ddp.xs[1][47])
-            X = X.reshape(1, 1, 43)    
-
+    for i in range(0, N):
+        if i == 0:
+            array_boundLF_[i] = array_boundLF[k*i + time_step]
+        else:
+            array_boundLF_[i] = array_boundLF[k*i + time_step]
             
-            for i in range(0, 21):
-                q[i] = ddp.xs[1][i]
-            for i in range(0, 20):
-                qdot[i] = ddp.xs[1][i+21]
-
-            pinocchio.forwardKinematics(model.model, data, q, qdot)
-            pinocchio.updateFramePlacements(model.model,data)
-            pinocchio.centerOfMass(model.model, data, q, qdot, False)
-            pinocchio.computeCentroidalMomentum(model.model,data,q,qdot)
-            
-            print("com")
-            print(data.com[0])
-            print([ddp.xs[1][41], ddp.xs[1][45]])
-            print([data.hg.angular[0], data.hg.angular[1]])
-            print([ddp.xs[1][48], ddp.xs[1][44]])
-            print(data.oMf[RFframe_id].translation)
-            print(array_boundRF_[1])
-            print(data.oMf[LFframe_id].translation)
-            print(array_boundLF_[1])
-            
-            x0[41] = data.com[0][0] 
-            x0[45] = data.com[0][1]
+    for i in range(0, N):
+        if i == 0:
+            array_boundx_[i] = array_boundx[k3*i + time_step]
+            array_boundy_[i] = array_boundy[k3*i + time_step]
+        else:
+            array_boundx_[i] = array_boundx[k3*(i) + time_step]
+            array_boundy_[i] = array_boundy[k3*(i) + time_step]
         
-            x0[42] = data.vcom[0][0] 
-            x0[46] = data.vcom[0][1]
+    for i in range(0, N):
+        if i == 0:
+            zmp_refx_[i] = zmp_refx[k*i + time_step]
+            zmp_refy_[i] = zmp_refy[k*i + time_step]
+        else:
+            zmp_refx_[i] = zmp_refx[k*(i)+ time_step]
+            zmp_refy_[i] = zmp_refy[k*(i)+ time_step]
 
-            x0[44] = data.hg.angular[1] 
-            x0[48] = data.hg.angular[0] 
-            '''
-            print("muinus")
-            x0[43] = x0[43] -0.01
-            x0[47] = x0[47] -0.01
-            '''
-            '''
-            if(time_step_ == 37):
-                k = afasdfsdf
-            elif time_step_ == 36:
-                total_time = time_step_ + 1
-            '''
-            #print("kkk")
-            ti = time.time()
-            c = torch.tensor(X,dtype=torch.float32)
-            w_traj = NN_[time_step_-1].forward(c)
-            w_traj = w_traj[0].detach().numpy()
-            w_traj = PCA_[time_step_-1].inverse_transform([w_traj[None,:]])[0]
-            w_traj = w_traj.reshape(47,-1)
-            traj1 = np.dot(PHI_[time_step_-1],w_traj)
-            traj1[0] = ddp.xs[1][:21]
-            q_traj = traj1.flatten()
-            t2 = time.time()  
-            #print(t2 - ti)
+    tick = shared_memory.SharedMemory(create=True, size=sys.getsizeof(1))
+    tick.buf[0] = 0
+    X_temp = np.zeros(43)
+    X_temp = X_temp.reshape(1,1,43)
+    queue = multiprocessing.Array(ctypes.c_float, np.shape(X_temp)[2])
+    
+    a = np.ones([60,21])
+    shm_q_traj = shared_memory.SharedMemory(create=True, size=a.nbytes)
+    a = np.ones([60,20])
+    shm_v_traj = shared_memory.SharedMemory(create=True, size=a.nbytes)
+    a = np.ones([59,20])
+    shm_acc_traj = shared_memory.SharedMemory(create=True, size=a.nbytes)
+    a = np.ones([60,8])
+    shm_x_traj = shared_memory.SharedMemory(create=True, size=a.nbytes)
+    a = np.ones([59,4])
+    shm_u_traj = shared_memory.SharedMemory(create=True, size=a.nbytes)
+    
+    KK = 0
+    signal = False
 
-            ti = time.time()
-            a = np.array(X[:])
-            c = torch.tensor(a.reshape(1,1,43),dtype=torch.float32)
-            w_traj_dot = NN_VEL[time_step_-1].forward(c)
-            w_traj_dot = w_traj_dot[0].detach().numpy()
-            w_traj_dot = PCA_VEL[time_step_-1].inverse_transform([w_traj_dot[None,:]])[0]
-            w_traj_dot = w_traj_dot.reshape(47,-1)
-            traj1 = np.dot(PHI_[time_step_-1],w_traj_dot)
-            traj1[0] = ddp.xs[1][21:41]
-            v_traj = traj1.flatten()
-            t2 = time.time()
-            acc_traj = np.subtract(traj1[1:60,:], traj1[0:59,:])/0.02
-            t3 = time.time()
-            #print(t2 - ti)
-            #print(t3 - ti)
+    q_traj = np.ndarray(shape=(60,21), dtype=np.float32, buffer=shm_q_traj.buf)
+    v_traj = np.ndarray(shape=(60,20), dtype=np.float32, buffer=shm_v_traj.buf)
+    a_traj = np.ndarray(shape=(59,20), dtype=np.float32, buffer=shm_acc_traj.buf)
+    x_traj = np.ndarray(shape=(60,8), dtype=np.float32, buffer=shm_x_traj.buf)
+    u_traj = np.ndarray(shape=(59,4), dtype=np.float32, buffer=shm_u_traj.buf)
+    
+    p1 = multiprocessing.Process(target=InversePCA, args=(NN_, param, PCA_, PHI_, tick, queue, thread_manager))
+    p2 = multiprocessing.Process(target=InversePCA1, args=(NN_VEL, param, PCA_VEL, PHI_, tick, queue, thread_manager))
+    p3 = multiprocessing.Process(target=InversePCA2, args=(NN_X, param, PCA_X, PHI_, tick, queue, thread_manager))
+    
+    p1.start()
+    p2.start()
+    p3.start()
 
-            ti = time.time()
-            a = np.array(X[:])
-            c = torch.tensor(a.reshape(1,1,43),dtype=torch.float32)
-            w_traj_x = NN_X[time_step_-1].forward(c)
-            w_traj_x = w_traj_x[0].detach().numpy()
-            w_traj_x = PCA_X[time_step_-1].inverse_transform([w_traj_x[None,:]])[0]
-            w_traj_x = w_traj_x.reshape(47,-1)
-            traj1 = np.dot(PHI_[time_step_-1], w_traj_x)
-            traj1[0] = ddp.xs[1][41:49]
-            x_traj = traj1.flatten()
-            t2 = time.time()
-            #print(t2 - ti)
-            u_traj = np.zeros([59, 4])
-            for i in range(0, 59):
-                u_traj[i][0] = (traj1[i + 1][2] - traj1[i][2])/0.02
-                u_traj[i][1] = (traj1[i + 1][3] - traj1[i][3])/0.02
-                u_traj[i][2] = (traj1[i + 1][6] - traj1[i][6])/0.02
-                u_traj[i][3] = (traj1[i + 1][7] - traj1[i][7])/0.02
-
-            q_pca = np.array(q_traj).reshape(60,21)
-            v_pca = np.array(v_traj).reshape(60,20)
-            x_pca = np.array(x_traj).reshape(60,8)
-            acc_pca = np.array(acc_traj).reshape(59,20)
-            u_pca = np.array(u_traj).reshape(59,4)
-
-            xs_pca = []
-            us_pca = []
-
-            for q, v, x in zip(q_pca, v_pca, x_pca):
-                xs_pca.append(np.concatenate([q, v, x]))
-            for a, u in zip(acc_pca, u_pca):
-                i = i + 1
-                us_pca.append(np.concatenate([a, u]))
-
-        weight_quad_zmpx  = client.get_param("/dyros_practice/weight_quad_zmpx")
-        weight_quad_zmpy  = client.get_param("/dyros_practice/weight_quad_zmpy")
-        weight_quad_camx  = client.get_param("/dyros_practice/weight_quad_camx")
-        weight_quad_camy  = client.get_param("/dyros_practice/weight_quad_camy")
-        weight_quad_comx  = client.get_param("/dyros_practice/weight_quad_comx")
-        weight_quad_comy  = client.get_param("/dyros_practice/weight_quad_comy")
-        weight_quad_comz  = client.get_param("/dyros_practice/weight_quad_comz")
-        weight_quad_rfx  = client.get_param("/dyros_practice/weight_quad_rfx")
-        weight_quad_rfy  = client.get_param("/dyros_practice/weight_quad_rfy")
-        weight_quad_rfz  = client.get_param("/dyros_practice/weight_quad_rfz")
-        weight_quad_lfx  = client.get_param("/dyros_practice/weight_quad_lfx")
-        weight_quad_lfy  = client.get_param("/dyros_practice/weight_quad_lfy")
-        weight_quad_lfz  = client.get_param("/dyros_practice/weight_quad_lfz")
-        weight_quad_rfroll  = client.get_param("/dyros_practice/weight_quad_rfroll")
-        weight_quad_rfpitch  = client.get_param("/dyros_practice/weight_quad_rfpitch")
-        weight_quad_rfyaw  = client.get_param("/dyros_practice/weight_quad_rfyaw")
-        weight_quad_lfroll  = client.get_param("/dyros_practice/weight_quad_lfroll")
-        weight_quad_lfpitch  = client.get_param("/dyros_practice/weight_quad_lfpitch")
-        weight_quad_lfyaw  = client.get_param("/dyros_practice/weight_quad_lfyaw")
-        weight_quad_camx = 2.9
-        weight_quad_camy = 2.9
-        weight_quad_zmp = np.array([1.0, 1.0])#([weight_quad_zmpx] + [weight_quad_zmpy])
-        weight_quad_zmp1 = np.array([15.0, 15.0]) 
-        weight_quad_cam = np.array([0.008, 0.008])#([weight_quad_camy] + [weight_quad_camx])
-        weight_quad_upper = np.array([0.0005, 0.0005])
-        weight_quad_com = np.array([30.0, 30.0, 3.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
-        weight_quad_rf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
-        weight_quad_lf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
-        weight_quad_pelvis = np.array([weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
-        lb_ = np.ones([2, N])
-        ub_ = np.ones([2, N])
-       
-        actuation_vector = [None] * (N)
-        state_vector = [None] * (N)
-        state_bounds = [None] * (N)
-        state_bounds2 = [None] * (N)
-        state_bounds3 = [None] * (N)
-        state_activations = [None] * (N)
-        state_activations1 = [None] * (N)
-        state_activations2 = [None] * (N)
-        state_activations3 = [None] * (N)
-        xRegCost_vector = [None] * (N)
-        uRegCost_vector = [None] * (N)
-        stateBoundCost_vector = [None] * (N)
-        stateBoundCost_vector1 = [None] * (N)
-        stateBoundCost_vector2 = [None] * (N)
-        camBoundCost_vector = [None] *  (N)
-        comBoundCost_vector = [None] *  (N)
-        rf_foot_pos_vector = [None] *  (N)
-        lf_foot_pos_vector = [None] *  (N)
-        pelvis_rot_vector = [None] *  (N)
-        residual_FrameRF = [None] *  (N)
-        residual_FramePelvis = [None] *  (N)
-        residual_FrameLF = [None] *  (N)
-        PelvisR = [None] *  (N)
-        foot_trackR = [None] *  (N)
-        foot_trackL = [None] *  (N)
-        runningCostModel_vector = [None] * (N-1)
-        runningDAM_vector = [None] * (N-1)
-        runningModelWithRK4_vector = [None] * (N-1)
-        xs = [None] * (N)
-        us = [None] * (N-1)
-
-        traj_= np.array([0.] * (state.nx + 8))
-       
-        for i in range(0,N-1):
-            traj_[43] = (array_boundx_[i][0] + array_boundx_[i][1])/2 #zmp_refx_[i][0]
-            traj_[47] = (array_boundy_[i][0] + array_boundy_[i][1])/2#zmp_refy_[i][0]
-            state_vector[i] = crocoddyl.StateKinodynamic(model.model)
-            actuation_vector[i] = crocoddyl.ActuationModelKinoBase(state_vector[i])
-            state_bounds[i] = crocoddyl.ActivationBounds(lb_[:,i],ub_[:,i])
-            state_activations[i] = crocoddyl.ActivationModelWeightedQuadraticBarrier(state_bounds[i], weight_quad_zmp)
-            #state_activations1[i] = crocoddyl.ActivationModelWeightedQuadraticBarrier(state_bounds[i], weight_quad_upper)
-            stateBoundCost_vector[i] = crocoddyl.CostModelResidual(state_vector[i], state_activations[i], crocoddyl.ResidualFlyState(state_vector[i], actuation_vector[i].nu + 4))
+    for i in range(0,N-1):
+        traj_[43] = (array_boundx_[i][0] + array_boundx_[i][1])/2 #zmp_refx_[i][0]
+        traj_[47] = (array_boundy_[i][0] + array_boundy_[i][1])/2#zmp_refy_[i][0]
+        state_vector[i] = crocoddyl.StateKinodynamic(model.model)
+        actuation_vector[i] = crocoddyl.ActuationModelKinoBase(state_vector[i])
+        state_bounds[i] = crocoddyl.ActivationBounds(lb_[:,i],ub_[:,i])
+        state_activations[i] = crocoddyl.ActivationModelWeightedQuadraticBarrier(state_bounds[i], weight_quad_zmp)
+        #state_activations1[i] = crocoddyl.ActivationModelWeightedQuadraticBarrier(state_bounds[i], weight_quad_upper)
+        stateBoundCost_vector[i] = crocoddyl.CostModelResidual(state_vector[i], state_activations[i], crocoddyl.ResidualFlyState(state_vector[i], actuation_vector[i].nu + 4))
+        if i != 1:
             stateBoundCost_vector1[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp1), crocoddyl.ResidualFlyState(state_vector[i], traj_, actuation_vector[i].nu + 4))
-            stateBoundCost_vector2[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_upper), crocoddyl.ResidualFlyState1(state_vector[i], actuation_vector[i].nu + 4))
-            camBoundCost_vector[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_cam), crocoddyl.ResidualModelCentroidalAngularMomentum(state_vector[i], actuation_vector[i].nu + 4))
-            comBoundCost_vector[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_com), crocoddyl.ResidualModelCoMKinoPosition(state_vector[i], np.array([0.0, 0.0, data.com[0][2]]), actuation_vector[i].nu + 4))
-            rf_foot_pos_vector[i] = pinocchio.SE3.Identity()
-            rf_foot_pos_vector[i].translation = copy(RF_tran.translation)
-            lf_foot_pos_vector[i] = pinocchio.SE3.Identity()
-            pelvis_rot_vector[i] = pinocchio.SE3.Identity()
-            lf_foot_pos_vector[i].translation = copy(LF_tran.translation)
-            #residual_FramePelvis[i] = crocoddyl.ResidualFrameRotation(state_vector[i], Pelvis_id, pelvis_rot_vector[i], actuation_vector[i].nu + 4)
-            residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-            residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-            #PelvisR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_pelvis), residual_FramePelvis[i])
-            foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
-            foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
-            runningCostModel_vector[i] = crocoddyl.CostModelSum(state_vector[i], actuation_vector[i].nu + 4)
-           
-            #if i >= 0:
-            if i >= 1 :
-                runningCostModel_vector[i].addCost("comReg", comBoundCost_vector[i], 1.0)
-            
-                runningCostModel_vector[i].addCost("stateReg1", stateBoundCost_vector1[i], 1.0)
-                #runningCostModel_vector[i].addCost("stateReg", stateBoundCost_vector[i], 1.0)
-                
-                runningCostModel_vector[i].addCost("camReg", camBoundCost_vector[i], 1.0)
-                runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
-                runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)
-           
-            runningDAM_vector[i] = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[i], actuation_vector[i], runningCostModel_vector[i])
-            runningModelWithRK4_vector[i] = crocoddyl.IntegratedActionModelEuler(runningDAM_vector[i], dt_)
+        else:
+            stateBoundCost_vector1[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp2), crocoddyl.ResidualFlyState(state_vector[i], traj_, actuation_vector[i].nu + 4))
+        
+        stateBoundCost_vector2[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_upper), crocoddyl.ResidualFlyState1(state_vector[i], actuation_vector[i].nu + 4))
+        camBoundCost_vector[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_cam), crocoddyl.ResidualModelCentroidalAngularMomentum(state_vector[i], actuation_vector[i].nu + 4))
+        comBoundCost_vector[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_com), crocoddyl.ResidualModelCoMKinoPosition(state_vector[i], np.array([0.0, 0.0, data.com[0][2]]), actuation_vector[i].nu + 4))
+        rf_foot_pos_vector[i] = pinocchio.SE3.Identity()
+        rf_foot_pos_vector[i].translation = copy(RF_tran.translation)
+        lf_foot_pos_vector[i] = pinocchio.SE3.Identity()
+        pelvis_rot_vector[i] = pinocchio.SE3.Identity()
+        lf_foot_pos_vector[i].translation = copy(LF_tran.translation)
+        #residual_FramePelvis[i] = crocoddyl.ResidualFrameRotation(state_vector[i], Pelvis_id, pelvis_rot_vector[i], actuation_vector[i].nu + 4)
+        residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
+        residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
+        #PelvisR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_pelvis), residual_FramePelvis[i])
+        foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
+        foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
+        runningCostModel_vector[i] = crocoddyl.CostModelSum(state_vector[i], actuation_vector[i].nu + 4)
+        
+        if i >= 1:
+            runningCostModel_vector[i].addCost("stateReg1", stateBoundCost_vector1[i], 1.0)
+            #runningCostModel_vector[i].addCost("stateReg", stateBoundCost_vector[i], 1.0)
+            #runningCostModel_vector[i].addCost("stateReg2", stateBoundCost_vector2[i], 1.0)
+            runningCostModel_vector[i].addCost("comReg", comBoundCost_vector[i], 1.0)
+            runningCostModel_vector[i].addCost("camReg", camBoundCost_vector[i], 1.0)
+            runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
+            runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)
+        
+        runningDAM_vector[i] = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[i], actuation_vector[i], runningCostModel_vector[i])
+        runningModelWithRK4_vector[i] = crocoddyl.IntegratedActionModelEuler(runningDAM_vector[i], dt_)
 
         #traj_[43] = zmp_refx_[N-1][0]
         #traj_[47] = zmp_refy_[N-1][0]
-        #weight_quad_upper = np.array([0.001, 0.001])
-        state_vector[N-1] = crocoddyl.StateKinodynamic(model.model)
-        actuation_vector[N-1] = crocoddyl.ActuationModelKinoBase(state_vector[N-1])
-        state_bounds[N-1] = crocoddyl.ActivationBounds(lb_[:,N-1],ub_[:,N-1])
-        state_activations[N-1] = crocoddyl.ActivationModelWeightedQuadraticBarrier(state_bounds[N-1], weight_quad_zmp)
-        #state_activations1[N-1] = crocoddyl.ActivationModelWeightedQuadraticBarrier(state_bounds[N-1], weight_quad_upper)
-        stateBoundCost_vector[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], state_activations[N-1], crocoddyl.ResidualFlyState(state_vector[N-1], actuation_vector[N-1].nu + 4))
-        stateBoundCost_vector1[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp1), crocoddyl.ResidualFlyState(state_vector[N-1], traj_, actuation_vector[N-1].nu + 4))
-        stateBoundCost_vector2[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_upper), crocoddyl.ResidualFlyState1(state_vector[N-1], actuation_vector[N-1].nu + 4))
-        camBoundCost_vector[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_cam), crocoddyl.ResidualModelCentroidalAngularMomentum(state_vector[N-1], actuation_vector[N-1].nu + 4))
-        comBoundCost_vector[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_com), crocoddyl.ResidualModelCoMKinoPosition(state_vector[N-1], np.array([0.0, 0.0, data.com[0][2]]), actuation_vector[N-1].nu + 4))
-        rf_foot_pos_vector[N-1] = pinocchio.SE3.Identity()
-        rf_foot_pos_vector[N-1].translation = copy(RF_tran.translation)
-        lf_foot_pos_vector[N-1] = pinocchio.SE3.Identity()
-        lf_foot_pos_vector[N-1].translation = copy(LF_tran.translation)
-        pelvis_rot_vector[N-1] = pinocchio.SE3.Identity()
-        #residual_FramePelvis[N-1] = crocoddyl.ResidualFrameRotation(state_vector[N-1], Pelvis_id, pelvis_rot_vector[N-1], actuation_vector[N-1].nu + 4)
-        #PelvisR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_pelvis), residual_FramePelvis[N-1])
-        residual_FrameRF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], RFframe_id, rf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-        residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-        foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
-        foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])
 
-        terminalCostModel = crocoddyl.CostModelSum(state_vector[N-1], actuation_vector[N-1].nu + 4)
-        #terminalCostModel.addCost("stateReg", stateBoundCost_vector[N-1], 1.0)
-        #terminalCostModel.addCost("stateReg1", stateBoundCost_vector1[N-1], 1.0)
-        #terminalCostModel.addCost("stateReg2", stateBoundCost_vector2[N-1], 1.0)
-        terminalCostModel.addCost("comReg", comBoundCost_vector[N-1], 1.0)
-        #terminalCostModel.addCost("camReg", camBoundCost_vector[N-1], 1.0)
-        terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
-        terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
-       
-        #terminalCostModel.addCost("pelvisReg1", PelvisR[N-1], 1.0)
-        terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
-        terminalModel = crocoddyl.IntegratedActionModelEuler(terminalDAM, dt_)
-        problemWithRK4 = crocoddyl.ShootingProblem(x0, runningModelWithRK4_vector, terminalModel)
-        problemWithRK4.nthreads = 100
-        #if time_step == 1:
-        ddp = crocoddyl.SolverFDDP(problemWithRK4)
-       
+    state_vector[N-1] = crocoddyl.StateKinodynamic(model.model)
+    actuation_vector[N-1] = crocoddyl.ActuationModelKinoBase(state_vector[N-1])
+    state_bounds[N-1] = crocoddyl.ActivationBounds(lb_[:,N-1],ub_[:,N-1])
+    state_activations[N-1] = crocoddyl.ActivationModelWeightedQuadraticBarrier(state_bounds[N-1], weight_quad_zmp)
+    #state_activations1[N-1] = crocoddyl.ActivationModelWeightedQuadraticBarrier(state_bounds[N-1], weight_quad_upper)
+    stateBoundCost_vector[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], state_activations[N-1], crocoddyl.ResidualFlyState(state_vector[N-1], actuation_vector[N-1].nu + 4))
+    stateBoundCost_vector1[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp1), crocoddyl.ResidualFlyState(state_vector[N-1], traj_, actuation_vector[N-1].nu + 4))
+    stateBoundCost_vector2[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_upper), crocoddyl.ResidualFlyState1(state_vector[N-1], actuation_vector[N-1].nu + 4))
+    camBoundCost_vector[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_cam), crocoddyl.ResidualModelCentroidalAngularMomentum(state_vector[N-1], actuation_vector[N-1].nu + 4))
+    comBoundCost_vector[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_com), crocoddyl.ResidualModelCoMKinoPosition(state_vector[N-1], np.array([0.0, 0.0, data.com[0][2]]), actuation_vector[N-1].nu + 4))
+    rf_foot_pos_vector[N-1] = pinocchio.SE3.Identity()
+    rf_foot_pos_vector[N-1].translation = copy(RF_tran.translation)
+    lf_foot_pos_vector[N-1] = pinocchio.SE3.Identity()
+    lf_foot_pos_vector[N-1].translation = copy(LF_tran.translation)
+    pelvis_rot_vector[N-1] = pinocchio.SE3.Identity()
+    #residual_FramePelvis[N-1] = crocoddyl.ResidualFrameRotation(state_vector[N-1], Pelvis_id, pelvis_rot_vector[N-1], actuation_vector[N-1].nu + 4)
+    #PelvisR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_pelvis), residual_FramePelvis[N-1])
+    residual_FrameRF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], RFframe_id, rf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
+    residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
+    foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
+    foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])
+    
+    terminalCostModel = crocoddyl.CostModelSum(state_vector[N-1], actuation_vector[N-1].nu + 4)
+    #terminalCostModel.addCost("stateReg", stateBoundCost_vector[N-1], 1.0)
+    #terminalCostModel.addCost("stateReg1", stateBoundCost_vector1[N-1], 1.0)
+    terminalCostModel.addCost("stateReg2", stateBoundCost_vector2[N-1], 1.0)
+    terminalCostModel.addCost("comReg", comBoundCost_vector[N-1], 1.0)
+    #terminalCostModel.addCost("camReg", camBoundCost_vector[N-1], 1.0)
+    terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
+    terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
+    
+    #terminalCostModel.addCost("pelvisReg1", PelvisR[N-1], 1.0)
+    terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
+    terminalModel = crocoddyl.IntegratedActionModelEuler(terminalDAM, dt_)
+    problemWithRK4 = crocoddyl.ShootingProblem(x0, runningModelWithRK4_vector, terminalModel)
+    problemWithRK4.nthreads = 15
 
-        for i in range(1, N-1):  
-            state_bounds[i].lb[0] = copy(array_boundx_[i][0])
-            state_bounds[i].ub[0] = copy(array_boundx_[i][1])
-            state_bounds[i].lb[1] = copy(array_boundy_[i][0])
-            state_bounds[i].ub[1] = copy(array_boundy_[i][1])
+    ddp = crocoddyl.SolverFDDP(problemWithRK4)
+    first_time = True
+
+    for time_step in range(1, total_time):
+        ok_ = False
+        for i in range(1, N-1):
+            traj_[43] = (array_boundx[i + time_step][0] + array_boundx[i + time_step][1])/2 #zmp_refx_[i][0]
+            traj_[47] = (array_boundy[i + time_step][0] + array_boundy[i + time_step][1])/2#zmp_refy_[i][0]
+            state_bounds[i].lb[0] = copy(array_boundx[i + time_step][0])
+            state_bounds[i].ub[0] = copy(array_boundx[i + time_step][1])
+            state_bounds[i].lb[1] = copy(array_boundy[i + time_step][0])
+            state_bounds[i].ub[1] = copy(array_boundy[i + time_step][1])
             state_activations[i].bounds = state_bounds[i]
+            stateBoundCost_vector1[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp1), crocoddyl.ResidualFlyState(state_vector[i], traj_, actuation_vector[i].nu + 4))
             stateBoundCost_vector[i].activation_ = state_activations[i]
 
+            runningCostModel_vector[i].removeCost("stateReg1")
+            runningCostModel_vector[i].addCost("stateReg1", stateBoundCost_vector1[i], 1.0)
             #runningCostModel_vector[i].removeCost("stateReg")
             #runningCostModel_vector[i].addCost("stateReg", stateBoundCost_vector[i], 1.0)
            
-            rf_foot_pos_vector[i].translation[0] = copy(array_boundRF_[i][0])
-            rf_foot_pos_vector[i].translation[1] = copy(array_boundRF_[i][1])
-            rf_foot_pos_vector[i].translation[2] = copy(array_boundRF_[i][2])
-            lf_foot_pos_vector[i].translation[0] = copy(array_boundLF_[i][0])
-            lf_foot_pos_vector[i].translation[1] = copy(array_boundLF_[i][1])
-            lf_foot_pos_vector[i].translation[2] = copy(array_boundLF_[i][2])
+            rf_foot_pos_vector[i].translation[0] = copy(array_boundRF[i + time_step][0])
+            rf_foot_pos_vector[i].translation[1] = copy(array_boundRF[i + time_step][1])
+            rf_foot_pos_vector[i].translation[2] = copy(array_boundRF[i + time_step][2])
+            lf_foot_pos_vector[i].translation[0] = copy(array_boundLF[i + time_step][0])
+            lf_foot_pos_vector[i].translation[1] = copy(array_boundLF[i + time_step][1])
+            lf_foot_pos_vector[i].translation[2] = copy(array_boundLF[i + time_step][2])
             residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
             residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
             foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
@@ -1181,125 +1113,244 @@ def talker():
             runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
             runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)  
            
-        state_bounds[N-1].lb[0] = copy(array_boundx_[N-1][0])
-        state_bounds[N-1].ub[0] = copy(array_boundx_[N-1][1])
-        state_bounds[N-1].lb[1] = copy(array_boundy_[N-1][0])
-        state_bounds[N-1].ub[1] = copy(array_boundy_[N-1][1])
+        state_bounds[N-1].lb[0] = copy(array_boundx[N-1 + time_step][0])
+        state_bounds[N-1].ub[0] = copy(array_boundx[N-1 + time_step][1])
+        state_bounds[N-1].lb[1] = copy(array_boundy[N-1 + time_step][0])
+        state_bounds[N-1].ub[1] = copy(array_boundy[N-1 + time_step][1])
         state_activations[N-1].bounds = state_bounds[N-1]
         stateBoundCost_vector[N-1].activation_ = state_activations[N-1]
-        rf_foot_pos_vector[N-1].translation[0] = copy(array_boundRF_[N-1][0])
-        rf_foot_pos_vector[N-1].translation[1] = copy(array_boundRF_[N-1][1])
-        rf_foot_pos_vector[N-1].translation[2] = copy(array_boundRF_[N-1][2])
-        lf_foot_pos_vector[N-1].translation[0] = copy(array_boundLF_[N-1][0])
-        lf_foot_pos_vector[N-1].translation[1] = copy(array_boundLF_[N-1][1])
-        lf_foot_pos_vector[N-1].translation[2] = copy(array_boundLF_[N-1][2])
+        rf_foot_pos_vector[N-1].translation[0] = copy(array_boundRF[N-1 + time_step][0])
+        rf_foot_pos_vector[N-1].translation[1] = copy(array_boundRF[N-1 + time_step][1])
+        rf_foot_pos_vector[N-1].translation[2] = copy(array_boundRF[N-1 + time_step][2])
+        lf_foot_pos_vector[N-1].translation[0] = copy(array_boundLF[N-1 + time_step][0])
+        lf_foot_pos_vector[N-1].translation[1] = copy(array_boundLF[N-1 + time_step][1])
+        lf_foot_pos_vector[N-1].translation[2] = copy(array_boundLF[N-1 + time_step][2])
         residual_FrameRF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], RFframe_id, rf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
         residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
         foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
         foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])    
-       
-       
+        
+        #terminalCostModel.removeCost("stateReg1")
+        #terminalCostModel.addCost("stateReg1", stateBoundCost_vector1[N-1], 1.0)
+
         terminalCostModel.removeCost("footReg1")
         terminalCostModel.removeCost("footReg2")
         terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
         terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
-       
-        #terminalCostModel.removeCost("stateReg")
-        #terminalCostModel.addCost("stateReg", stateBoundCost_vector[N-1], 1.0)
-        #print(x0)
-        #time.sleep(1)
-        problemWithRK4.x0 = x0
-        #print("c0")
-        #print(x0)
-        #a = ㅁㄴㅇㄹㄴㅇㄹㅁㄴㅇㄹㄴㅇ
-        ddp.th_stop = 0.0000001
-        #ddp.th_stop = 0.00000000001
-        c_start = time.time()
-        css = ddp.solve(xs_pca, us_pca, 100, False, 0.00001)
-        #css = ddp.solve(xs_pca, us_pca, 1000000, False, 0.00001)
-        c_end = time.time()
-        duration = (1e3 * (c_end - c_start))
-
-        #costs.cost.ref
-        print("timestep")
-        print(time_step)
-        avrg_duration = duration
-        min_duration = duration #min(duration)
-        max_duration = duration #max(duration)
-        print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
-        print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, ddp.cost))
-        print("Start")
-        #print(x0)
-        #print(ddp.xs[1])
-        print("End")
-        #a = asdfsdfasd
-        '''
-        print(ddp.xs[1][43])
-        print([array_boundx_[0], array_boundx_[1]])
-        print(ddp.xs[1][47])
-        print([array_boundy_[0], array_boundy_[1]])
-        print([ddp.xs[1][19], ddp.xs[1][20]])
-        '''
-        if(ddp.xs[1][43] < array_boundx_[0][0]) or (ddp.xs[1][43] > array_boundx_[0][1]):
-            print("zmpx")
-
-        if(ddp.xs[1][47] < array_boundy_[0][0]) or (ddp.xs[1][47] > array_boundy_[0][1]):
-            print("zmpy")
+        a2 = time.time()
         
-        '''
-        traj = np.array(ddp.xs)[:,0:21]
-        vel_traj = np.array(ddp.xs)[:,21:41]
-        x_traj = np.array(ddp.xs)[:, 41:49]
-        u_traj = np.array(ddp.us)[:,20:24]
-        acc_traj = np.array(ddp.us)[:, 0:20]
-        
-        crocs_data['Right']['x_inputs'].append(copy(ddp.xs[0][0:21]))
-        crocs_data['Right']['vel_trajs'].append(copy(vel_traj[0][0:20]))
-        crocs_data['Right']['x_state'].append(copy(x_traj[0][0:8]))
-        crocs_data['Right']['costs'].append(copy(ddp.cost))
-        crocs_data['Right']['iters'].append(copy(ddp.iter))
-        crocs_data['Right']['trajs'].append(copy(traj[0][0:21]))
-        crocs_data['Right']['u_trajs'].append(copy(acc_traj[0][0:20]))
-        crocs_data['Right']['acc_trajs'].append(copy(u_traj[0][0:4]))
-           
-        with open('/home/jhk/ssd_mount/filename3.pkl', 'wb') as f:
-            pickle.dump(crocs_data, f, protocol=pickle.HIGHEST_PROTOCOL)
-        print("success")
-        '''
-        if time_step == 30:
-            traj = np.array(ddp.xs)[:,0:21]
-            vel_traj = np.array(ddp.xs)[:,21:41]
-            x_traj = np.array(ddp.xs)[:, 41:49]
-            u_traj = np.array(ddp.us)[:,20:24]
-            acc_traj = np.array(ddp.us)[:, 0:20]
+        while signal == False:
+            a = time.time()
+            mpc_signalv  = mpc_signal.read()
+            mpc_signaldata =  np.ndarray(shape=(3,), dtype=np.int32, buffer=mpc_signalv)
+            if(mpc_signaldata[0] == 4):
+                b = time.time()
+                signal = True
+        while ok_ == False:
+            mpc_signalv  = mpc_signal.read()
+            mpc_signaldata =  np.ndarray(shape=(3,), dtype=np.int32, buffer=mpc_signalv)
+            if mpc_signaldata[0] == 1:
+                if first_time == False:
+                    statemachine.write(np.array([2, 0, 0], dtype=np.int8))
+                x_initv  = x_init.read()
+                X = np.ndarray(shape=(49,), dtype=np.float64, buffer=x_initv)
+                K_time1 = time.time()
+                if time_step == 1:
+                    X = np.array([ 0.00000000e+00,  0.00000000e+00,  8.24730000e-01,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  1.00000000e+00,  0.00000000e+00,
+    0.00000000e+00, -5.50000000e-01,  1.26000000e+00, -7.10000000e-01,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00, -5.50000000e-01,
+    1.26000000e+00, -7.10000000e-01,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  8.61938268e-02,  0.00000000e+00,  8.61938268e-02,
+    0.00000000e+00,  5.18219890e-06,  0.00000000e+00,  5.18219890e-06,
+    0.00000000e+00])
+                    queue[:41] = X[:41]
+                    queue[41] = X[43]
+                    queue[42] = X[47]
+                else:
+                    x0 = ddp.xs[1]
+                    for i in range(0, len(q)):
+                        x0[i] = copy(X[i])
+                    for i in range(len(q), len(q)+len(qdot)):
+                        x0[i] = copy(X[i])
+                
+                    queue[:41] = x0[:41]
+                    queue[41] = X[43]#ddp.xs[1][43]
+                    queue[42] = X[47]#ddp.xs[1][47]
+                
+                thread_manager[:] = [1, 1, 1]    
+                
+                xs_pca = []
+                us_pca = []
+                xs_pca_test = []
+                
+                while True:
+                    if (thread_manager[0] == 0 and thread_manager[1] == 0 and  thread_manager[2] == 0):
+                        for i in range(0, 60): #q, v, x in zip(q_pca, v_pca, x_pca):
+                            xs_pca.append(np.concatenate([q_traj[i,:], v_traj[i,:], x_traj[i,:]]))
+                            if i != 59:
+                                us_pca.append(np.concatenate([a_traj[i,:], u_traj[i,:]]))
+                        break
 
-            crocs_data['Right']['x_inputs'].append(copy(ddp.xs[0][0:21]))
-            crocs_data['Right']['vel_trajs'].append(copy(vel_traj))
-            crocs_data['Right']['x_state'].append(copy(x_traj))
-            crocs_data['Right']['costs'].append(copy(ddp.cost))
-            crocs_data['Right']['iters'].append(copy(ddp.iter))
-            crocs_data['Right']['trajs'].append(copy(traj))
-            crocs_data['Right']['u_trajs'].append(copy(acc_traj))
-            crocs_data['Right']['acc_trajs'].append(copy(u_traj))
-            print(len(crocs_data['Right']['trajs']))
-            
-            with open('/home/jhk/ssd_mount/filename3.pkl', 'wb') as f:
-                pickle.dump(crocs_data, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-            print("success")
-            #print(x_traj[0])
-            #print(x_traj[1])
-            
+                if(time_step == 1):
+                    for i in range(0, len(x0)):
+                        x0[i] = copy(X[i])
+                    for i in range(0, len(q)):
+                        q[i] = x0[i]    
+                    for i in range(0, len(qdot)):
+                        qdot[i] = x0[i+len(q)]                    
         
+                    pinocchio.forwardKinematics(model.model, data, q, qdot)
+                    pinocchio.updateFramePlacements(model.model,data)
+                    pinocchio.centerOfMass(model.model, data, q, qdot, False)
+                    pinocchio.computeCentroidalMomentum(model.model,data,q,qdot)
+                    
+                    x0[41] = data.com[0][0] 
+                    x0[45] = data.com[0][1]
+                
+                    x0[42] = data.vcom[0][0] 
+                    x0[46] = data.vcom[0][1]
+
+                    x0[43] = data.com[0][0] 
+                    x0[45] = 0.0#data.com[0][1]
+
+                    x0[44] = data.hg.angular[1] 
+                    x0[48] = data.hg.angular[0] 
+                    print("x initial")
+                    print(x0)
+
+                else:
+                    #x0[:len(x0)] = X[:len(x0)]
+                    
+                    print("bbbb")
+                    print([ddp.xs[1][43], ddp.xs[1][47]])
+                    print([X[43], X[47]])
+                    print([x0[43], x0[47]])
+                    print(ddp.us[0][0])
+                    
+                    print("aaaaa")
+                    print([ddp.xs[1][41], ddp.xs[1][45]])
+                    print([X[41], X[45]])
+                    print([x0[41], x0[45]])
+                    print("vel")
+                    print(X[21:41])
+                    
+                    print(ddp.xs[0][21:41])
+                    print(ddp.xs[1][21:41])
+                    print(ddp.xs[0][19:21])
+                    print(ddp.xs[1][19:21])
+                    
+                    '''
+                    print("Ddd")
+                    print(x0)
+                    print(X[:])
+                    '''
+                    #print([ddp.xs[1][41], ddp.xs[1][45]])
+                    #print([X[41], X[45]])
+                    #print([x0[41], x0[45]])
+
+                    '''
+                    for i in range(0, len(q)):
+                        q[i] = ddp.xs[1][i]    
+                    for i in range(0, len(qdot)):
+                        qdot[i] = ddp.xs[1][i+len(q)]
+                    
+                    pinocchio.forwardKinematics(model.model, data, q, qdot)
+                    pinocchio.updateFramePlacements(model.model,data)
+                    pinocchio.centerOfMass(model.model, data, q, qdot, False)
+                    pinocchio.computeCentroidalMomentum(model.model,data,q,qdot)
+                    
+                    
+                    print("angs")
+                    print(data.hg.angular)
+                    print([x0[44], x0[48]])
+                    '''
+
+                    x0[41] = X[41]
+                    x0[45] = X[45]
+                    x0[42] = X[42]
+                    x0[46] = X[46]
+                    x0[43] = X[43]
+                    x0[47] = X[47]
+                    x0[44] = X[44]
+                    x0[48] = X[48]
+                    print('x0')
+                    print(ddp.xs[1])
+                    print(x0)
+                    
+
+                problemWithRK4.x0 = x0
+                ddp.th_stop = 0.000001
+                c_start = time.time()
+                css = ddp.solve(xs_pca, us_pca, 100, False, 0.00001)     
+                c_end = time.time()
+                duration = (1e3 * (c_end - c_start))
+
+                X = ddp.xs[1]
+                desired_value.write(X)
+                statemachine.write(np.array([1, 0, 0], dtype=np.int8))
+                K_time2 = time.time()
+
+                print("end")
+                avrg_duration = duration
+                min_duration = duration #min(duration)
+                max_duration = duration #max(duration)
+                print('  DDP.solve [ms]: {0} ({1}, {2})'.format(avrg_duration, min_duration, max_duration))
+                print('ddp.iter {0},{1},{2}'.format(ddp.iter, css, ddp.cost))
+                print("xs")
+                print(["mpc_cycle", mpc_cycle, time_step])
+                print([rf_foot_pos_vector[1].translation[2], lf_foot_pos_vector[1].translation[2]])
+                total_cost.append(ddp.cost)
+                total_time_.append(avrg_duration)
+
+                ok_ = True
+                
+                if time_step == total_time - 1:
+                    time.sleep(0.002)
+                    statemachine.write(np.array([2, 0, 0], dtype=np.int8))
+                    time.sleep(1000)
+                mpc_cycle = mpc_cycle + 1  
+                
+                if(ddp.xs[1][43] < array_boundx[1 + time_step][0]) or (ddp.xs[1][43] > array_boundx[1 + time_step][1]):
+                    print("zmpx")
+                    print(ddp.xs[1][43])
+                    print([array_boundx[1 + time_step][0], array_boundx[1 + time_step][1]])
+
+                if(ddp.xs[1][47] < array_boundy[1 + time_step][0]) or (ddp.xs[1][47] > array_boundy[1 + time_step][1]):
+                    print("zmpy")
+                    print(ddp.xs[1][47])
+                    print([array_boundy[1 + time_step][0], array_boundy[1 + time_step][1]])
+
+                print(total_cost)
+                print(total_time_)
+                first_time = False
+                
+            elif mpc_signaldata[0] == 2:
+                statemachine.write(np.array([2, 0, 0], dtype=np.int8))
+        
+def print_heard_talkling(message):    
+    if  message['data'] == 'stateestimation':
+        talk.publish(roslibpy.Message({'data': 'stateestimation'}))
+    if  message['data'] == 'simvirtualjoint':
+        talk.publish(roslibpy.Message({'data': 'simvirtualjoint'}))
+
+   
 if __name__=='__main__':
-    '''
+    global talk
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
     launch = roslaunch.parent.ROSLaunchParent(uuid, ['/home/jhk/catkin_ws/src/dyros_tocabi_v2/tocabi_controller/launch/simulation.launch'])
     launch.start()
-    '''
     client = roslibpy.Ros(host='localhost', port=9090)
     client.run()
-    
+    listener = roslibpy.Topic(client, '/tocabi/command', 'std_msgs/String')
+    listener.subscribe(print_heard_talkling)
+    talk = roslibpy.Topic(client, '/chatter', 'std_msgs/String')
+    #talk.publish(roslibpy.Message({'data': 'Hello World!'}))
     #PCAlearning()
     talker()

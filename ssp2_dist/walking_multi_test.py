@@ -770,6 +770,7 @@ def talker():
     dt_ = 1.2 / float(N)
     total_time = 49
     cost_total = []
+    latency_total = []
     crocs_data = dict()
     crocs_data['left'] = dict()
     crocs_data['Right'] = dict()
@@ -1177,7 +1178,7 @@ def talker():
             print(array_boundLF_[1])
             print("joint")
             print([ddp.xs[1][20], ddp.xs[1][21]])
-            '''
+            
             x0[41] = data.com[0][0] 
             x0[45] = data.com[0][1]
         
@@ -1186,7 +1187,7 @@ def talker():
 
             x0[44] = data.hg.angular[1] 
             x0[48] = data.hg.angular[0] 
-            '''
+            
             '''
             if(time_step_ == 37):
                 k = afasdfsdf
@@ -1275,12 +1276,12 @@ def talker():
         weight_quad_camx = 2.9
         weight_quad_camy = 2.9
         weight_quad_zmp = np.array([1.0, 1.0])#([weight_quad_zmpx] + [weight_quad_zmpy])
-        weight_quad_zmp1 = np.array([5.0, 8.0]) ##11
-        weight_quad_cam = np.array([0.003, 0.003])#([weight_quad_camy] + [weight_quad_camx])
-        weight_quad_upper = np.array([0.0005, 0.0005])
+        weight_quad_zmp1 = np.array([10.0, 10.0]) ##11
+        weight_quad_cam = np.array([0.001, 0.001])#([weight_quad_camy] + [weight_quad_camx])
+        weight_quad_upper = np.array([0.003, 0.003])
         weight_quad_com = np.array([20.0,20.0, 3.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
-        weight_quad_rf = np.array([20.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
-        weight_quad_lf = np.array([20.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
+        weight_quad_rf = np.array([30.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
+        weight_quad_lf = np.array([30.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
         lb_ = np.ones([2, N])
         ub_ = np.ones([2, N])
        
@@ -1385,7 +1386,7 @@ def talker():
         terminalCostModel = crocoddyl.CostModelSum(state_vector[N-1], actuation_vector[N-1].nu + 4)
         #terminalCostModel.addCost("stateReg", stateBoundCost_vector[N-1], 1.0)
         #terminalCostModel.addCost("stateReg1", stateBoundCost_vector1[N-1], 1.0)
-        terminalCostModel.addCost("stateReg2", stateBoundCost_vector2[N-1], 1.0)
+        #terminalCostModel.addCost("stateReg2", stateBoundCost_vector2[N-1], 1.0)
         terminalCostModel.addCost("comReg", comBoundCost_vector[N-1], 1.0)
         #terminalCostModel.addCost("camReg", camBoundCost_vector[N-1], 1.0)
         terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
@@ -1395,7 +1396,7 @@ def talker():
         terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
         terminalModel = crocoddyl.IntegratedActionModelEuler(terminalDAM, dt_)
         problemWithRK4 = crocoddyl.ShootingProblem(x0, runningModelWithRK4_vector, terminalModel)
-        problemWithRK4.nthreads = 50
+        problemWithRK4.nthreads = 20
         #if time_step == 1:
         ddp = crocoddyl.SolverFDDP(problemWithRK4)
        
@@ -1460,9 +1461,9 @@ def talker():
         ddp.th_stop = 0.000001
         c_start = time.time()
         if time_step == 41:
-            css = ddp.solve(xs_pca, us_pca, 20, True, 0.00001)
+            css = ddp.solve(xs_pca, us_pca, 50, False, 0.00001)
         else:
-            css = ddp.solve(xs_pca, us_pca, 20, True, 0.00001)
+            css = ddp.solve(xs_pca, us_pca, 50, False, 0.00001)
         c_end = time.time()
         duration = (1e3 * (c_end - c_start))
 
@@ -1479,6 +1480,7 @@ def talker():
         #print(ddp.xs[1])
         print("End")
         cost_total.append(ddp.cost)
+        latency_total.append(duration)
         print(ddp.xs[1][43])
         print([array_boundx_[0], array_boundx_[1]])
         print(ddp.xs[1][47])
@@ -1525,6 +1527,7 @@ def talker():
 
             print("success")
             print(cost_total)
+            print(latency_total)
             #print(x_traj[0])
             #print(x_traj[1])
             

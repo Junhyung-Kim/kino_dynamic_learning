@@ -1906,7 +1906,7 @@ def update_kinematics(q, dq):
     #J[3:6, 3:6] = pinocchio.getFrameJacobian(model.model, data, RFcframe_id, pinocchio.ReferenceFrame.LOCAL_WORLD_ALIGNED)
     J[6:12, 0:model.model.nv] = pinocchio.getFrameJacobian(model.model, data, RFcframe_id, pinocchio.ReferenceFrame.LOCAL_WORLD_ALIGNED)
     J[12:18, 0:model.model.nv] = pinocchio.getFrameJacobian(model.model, data, LFcframe_id, pinocchio.ReferenceFrame.LOCAL_WORLD_ALIGNED)
-
+    
     return J
 
 def update_kinematics1(q, dq):

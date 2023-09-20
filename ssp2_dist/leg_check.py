@@ -332,6 +332,7 @@ def talker():
     dhd_dv = np.zeros([6, model.nv])
     dhd_da = np.zeros([6, model.nv])
     
+    
     #pinocchio.computeCentroidalDynamicsDerivatives(model.model, data, q, qdot, qdot, dh_dq, dhd_dq, dhd_dv, dhd_da)
     
     LF_tran = data.oMf[LFframe_id]
@@ -433,6 +434,7 @@ def talker():
     #print(crocs_data['Right']['vel_trajs'][time1d][0])
     #print(crocs_data['Right']['u_trajs'][time1d][0])
     print(crocs_data['Right']['costs'][time1d])
+
 
     for ss in range(0, 5):
         print(ss)

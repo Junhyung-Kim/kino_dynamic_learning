@@ -816,7 +816,7 @@ def talker():
         terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
         terminalModel = crocoddyl.IntegratedActionModelEuler(terminalDAM, dt_)
         problemWithRK4 = crocoddyl.ShootingProblem(x0, runningModelWithRK4_vector, terminalModel)
-        problemWithRK4.nthreads = 20
+        problemWithRK4.nthreads = 10
         ddp = crocoddyl.SolverFDDP(problemWithRK4)
        
 
@@ -874,9 +874,13 @@ def talker():
         #terminalCostModel.addCost("stateReg", stateBoundCost_vector[N-1], 1.0)
         #print(x0)
         problemWithRK4.x0 = x0
-        ddp.th_stop = 0.0000005
+        ddp.th_stop = 0.00001
         c_start = time.time()
-        css = ddp.solve(xs_pca, us_pca, 100, True, 0.000001)
+        print("xx")
+        print(xs_pca[0])
+        print("xx1")
+        print(x0)
+        css = ddp.solve(xs_pca, us_pca, 100, False, 0.00001)
         c_end = time.time()
         duration = (1e3 * (c_end - c_start))
 
