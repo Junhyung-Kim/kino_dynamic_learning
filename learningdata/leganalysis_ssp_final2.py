@@ -6,7 +6,7 @@ from pinocchio.utils import npToTuple
 from pinocchio.rpy import matrixToRpy, rpyToMatrix
 import sys
 import numpy as np
-import  pickle
+import pickle
 import math
 import matplotlib.pyplot as plt
 import scipy.linalg
@@ -15,7 +15,6 @@ from os.path import dirname, join, abspath
 from control.matlab import *
 from pinocchio.robot_wrapper import RobotWrapper
 from copy import copy
-import time
 
 ##IK, only lower, data preprocessing
 np.set_printoptions(threshold=sys.maxsize)
@@ -1173,7 +1172,6 @@ def inverseKinematics(time, LF_rot_c, RF_rot_c, PELV_rot_c, LF_tran_c, RF_tran_c
         leg_q = np.zeros(12)
         leg_qdot = np.zeros(12)
         leg_qddot = np.zeros(12)
-        total_tick =1
         leg_qs = np.zeros((int(total_tick), 12))
         leg_qdots = np.zeros((int(total_tick), 12))
         leg_qddots = np.zeros((int(total_tick), 12))
@@ -1278,7 +1276,7 @@ def inverseKinematics(time, LF_rot_c, RF_rot_c, PELV_rot_c, LF_tran_c, RF_tran_c
     leg_q[10] = leg_q[10] * (-1)
 
     #leg_qs[time,:] = leg_q
-    '''
+    
     if(time == 0):
         leg_qs[time,:] = leg_q
         leg_qdots[time,:] = np.zeros(12)
@@ -1287,8 +1285,6 @@ def inverseKinematics(time, LF_rot_c, RF_rot_c, PELV_rot_c, LF_tran_c, RF_tran_c
         leg_qs[time,:] = leg_q
         leg_qdots[time,:] = np.subtract(leg_qs[time,:], leg_qs[time-1,:]) * hz
         leg_qddots[time,:] = np.subtract(leg_qdots[time,:], leg_qdots[time-1,:]) * hz
-    '''
-    print(leg_q)
         
         
 def comJacobianinverseKinematics(time, LF_rot_c, RF_rot_c, PELV_rot_c, LF_tran_c, RF_tran_c, PELV_tran_c, HRR_tran_init_c, HLR_tran_init_c, HRR_rot_init_c, HLR_rot_init_c, PELV_tran_init_c, PELV_rot_init_c, CPELV_tran_init_c):
@@ -1576,16 +1572,6 @@ def modelInitialize():
 
     TranVRi = np.matmul(np.linalg.inv(TranFVi),TranFRi)
     TranVLi = np.matmul(np.linalg.inv(TranFVi),TranFLi)
-
-    #q_init = [0, 0, 0.82473, 0, 0, 0, 1, 0, 0, -0.4476, 1.22975, -0.78215, 0, 0, 0, -0.6428, 1.26864, -0.6281, 0] #[0, 0, 0.82473, 0, 0, 0, 1, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0, -0.55, 1.26, -0.71, 0]
-  
-    #for i in range(0, len(q)):
-    #    q[i] = q_init[i]
-    #print(q)
-    pinocchio.forwardKinematics(model.model, data, q)
-    pinocchio.updateFramePlacements(model.model, data)
-    pinocchio.updateGlobalPlacements(model.model, data)
-    
 
 
 def modelUpdate(q_desired, qdot_desired, qddot_desired):
@@ -2012,13 +1998,12 @@ def loadmodel(kkkk):
         database1[key]['data_phases_set'] = []
         database1[key]['costs'] = [] 
         database1[key]['iters'] = []
-    '''
-    filename = '/home/jhk/ssd_mount/beforeprocessing/SSP2/real/i='
-    filename1 = str(kkkk)
+
+    filename = '/home/jhk/ssd_mount/beforedata/ssp2_final/i='
+    filename1 = '11'#str(kkkk)
     filename2 = '/Fdyn_data5.txt'
     filename3 = filename + filename1 + filename2
-    '''
-    with open('/home/jhk/ssd_mount/Fdyn_data5_363.txt', 'rb') as f:
+    with open(filename3, 'rb') as f:
         database = pickle.load(f,  encoding='iso-8859-1')
     f.close()
     database1 = database
@@ -2026,57 +2011,279 @@ def loadmodel(kkkk):
 
 def talker():
     global LIPM_bool
-    
     LIPM_bool = 1  #LIPM 0, LIPFM 1
+    for kkkk in range(0,1):
+        modelInitialize()
+        walkingSetup()
+        footStep()
+        cpGenerator()
+        #comGenerator(LIPM_bool)
+        swingFootGenerator()
+
+        global contactState, f1, f2
+
+        f3 = open("/home/jhk/ssd_mount/newfile.txt", 'w')
+        f1 = open("/home/jhk/ssd_mount/newfile1.txt", 'w')
+        f2 = open("/home/jhk/ssd_mount/newfile2.txt", 'w')
+        zmpx = []
+        zmpy = []
+        #print(zmp_refx)
+
+        loadmodel(kkkk)
+        N = 110
+        k = 1
+        f = open("/home/jhk/ssd_mount/lfoot2_final.txt", 'r')
+        f1 = open("/home/jhk/ssd_mount/rfoot2_final.txt", 'r')
+        lines1 = f1.readlines()
+        lines = f.readlines()
+        array_boundRF = [[] for i in range(int(len(lines1)))]
+        array_boundLF = [[] for i in range(int(len(lines1)))]
+
+        array_boundRF_ = [[] for i in range(N)]
+        array_boundLF_ = [[] for i in range(N)]
+
+        lines_array = []
+        for i in range(0, len(lines)):
+            lines_array.append(lines[i].split())
+
+        lines1_array = []
+        for i in range(0, len(lines1)):
+            lines1_array.append(lines1[i].split())
+        for i in range(0, len(lines_array)):
+            for j in range(0, len(lines_array[i])):
+                if j == 0:
+                    array_boundRF[i].append(float(lines_array[i][j]))
+                if j == 1:
+                    array_boundRF[i].append(float(lines_array[i][j]))
+                if j == 2:
+                    array_boundRF[i].append(float(lines_array[i][j]))
+
+        for i in range(0, N):
+            if i == 0:
+                array_boundRF_[i] = np.sum([array_boundRF[k*i], [-0.03, 0.0, 0.15842]], axis = 0)
+            else:
+                array_boundRF_[i] = np.sum([array_boundRF[k*(i-1)], [-0.03, 0.0, 0.15842]], axis = 0)
+        
+        for i in range(0, len(lines1_array)):
+            for j in range(0, len(lines1_array[i])):
+                if j == 0:
+                    array_boundLF[i].append(float(lines1_array[i][j]))
+                if j == 1:
+                    array_boundLF[i].append(float(lines1_array[i][j]))
+                if j == 2:
+                    array_boundLF[i].append(float(lines1_array[i][j]))
+
+        for i in range(0, N):
+            if i == 0:
+                array_boundLF_[i] = np.sum([array_boundLF[k*i], [-0.03, 0.0, 0.15842]], axis = 0)
+            else:
+                array_boundLF_[i] = np.sum([array_boundLF[k*(i-1)], [-0.03, 0.0, 0.15842]], axis = 0)
+
+        q = pinocchio.utils.zero(model.model.nq)
+        qdot = pinocchio.utils.zero(model.model.nv)
+        qdot_c = pinocchio.utils.zero(model.model.nv)
+        qddot = pinocchio.utils.zero(model.model.nv)
+        qddot_c = pinocchio.utils.zero(model.model.nv)
+        qdot_prev = pinocchio.utils.zero(model.model.nv)
+        
+        q_init = [0, 0, 0.82473, 0, 0, 0, 1, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0]
+
+        for i in range(0, len(q)):
+            q[i] = q_init[i]
+
+        J = np.array([model.model.nv, model.model.nv])
+        x = np.array(model.model.nv)
+        COM_init = copy(COM_tran_init)
+        
+        contact_wrench = []
+        sol = []
+        zmp_est = []
+        global phaseChange, phaseChange1
+        DD_  = True
+
+        for time1 in range(0, len(database1['Right']['vel_trajs'])):
+            state_q = []
+            state_qd = []
+            zmp_err = []
+            state_ud = []
+            for i in range(1, N):
+                if LIPM_bool == 1:
+                    if i ==1:
+                        for j in range(0, len(q)):
+                            q[j] =database['Right']['trajs'][time1][0][j]
+                        for j in range(0, len(qdot_c)):
+                            qdot_c[j] = database['Right']['vel_trajs'][time1][0][j]
+                        #qinit = copy(q)
+                        #qdinit = copy(qdot_c)
+                        #state_q.append(qinit)
+                        #state_qd.append(qdinit)
+                        qdot_prev = qdot_c
+                        print("init")
+                        print(q)
+                        '''
+                        for j in range(0, len(q)):
+                            q[j] = database['Right']['trajs'][time1][i][j]
+                        for j in range(0, len(qdot_c)):
+                            qdot_c[j] = database['Right']['vel_trajs'][time1][i][j]
+                        '''
+                        state_q.append(q)
+                        state_qd.append(qdot_c)
+                    
+                    J = update_kinematics1(q, qdot_c)
+                    zmp_refx[i] = database['Right']['x_state'][time1][i][2]
+                    zmp_refy[i] = database['Right']['x_state'][time1][i][6]
+                    comrefx = database['Right']['x_state'][time1][i][0]
+                    comrefdx = database['Right']['x_state'][time1][i][1]
+                    comrefdy = database['Right']['x_state'][time1][i][5]
+                    comrefy = database['Right']['x_state'][time1][i][4]
+                    comrefdx_prev = database['Right']['x_state'][time1-1][i][1]
+                    comrefdy_prev = database['Right']['x_state'][time1-1][i][5]
+
+                    com_refd = np.array([comrefdx - 2.0*(data.com[0][0] - comrefx), comrefdy- 2.0*(data.com[0][1] - comrefy), 0.0])
+                    hg = [database['Right']['x_state'][time1][i][7]- 0.003*(data.hg.angular[0] - database['Right']['x_state'][time1][i][7]), database['Right']['x_state'][time1][i][3]- 0.003*(data.hg.angular[1] - database['Right']['x_state'][time1][i][3])]
+                
+                    #if i == 1:
+                    #    RF_d = np.zeros(3)
+                    #    LF_d = np.zeros(3)
+                    #else:
+                    RF_d = (array_boundRF_[i] - array_boundRF_[i-1])*hz
+                    LF_d = (array_boundLF_[i] - array_boundLF_[i-1])*hz
+
+                    RF_d = RF_d + [0.0- 10.0 *(data.oMf[RFframe_id].translation[0] -array_boundRF_[i-1][0]), 0.0, - 15.0 *(data.oMf[RFframe_id].translation[2] -array_boundRF_[i-1][2])]
+                    LF_d = LF_d + [0.0- 10.0 *(data.oMf[LFframe_id].translation[0] -array_boundLF_[i-1][0]), 0.0, - 15.0 *(data.oMf[LFframe_id].translation[2] -array_boundLF_[i-1][2])]
+
+                    x = update_acceleration1(com_refd, RF_d, LF_d, hg)
+                    
+                    qdot_c = np.matmul(scipy.linalg.pinv(J), x)
+                    qdot_c = qdot_c
+                    qddot_c = (qdot_c - qdot_prev)*hz
+                    qdot_prev = qdot_c
+                    q = pinocchio.integrate(model.model, q, qdot_c/hz)
+                    state_q.append(q)
+                    state_qd.append(qdot_c)
+                    state_ud.append(qddot_c)
+                    J = update_kinematics1(q, qdot_c)
+                    ''' 
+                    S = np.zeros([model.model.nv, model.model.nv - 6])
+                    Q = np.zeros([model.model.nv, model.model.nv])
+                    I = np.identity(model.model.nv - 6)
+                    pinocchio.forwardKinematics(model.model, data,q, qdot_c, qddot_c)
+                    pinocchio.centerOfMass(model.model,data,q, qdot_c, qddot_c, False)
+                    pinocchio.computeCentroidalDynamics(model.model, data, q, qdot_c)
+                    
+                    S[6:, :] = I
+                    Q[:, 6:] = S
+
+                    #if(i == 0):
+                    #    comrefddx = 0
+                    #    comrefddy = 0
+                    #    comrefdx_prev = comrefdx
+                    #    comrefdy_prev = comrefdy
+                    #else:
+                    comrefddx = (comrefdx - comrefdx_prev) * hz
+                    comrefddy = (comrefdy - comrefdy_prev) * hz
+                    comrefdx_prev = comrefdx
+                    comrefdy_prev = comrefdy
+                    
+                    if (array_boundRF[i][2] == 0.0) and (array_boundLF[i][2] == 0.0):
+                        phase_variable[i] = 1
+                    elif array_boundRF[i][2] > 0.0:
+                        phase_variable[i] = 3
+                    else:
+                        phase_variable[i] = 2
+
+                    if phase_variable[i] != 1:
+                        if phase_variable[i] == 2:
+                            Q[:,:6] = -np.transpose(pinocchio.getFrameJacobian(model.model, data, RFcframe_id, pinocchio.ReferenceFrame.LOCAL_WORLD_ALIGNED))
+                        else:
+                            Q[:,:6] = -np.transpose(pinocchio.getFrameJacobian(model.model, data, LFcframe_id, pinocchio.ReferenceFrame.LOCAL_WORLD_ALIGNED))
+                        
+                        pinocchio.crba(model.model, data, q)
+                        pinocchio.nonLinearEffects(model.model,data,q,qdot_c)
+                        contactja = np.transpose(Q[:,:6])
+                        drift = np.zeros(6)
+
+                        sol.append(np.matmul(scipy.linalg.pinv(Q),np.matmul(data.M, qddot_c) + data.nle))
+                        if phase_variable[i] == 2:
+                            temp = np.zeros(12)
+                            temp1 = np.zeros(2)
+                            temp[6:12] = sol[i-1][0:6]
+                            contact_wrench.append(temp)
+                            temp1[0] = data.oMf[RFcframe_id].translation[0] + (-sol[i-1][4])/sol[i-1][2]
+                            temp1[1] = data.oMf[RFcframe_id].translation[1] + (sol[i-1][3])/sol[i-1][2]
+                            zmp_est.append(temp1)
+                            #print(i)
+                            #print(sol[i-1][:6])
+                        else:
+                            temp = np.zeros(12)
+                            temp1 = np.zeros(2)
+                            temp[0:6] = sol[i-1][0:6]
+                            contact_wrench.append(temp)   
+                            temp1[0] = data.oMf[LFcframe_id].translation[0] + (-sol[i-1][4])/sol[i-1][2]
+                            temp1[1] = data.oMf[LFcframe_id].translation[1] + (sol[i-1][3])/sol[i-1][2]
+                            zmp_est.append(temp1)   
+                    else:
+                        sol.append(np.zeros(18))
+                        contact_wrench.append(np.zeros(12))
+                        temp1 = np.zeros(2)
+                        temp1[0] = zmp_refx[i]
+                        temp1[1] = zmp_refy[i]
+                        zmp_est.append(temp1)
+                    zmp_err.append([zmp_est[i-1][0] - zmp_refx[i], zmp_est[i-1][1] - zmp_refy[i]])
+                    '''
+                    if time1 == 900:
+                        f3.write('%f %f %f %f %f %f %f %f %f %f %f %f %f %f %f' % (i, data.com[0][0], data.com[0][1], comrefx, comrefy, zmp_refx[i], zmp_refy[i], data.hg.angular[0], data.hg.angular[1], database['Right']['x_state'][time1][i][7], database['Right']['x_state'][time1][i][3], data.oMf[LFcframe_id].translation[0], data.oMf[LFcframe_id].translation[2], array_boundLF[i][0], array_boundLF[i][2]))
+                        f3.write("\n")
+                        
+                    
+                else:
+                    zmp_refx[i] = zmp_refx[i] + COM_init[0]
+                    zmp_refy[i] = zmp_refy[i]
+
+            global aaaa22
+            print(state_q[0])
+            print(state_q[N-1])
+            database1['Right']['trajs'][time1] = state_q
+            database1['Right']['vel_trajs'][time1] = state_qd
+            database1['Right']['u_trajs'][time1] = state_ud
+            database1['Right']['ZMPerr'].append([zmp_err]) 
+            print("i")
+            print(time1)
+            print( database['Right']['trajs'][time1][0])
+            
+            #filename = '/home/jhk/ssd_mount/beforedata/ssp2_final2/real/i='
+            #filename1 = str(kkkk)
+            #filename2 = '/Fdyn_data7.txt'
+            
+            if time1 % 200 == 0:
+                filename3 = '/home/jhk/ssd_mount/beforedata/ssp2_final/i=11/Fdyn_data7.txt' #filename + filename1 + filename2
+                with open(filename3,'wb') as f:
+                    pickle.dump(database1,f)
+        filename3 = '/home/jhk/ssd_mount/beforedata/ssp2_final/i=11/Fdyn_data7.txt' #filename + filename1 + filename2
+        with open(filename3,'wb') as f:
+            pickle.dump(database1,f)
+        '''    
+        print( database1['Right']['u_trajs'][0][0])
+        print("Vel")
+        print( database1['Right']['vel_trajs'][0][1])
+        print( database1['Right']['u_trajs'][0][1])
+        print(database1['Right']['x_state'][0][58])
+        print(database1['Right']['x_state'][0][59])
+        print(q)
+        print(state_q)
+        '''
+        print("eeee")
+        print(database['Right']['trajs'][time1][0])
+        
+        print(database1['Right']['trajs'][time1][0])
+        print(state_q[0])
     
-    modelInitialize()
-    
-    print("ddd")
-    RF = data.oMf[RFcframe_id].translation
-    LF = data.oMf[LFcframe_id].translation
-    print(RF)
-    print(LF)
-    print(RF_tran)
-    print(LF_tran)
-    RF_tran[0] = -0.03520107-0.03
-    LF_tran[0] = 0.19513937 -0.03
-    
-    #RF_tran[0] = 4.47989338e-02
-    #LF_tran[0] = 1.45139375e-01
-    
-    #LF = [1.45139375e-01, 1.02500000e-01, 0.0]
-    #RF = [4.47989338e-02, -1.02500000e-01, 0.0]
-    PELV_tran = np.add(data.oMi[PELVjoint_id].translation,model.model.inertias[PELVjoint_id].lever)
-    
-    #q_init = [0, 0, 0.82473, 0, 0, 0, 1, 0, 0, -0.6428, 1.26864, -0.6281, 0, 0, 0, -0.4476, 1.22975, -0.78215, 0]
-    #[0, 0, 0.82473, 0, 0, 0, 1, 0.0, 0.0, -0.6428, 1.26864, -0.6258, 0.0, 0.0, 0.0, -0.4476, 1.22974, -0.7844, 0.0]
-    
-    inverseKinematics(0.0, LF_rot, RF_rot, PELV_rot, LF_tran, RF_tran, PELV_tran, HRR_tran_init, HLR_tran_init, HRR_rot_init, HLR_rot_init, PELV_tran_init, PELV_rot_init, CPELV_tran_init)
-    #for i in range(0, len(q)):
-    #    q[i] = q_init[i]
-    for i in range(0, 12):
-        q[i+7] = leg_q[i]
-    a0 = np.zeros(6)
-    print(q)
-    t1 = time.time()
-    pinocchio.forwardKinematics(model.model, data, q)
-    pinocchio.updateFramePlacements(model.model, data)
-    pinocchio.updateGlobalPlacements(model.model, data)
-    t2 = time.time()
-    print(t2-t1)
-    LF_j = pinocchio.computeFrameJacobian(model.model,data,q, LFframe_id,pinocchio.LOCAL_WORLD_ALIGNED)
-    t2 = time.time()
-    pinocchio.computeCentroidalDynamicsDerivatives(model.model, data, q, qdot, qddot) #4.506111145019531e-05
-    '''
-    pinocchio.computeRNEADerivatives(model.model, data, q, qdot, qddot)  # 0.000277
-    pinocchio.rnea(model.model, data, q, qdot, qddot)
-    pinocchio.forwardDynamics(model.model, data, q, qdot, qddot, LF_j, a0)
-    pinocchio.getKKTContactDynamicMatrixInverse(model.model, data, LF_j)
-    '''
-    t3 = time.time()
-    print(t3-t2)
-    print(data.oMf[RFcframe_id].translation)
-    print(data.oMf[LFcframe_id].translation)
-    
+        #for i in range(0, 50):
+        #    database1['Right']['x_state'][0][i]
+
+        f.close()
+        f1.close()
+        f2.close()
+
 if __name__=='__main__':
     talker()

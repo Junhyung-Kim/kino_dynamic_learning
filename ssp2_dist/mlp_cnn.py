@@ -157,9 +157,9 @@ class CNN(nn.Module):
             torch.nn.Flatten()
         )
         self.layer3 = torch.nn.Sequential(
-            torch.nn.Linear(in_features = input_size, out_features= 50),
-            torch.nn.LeakyReLU(),
-            torch.nn.Linear(in_features = 50, out_features = output_size)
+            torch.nn.Linear(in_features = input_size, out_features= int(input_size*2/3) + output_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(in_features = int(input_size*2/3) + output_size, out_features = output_size)
             )
 
     def forward(self, x):
@@ -196,7 +196,7 @@ def PCAlearning(time_step):
     global us_pca
     
     learn_type = 0
-    learn_type1 = 1
+    learn_type1 = 0
     database = dict()
     database['left'] = dict()
     database['Right'] = dict()
@@ -374,94 +374,14 @@ def PCAlearning(time_step):
         [2,1,47,53], #49
     ] 
     
-    '''
-    param=[
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-        [2,1,19,55],
-    ]
-    '''
     print(len(naming))
     print(len(param))
     #a = adsfsdfs
     #if time_step < 5:
     #    file_name = "/home/jhk/walkingdata/beforedata/ssp2/"
     #else:
-    '''
-    file_name = "/home/jhk/Downloads/"
+    
+    file_name = "/home/jhk/walkingdata/beforedata/ssp2/"
     file_name2 = "/timestep="
     file_name3 = file_name + naming1[time_step]#+'_re'
     print(file_name3)
@@ -471,7 +391,7 @@ def PCAlearning(time_step):
         database = pickle.load(f,  encoding='iso-8859-1')
     f.close()
     print(len(database['Right']['trajs']))
-    '''
+    
 
     init_trajs = dict()
     trajs = dict()
@@ -623,10 +543,14 @@ def PCAlearning(time_step):
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3
         pickle.dump(Phi, open(file_name4,"wb"))
+
         for key in keys:
             pca[key] = PCA(n_components = int(rbf_num))
+            print(np.shape(w_trajs[key]))
+            print(np.shape(trajs[key]))
+            
             w_trajs_pca[key] = pca[key].fit_transform(w_trajs[key])
-               
+            print("ddddd")
             pca_vel[key] = PCA(n_components=int(rbf_num))
             w_vel_trajs_pca[key] = pca_vel[key].fit_transform(w_vel_trajs[key])
 
@@ -1021,7 +945,7 @@ def PCAlearning(time_step):
         loss_graph[2] = [val_loss/val_num, train_loss/train_num]
         print("loss_graph")
         print(loss_graph[2])
-        file_name = '/home/jhk/ssd_mount/beforedata/ssp2/cnnEarlylow_leaky'#_normal
+        file_name = '/home/jhk/ssd_mount/beforedata/ssp2/cnnEarly'#_normal
         file_name2 = '0_'
         file_name3 = '.pkl'
         file_name4 = file_name  +file_name2+ naming[time_step]+ file_name3       
@@ -1080,7 +1004,7 @@ def talker():
     learning_data_num = 27
     
     
-    for i in range(3, 49, 4):#learning_data_num):
+    for i in range(49, 50, 1):#learning_data_num):
         PCAlearning(i)
     k = adsfasdff
     print("start")

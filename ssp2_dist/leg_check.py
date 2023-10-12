@@ -121,7 +121,7 @@ def talker():
     k1 = 1
     k3 = 1
     #PCAlearning()
-    time_step=24
+    time_step=49
     lines_array = []
     for i in range(0, len(lines)):
         lines_array.append(lines[i].split())
@@ -206,7 +206,7 @@ def talker():
         database[key]['iters'] = []
 
     #with open('/home/jhk/ssd_mount/afterdata/integral/filename4.pkl', 'rb') as f:
-    with open('/home/jhk/ssd_mount/filename3.pkl', 'rb') as f:
+    with open('/home/jhk/walkingdata/beforedata/ssp2/timestep=49_finish_ssp2', 'rb') as f:
     #with open('/home/jhk/ssd_mount/ssp1_data6.txt', 'rb') as f:
     #file_name ='/home/jhk/ssd_mount/filenametest_'
     #file_name2 = '.pkl'

@@ -191,8 +191,8 @@ def talker():
     print("start")
 
     global model, foot_distance, data, LFframe_id, RFframe_id, PELVjoint_id, LHjoint_id, RHjoint_id, LFjoint_id, q_init, RFjoint_id, LFcframe_id, RFcframe_id, q, qdot, qddot, LF_tran, RF_tran, PELV_tran, LF_rot, RF_rot, PELV_rot, qdot_z, qddot_z, HRR_rot_init, HLR_rot_init, HRR_tran_init, HLR_tran_init, LF_rot_init, RF_rot_init, LF_tran_init, RF_tran_init, PELV_tran_init, PELV_rot_init, CPELV_tran_init, q_command, qdot_command, qddot_command, robotIginit, q_c
-    #model, collision_model, visual_model = pinocchio.buildModelsFromUrdf("/usr/local/lib/python3.6/dist-packages/robot_properties_tocabi/resources/urdf/tocabi.urdf","/home/jhk/catkin_ws/src/dyros_tocabi_v2/tocabi_description/meshes",pinocchio.JointModelFreeFlyer())  
-    model = RobotWrapper.BuildFromURDF("/usr/local/lib/python3.6/dist-packages/robot_properties_tocabi/resources/urdf/tocabi.urdf","/home/jhk/catkin_ws/src/dyros_tocabi_v2/tocabi_description/meshes",pinocchio.JointModelFreeFlyer())  
+    model, collision_model, visual_model = pinocchio.buildModelsFromUrdf("/usr/local/lib/python3.8/dist-packages/robot_properties_tocabi/resources/urdf/tocabi.urdf","/home/jhk/catkin_ws/src/dyros_tocabi_v2/tocabi_description/meshes",pinocchio.JointModelFreeFlyer())  
+    #model = RobotWrapper.BuildFromURDF("/usr/local/lib/python3.8/dist-packages/robot_properties_tocabi/resources/urdf/tocabi.urdf","/home/jhk/catkin_ws/src/dyros_tocabi_v2/tocabi_description/meshes",pinocchio.JointModelFreeFlyer())  
     pi = 3.14159265359
 
     jointsToLock = ['Waist1_Joint', 'Waist2_Joint', 'Upperbody_Joint', 'Neck_Joint', 'Head_Joint', 
@@ -202,13 +202,12 @@ def talker():
     jointsToLockIDs = []
     
     for jn in range(len(jointsToLock)):
-        jointsToLockIDs.append(model.model.getJointId(jointsToLock[jn]))
+        jointsToLockIDs.append(model.getJointId(jointsToLock[jn]))
     # Set initial configuration
     
     
     fixedJointConfig = np.matrix([0, 0, 0.80783, 0, 0, 0, 1, 
-    0.0, 0.0, -0.55, 1.26, -0.71, 0.0, 
-    0.0, 0.0, -0.55, 1.26, -0.71, 0.0,
+    0, 0, -0.725348, 1.25572, -0.53037, 0, 0, 0, -0.265866, 1.134302, -0.86843, 0,
     0, 0, 0,  
     0.2, 0.6, 1.5, -1.47, -1, 0 ,-1, 0, 
     0, 0, 
@@ -225,27 +224,27 @@ def talker():
     #visual_model1 = geom_models[0]
     #collision_model1 = geom_models[1]
     
-    model = RobotWrapper.buildReducedRobot(model, jointsToLockIDs, fixedJointConfig)
-    #viz = GepettoVisualizer(reducedModel, collision_model1, visual_model1)
+    #model = RobotWrapper.buildReducedRobot(model, jointsToLockIDs, fixedJointConfig)
+    viz = GepettoVisualizer(model, collision_model, visual_model)
     try:
-        model.initViewer(True)
-        #viz.initViewer()
+        #model.initViewer(True)
+        viz.initViewer()
     except ImportError as err:
         print("Error while initializing the viewer. It seems you should install gepetto-viewer")
         print(err)
         sys.exit(0)
     viz.loadViewerModel("pinocchio")
 
-    q = pinocchio.utils.zero(reducedModel.nq)
-    q_init = [0, 0, 0.80783, 0, 0, 0, 1, 0, 0, -0.55, 1.26, -0.71, 0, 0, 0, -0.55, 1.26, -0.71, 0]
+    q = pinocchio.utils.zero(model.nq)
+    q_init = [0, 0, 0.80783, 0, 0, 0, 1, 0, 0, -0.725348, 1.25572, -0.53037, 0, 0, 0, -0.265866, 1.134302, -0.86843, 0]
     
-    for i in range(0, len(q)):
+    for i in range(0, len(q_init)):
         q[i] = q_init[i]
 
-    data = reducedModel.createData()
+    data = model.createData()
     print(q)
     viz.display(q)
-    pinocchio.centerOfMass(reducedModel,data,q)
+    pinocchio.centerOfMass(model,data,q)
     print(data.com[0])
 
     '''

@@ -45,14 +45,29 @@ def talker():
     # 42R -0.0007 timestep 27
 
     #with open('/home/jhk/ssd_mount2/beforedata/fdyn_int/timestep=41/Fdyn_data5_2_02_0.0007_0.txt', 'rb') as f:
-    with open('/home/jhk/walkingdata/beforedata/fdyn/timestep=1/filename5_7_42_0.0021_0.pkl', 'rb') as f:
+    with open('/home/jhk/walkingdata/beforedata/ssp1/timestep=10_finish_velre_re', 'rb') as f:
         database = pickle.load(f,  encoding='iso-8859-1')
     f.close()# 1,4
-    print(database['Right']['costs'])
+    print(len(database['Right']['costs']))
+    print(database['Right']['trajs'][30050][40])
+
+    with open('/home/jhk/walkingdata/beforedata/ssp1/timestep=10_finish_re', 'rb') as f:
+        database = pickle.load(f,  encoding='iso-8859-1')
+    f.close()# 1,4
+    print(len(database['Right']['costs']))
+    print(database['Right']['trajs'][30050][40])
+
+    
+    '''
+    
     for i in range(0, len(database['Right']['costs'])):
         if database['Right']['costs'][i] < 0.008:
             print(i)
             print(database['Right']['costs'][i])
+    '''
+    
+    
+    
     a = adsfasf
 
     print(len(database['Right']['trajs']))
@@ -201,9 +216,6 @@ def talker():
         database = pickle.load(f,  encoding='iso-8859-1')
     f.close()
     print(len(database['Right']['trajs']))
-    
-    
-
 
 if __name__=='__main__':
     client = roslibpy.Ros(host='localhost', port=9090)

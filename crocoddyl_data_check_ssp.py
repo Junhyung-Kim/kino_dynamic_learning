@@ -204,9 +204,9 @@ def talker():
         database[key]['data_phases_set'] = []
         database[key]['costs'] = [] 
         database[key]['iters'] = []
-
+    print("qqqq")
     #with open('/home/jhk/ssd_mount/afterdata/integral/filename4.pkl', 'rb') as f:
-    with open('/home/jhk/ssd_mount/beforedata/ssp1/i=3/Fdyn_data8.txt', 'rb') as f:
+    with open('/home/jhk/ssd_mount2/beforedata/fdyn_int/20cm/timestep=0/Fdyn_data5_5_5_-0.0014_0.txt', 'rb') as f:
     #with open('/home/jhk/ssd_mount/Fdyn_data6.txt', 'rb') as f:
     #file_name ='/home/jhk/ssd_mount/filenametest_'
     #file_name2 = '.pkl'
@@ -214,7 +214,9 @@ def talker():
     #with open(file_name3, 'rb') as f:     
         database = pickle.load(f,  encoding='iso-8859-1')
     f.close()
-    
+    print(database['Right']['trajs'][300][0])
+
+    k = adsfasdsdf
     if data_processing == True:
         database_ = dict()
         database_['Right'] = dict()

@@ -90,7 +90,7 @@ def talker():
     print("start")
     f = open("/home/jhk/walkingdata/beforedata/ssp1/lfoot1.txt", 'r')
     f1 = open("/home/jhk/walkingdata/beforedata/ssp1/rfoot2.txt", 'r')
-    f2 = open("/home/jhk/walkingdata/beforedata/ssp1/zmp2.txt", 'r')
+    f2 = open("/home/jhk/walkingdata/beforedata/ssp1/zmp3.txt", 'r')
     f3 = open("/home/jhk/data/mpc/5_tocabi_data.txt", 'w')
     f4 = open("/home/jhk/data/mpc/6_tocabi_data.txt", 'w')
     f5 = open("/home/jhk/ssd_mount/zmp5.txt", 'r')
@@ -121,7 +121,7 @@ def talker():
     k1 = 1
     k3 = 1
     #PCAlearning()
-    time_step = 21
+    time_step = 10
     lines_array = []
     for i in range(0, len(lines)):
         lines_array.append(lines[i].split())
@@ -206,7 +206,7 @@ def talker():
         database[key]['iters'] = []
 
     #with open('/home/jhk/ssd_mount/afterdata/integral/filename4.pkl', 'rb') as f:
-    with open('/home/jhk/walkingdata/beforedata/ssp1/timestep=21_finish_re', 'rb') as f:
+    with open('/home/jhk/walkingdata/beforedata/ssp1/timestep=10_finish_re', 'rb') as f:
     #with open('/home/jhk/ssd_mount/ssp1_data6.txt', 'rb') as f:
     #file_name ='/home/jhk/ssd_mount/filenametest_'
     #file_name2 = '.pkl'
@@ -234,7 +234,7 @@ def talker():
             database_[key]['costs'] = [] 
             database_[key]['iters'] = []
        
-        for i in range(0,1):#len(database[key]['trajs'])-1, len(database[key]['trajs'])):
+        for i in range(30000,30001):#len(database[key]['trajs'])-1, len(database[key]['trajs'])):
             database_['Right']['x_inputs'].append(database['Right']['trajs'][i][0])
             trajs_temp = []
             acc_temp = []
@@ -307,7 +307,7 @@ def talker():
     #//ho11me/jhk/ssd_mount/beforeprocessing/SSP/i=0-8,j=13/filename3.pkl
     #with open('/home/jhk/ssd_mount/beforedata/integrate_ssp1/filename3_40_-6775.pkl', 'rb') as f:
     
-    with open('/home/jhk/walkingdata/beforedata/ssp1/timestep=21_finish_re', 'rb') as f:
+    with open('/home/jhk/walkingdata/beforedata/ssp1/timestep=10_finish_re', 'rb') as f:
     #file_name ='/home/jhk/ssd_mount/filenametest_'
     #file_name2 = '.pkl'
     #file_name3 = file_name + str(time_step) + file_name2
@@ -354,7 +354,7 @@ def talker():
     #for i in range(0,  len(crocs_data['Right']['x_state'])):
     #    if (crocs_data['Right']['costs'][i] < 0.2):
     #        time1d = i
-    time1d =len(crocs_data['Right']['x_state'])- 1
+    time1d = len(crocs_data['Right']['x_state'])- 1
     for i in range(0, N-1):
         print(i)
         print(crocs_data['Right']['x_state'][time1d][i][2])
