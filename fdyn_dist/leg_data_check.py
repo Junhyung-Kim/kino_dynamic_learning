@@ -203,11 +203,12 @@ def talker():
         database[key]['costs'] = [] 
         database[key]['iters'] = []
 
-    filename4 = '/home/jhk/Downloads/timestep=17_finish_19_final'
+    filename4 = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=36/Fdyn_data5_5_0_-0.0033_0.txt'
     with open(filename4, 'rb') as f:
         database = pickle.load(f,  encoding='iso-8859-1')
     f.close()
-
+    print(database[key]['x_inputs'])
+    k = asfsdafdsaf
     
     if data_processing == True:
         database_ = dict()

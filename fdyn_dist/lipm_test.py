@@ -178,6 +178,7 @@ def inverse_transform(w_pca, pca, Phi, rbf_num):
 
 def constraint():  
     global zmp_refxssp2, zmp_refyssp2, array_boundxssp2, array_boundyssp2, array_boundRFssp2, array_boundLFssp2, zmp_refy, zmp_refx, array_boundLF, array_boundRF, array_boundx, array_boundy, array_boundxssp1, array_boundyssp1, array_boundRFssp1, array_boundLFssp1
+    global cp_forEOS, cp_ssp1EOS, cp_ssp2EOS, cp_for, cp_ssp1, cp_ssp2
     print("start")
     f = open("/home/jhk/walkingdata/beforedata/fdyn/lfoot2_final.txt", 'r')
     f1 = open("/home/jhk/walkingdata/beforedata/fdyn/rfoot2_final.txt", 'r')
@@ -201,6 +202,13 @@ def constraint():
 
     array_boundRF = [[] for i in range(int(len(lines1)))]
     array_boundLF = [[] for i in range(int(len(lines1)))]
+
+    cp_for = [[] for i in range(int(len(lines1)))]
+    cp_ssp1 = [[] for i in range(int(len(lines1)))]
+    cp_ssp2 = [[] for i in range(int(len(lines1)))]
+    cp_forEOS = [[] for i in range(5)]
+    cp_ssp1EOS = [[] for i in range(5)]
+    cp_ssp2EOS = [[] for i in range(5)]
 
     array_boundRF_ = [[] for i in range(N)]
     array_boundLF_ = [[] for i in range(N)]
@@ -1486,29 +1494,15 @@ def talker():
     weight_quad_zmp1 = np.array([5.0, 10.0]) ##10, 40
     weight_quad_zmp2 = np.array([5.0, 10.0]) ##11
     weight_quad_cam = np.array([0.006, 0.01])#([0.008, 0.008])([weight_quad_camy] + [weight_quad_camx])
-    weight_quad_upper = np.array([10.0, 10.0])
-    weight_quad_pelvis = np.array([50.0, 50.0, 0.005])
+    weight_quad_upper = np.array([7.0, 7.0])
+    weight_quad_pelvis = np.array([60.0, 60.0, 0.005])
     weight_quad_com = np.array([11.0, 11.0, 2.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
     weight_quad_rf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
     weight_quad_lf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
     lb_ = np.ones([2, N])
     ub_ = np.ones([2, N])
-    '''
-    weight_quad_camx = 2.9
-    weight_quad_camy = 2.9
-    weight_quad_zmp = np.array([0.05, 0.05])#([weight_quad_zmpx] + [weight_quad_zmpy])
-    weight_quad_zmp1 = np.array([5.0, 10.0]) ##10, 40
-    weight_quad_zmp2 = np.array([10.0, 20.0]) ##11
-    weight_quad_cam = np.array([0.006, 0.01])#([0.008, 0.008])([weight_quad_camy] + [weight_quad_camx])
-    weight_quad_upper = np.array([0.5, 1.0])
-    weight_quad_pelvis = np.array([12.0, 10.0, 0.005])
-    weight_quad_com = np.array([11.0, 11.0, 2.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
-    weight_quad_rf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
-    weight_quad_lf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
-    lb_ = np.ones([2, N])
-    ub_ = np.ones([2, N])
-    '''
-
+    weight_quad_cp = np.array([100.0, 100.0])
+    
 
     actuation_vector = [None] * (N)
     state_vector = [None] * (N)
@@ -1571,7 +1565,7 @@ def talker():
     k3 = 1
     total_cost = []
     total_time_ = []
-   
+    cp_err = []
    
     tick = shared_memory.SharedMemory(create=True, size=sys.getsizeof(1))
     tick.buf[0] = 0
@@ -1607,6 +1601,133 @@ def talker():
     p2.start()
     p3.start()
 
+
+    lipm_w = 3.51462
+    cp_forEOS[0] = [x0[41], x0[45]]
+    cp_forEOS[1] = [9.479871019999999704e-02, -1.024999999999999939e-01]
+    cp_forEOS[2] = [1.947000000000000119e-01, 1.024999999999999939e-01]
+    cp_forEOS[3] = [2.947000000000000119e-01, -1.024999999999999939e-01]
+    
+    b_offset_init = np.exp(lipm_w * 0.2)
+    b_offset = np.exp(lipm_w * 1.0)
+    #np.exp(lipm_w * i/50) * cp_forEOS[1][0] + (1-np.exp(lipm_w * i/50))*(cp_forEOS[1][0]/(1-b_offset_init)-(b_offset_init * cp_forEOS[0][0])/(1-b_offset_init))
+    capturePoint_ref_for = np.zeros([111, (state.nx + 8)])
+    capturePoint_ref_ssp1 = np.zeros([111, (state.nx + 8)])
+    capturePoint_ref_ssp2 = np.zeros([111, (state.nx + 8)])
+    capturePoint_ref_ssp2_1 = np.zeros([111, (state.nx + 8)])
+    
+    for i in range(0, 111):
+        if(i <= 10):
+            capturePoint_ref_for[i][0] = np.exp(lipm_w * i/50) * cp_forEOS[0][0] + (1-np.exp(lipm_w * i/50))*(cp_forEOS[1][0]/(1-b_offset_init)-(b_offset_init * cp_forEOS[0][0])/(1-b_offset_init))
+            capturePoint_ref_for[i][state.nx + 7] = np.exp(lipm_w * i/50) * cp_forEOS[0][1] + (1-np.exp(lipm_w * i/50))*(cp_forEOS[1][1]/(1-b_offset_init)-(b_offset_init * cp_forEOS[0][1])/(1-b_offset_init))
+        elif(i<= 60):
+            capturePoint_ref_for[i][0] = np.exp(lipm_w * (i-10)/50) * cp_forEOS[1][0] + (1-np.exp(lipm_w * (i-10)/50))*(cp_forEOS[2][0]/(1-b_offset)-(b_offset * cp_forEOS[1][0])/(1-b_offset))
+            capturePoint_ref_for[i][state.nx + 7] = np.exp(lipm_w * (i-10)/50) * cp_forEOS[1][1] + (1-np.exp(lipm_w * (i-10)/50))*(cp_forEOS[2][1]/(1-b_offset)-(b_offset * cp_forEOS[1][1])/(1-b_offset))
+        else:
+            capturePoint_ref_for[i][0] = np.exp(lipm_w * (i-60)/50) * cp_forEOS[2][0] + (1-np.exp(lipm_w * (i-60)/50))*(cp_forEOS[3][0]/(1-b_offset)-(b_offset * cp_forEOS[2][0])/(1-b_offset))
+            capturePoint_ref_for[i][state.nx + 7] = np.exp(lipm_w * (i-60)/50) * cp_forEOS[2][1] + (1-np.exp(lipm_w * (i-60)/50))*(cp_forEOS[3][1]/(1-b_offset)-(b_offset * cp_forEOS[2][1])/(1-b_offset))
+        
+    cp_ssp2EOS[0] = [capturePoint_ref_for[50][0]-0.04957, capturePoint_ref_for[50][1]]
+    cp_ssp2EOS[1] = [1.451300000000000090e-01, 1.024999999999999939e-01]
+    cp_ssp2EOS[2] = [2.447987101999999915e-01, -1.024999999999999939e-01]
+    cp_ssp2EOS[3] = [3.451300000000000479e-01, 1.024999999999999939e-01]
+
+    b_offset_init = np.exp(lipm_w * 1.0)
+
+    for i in range(0, 111):
+        if(i <= 10):
+            capturePoint_ref_ssp2[i][0] = np.exp(lipm_w * (i+40)/50) * cp_ssp2EOS[0][0] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp2EOS[1][0]/(1-b_offset_init)-(b_offset_init * cp_ssp2EOS[0][0])/(1-b_offset_init))
+            capturePoint_ref_ssp2[i][state.nx + 7] = np.exp(lipm_w * (i+40)/50) * cp_ssp2EOS[0][1] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp2EOS[1][1]/(1-b_offset_init)-(b_offset_init * cp_ssp2EOS[0][1])/(1-b_offset_init))
+        elif(i <= 60):
+            capturePoint_ref_ssp2[i][0] = np.exp(lipm_w * (i-10)/50) * cp_ssp2EOS[1][0] + (1-np.exp(lipm_w * (i-10)/50))*(cp_ssp2EOS[2][0]/(1-b_offset)-(b_offset * cp_ssp2EOS[1][0])/(1-b_offset))
+            capturePoint_ref_ssp2[i][state.nx + 7] = np.exp(lipm_w * (i-10)/50) * cp_ssp2EOS[1][1] + (1-np.exp(lipm_w * (i-10)/50))*(cp_ssp2EOS[2][1]/(1-b_offset)-(b_offset * cp_ssp2EOS[1][1])/(1-b_offset))
+        else:
+            capturePoint_ref_ssp2[i][0] = np.exp(lipm_w * (i-60)/50) * cp_ssp2EOS[2][0] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp2EOS[3][0]/(1-b_offset)-(b_offset * cp_ssp2EOS[2][0])/(1-b_offset))
+            capturePoint_ref_ssp2[i][state.nx + 7] = np.exp(lipm_w * (i-60)/50) * cp_ssp2EOS[2][1] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp2EOS[3][1]/(1-b_offset)-(b_offset * cp_ssp2EOS[2][1])/(1-b_offset))
+          
+    cp_ssp1EOS[0] = [capturePoint_ref_ssp2[50][0]-0.0996687102, capturePoint_ref_ssp2[50][1]]
+    cp_ssp1EOS[1] = [1.451300000000000090e-01, -1.024999999999999939e-01]
+    cp_ssp1EOS[2] = [2.447987101999999915e-01, 1.024999999999999939e-01]
+    cp_ssp1EOS[3] = [3.451300000000000479e-01, -1.024999999999999939e-01]
+
+    b_offset_init = np.exp(lipm_w * 1.0)
+
+    for i in range(0, 111):
+        if(i <= 10):
+            capturePoint_ref_ssp1[i][0] = np.exp(lipm_w * (i+40)/50) * cp_ssp1EOS[0][0] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp1EOS[1][0]/(1-b_offset_init)-(b_offset_init * cp_ssp1EOS[0][0])/(1-b_offset_init))
+            capturePoint_ref_ssp1[i][state.nx + 7] = np.exp(lipm_w * (i+40)/50) * cp_ssp1EOS[0][1] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp1EOS[1][1]/(1-b_offset_init)-(b_offset_init * cp_ssp1EOS[0][1])/(1-b_offset_init))
+        elif(i <= 60):
+            capturePoint_ref_ssp1[i][0] = np.exp(lipm_w * (i-10)/50) * cp_ssp1EOS[1][0] + (1-np.exp(lipm_w * (i-10)/50))*(cp_ssp1EOS[2][0]/(1-b_offset)-(b_offset * cp_ssp1EOS[1][0])/(1-b_offset))
+            capturePoint_ref_ssp1[i][state.nx + 7] = np.exp(lipm_w * (i-10)/50) * cp_ssp1EOS[1][1] + (1-np.exp(lipm_w * (i-10)/50))*(cp_ssp1EOS[2][1]/(1-b_offset)-(b_offset * cp_ssp1EOS[1][1])/(1-b_offset))
+        else:
+            capturePoint_ref_ssp1[i][0] = np.exp(lipm_w * (i-60)/50) * cp_ssp1EOS[2][0] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp1EOS[3][0]/(1-b_offset)-(b_offset * cp_ssp1EOS[2][0])/(1-b_offset))
+            capturePoint_ref_ssp1[i][state.nx + 7] = np.exp(lipm_w * (i-60)/50) * cp_ssp1EOS[2][1] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp1EOS[3][1]/(1-b_offset)-(b_offset * cp_ssp1EOS[2][1])/(1-b_offset))
+    
+    cp_ssp2EOS[0] = [capturePoint_ref_ssp1[50][0]-0.0996687102, capturePoint_ref_ssp1[50][1]]
+    cp_ssp2EOS[1] = [1.451300000000000090e-01, 1.024999999999999939e-01]
+    cp_ssp2EOS[2] = [2.447987101999999915e-01, -1.024999999999999939e-01]
+    cp_ssp2EOS[3] = [3.451300000000000479e-01, 1.024999999999999939e-01]
+
+    b_offset_init = np.exp(lipm_w * 1.0)
+    for i in range(0, 111):
+        if(i <= 10):
+            capturePoint_ref_ssp2_1[i][0] = np.exp(lipm_w * (i+40)/50) * cp_ssp2EOS[0][0] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp2EOS[1][0]/(1-b_offset_init)-(b_offset_init * cp_ssp2EOS[0][0])/(1-b_offset_init))
+            capturePoint_ref_ssp2_1[i][state.nx + 7] = np.exp(lipm_w * (i+40)/50) * cp_ssp2EOS[0][1] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp2EOS[1][1]/(1-b_offset_init)-(b_offset_init * cp_ssp2EOS[0][1])/(1-b_offset_init))
+        elif(i <= 60):
+            capturePoint_ref_ssp2_1[i][0] = np.exp(lipm_w * (i-10)/50) * cp_ssp2EOS[1][0] + (1-np.exp(lipm_w * (i-10)/50))*(cp_ssp2EOS[2][0]/(1-b_offset)-(b_offset * cp_ssp2EOS[1][0])/(1-b_offset))
+            capturePoint_ref_ssp2_1[i][state.nx + 7] = np.exp(lipm_w * (i-10)/50) * cp_ssp2EOS[1][1] + (1-np.exp(lipm_w * (i-10)/50))*(cp_ssp2EOS[2][1]/(1-b_offset)-(b_offset * cp_ssp2EOS[1][1])/(1-b_offset))
+        else:
+            capturePoint_ref_ssp2_1[i][0] = np.exp(lipm_w * (i-60)/50) * cp_ssp2EOS[2][0] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp2EOS[3][0]/(1-b_offset)-(b_offset * cp_ssp2EOS[2][0])/(1-b_offset))
+            capturePoint_ref_ssp2_1[i][state.nx + 7] = np.exp(lipm_w * (i-60)/50) * cp_ssp2EOS[2][1] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp2EOS[3][1]/(1-b_offset)-(b_offset * cp_ssp2EOS[2][1])/(1-b_offset))
+    
+    '''
+    for i in range(0, 111):
+        print([i, capturePoint_ref_for[i][0],capturePoint_ref_for[i][48]])
+        if(i == 0):
+            com_ref = [x0[41], x0[45]]
+        elif(i <= 50):
+            com_ref = [lipm_w/50 * capturePoint_ref_for[i][0] + (1-lipm_w/50)*com_ref[0], lipm_w/50 * capturePoint_ref_for[i][1] + (1-lipm_w/50)*com_ref[1]]
+        print(com_ref)
+    
+    
+    print(capturePoint_ref_for[50][0]-0.04957)
+    print(capturePoint_ref_for[50][1])
+    print("cc")
+    for i in range(0, 111):
+        print([i, capturePoint_ref_ssp2[i][0], capturePoint_ref_ssp2[i][48]])
+        
+        if(i == 0):
+            com_ref = [com_ref[0]-0.04957, com_ref[1]]
+        elif(i <= 50):
+            com_ref = [lipm_w/50 * capturePoint_ref_ssp2[i][0] + (1-lipm_w/50)*com_ref[0], lipm_w/50 * capturePoint_ref_ssp2[i][1] + (1-lipm_w/50)*com_ref[1]]
+        print(com_ref)
+        
+
+    print("ee")
+    for i in range(0, 111):
+        print([i,capturePoint_ref_ssp1[i][0], capturePoint_ref_ssp1[i][48]])
+        
+        if(i == 0):
+            com_ref = [com_ref[0]-0.0996687102, com_ref[1]]
+        elif(i <= 50):
+            com_ref = [lipm_w/50 * capturePoint_ref_ssp1[i][0] + (1-lipm_w/50)*com_ref[0], lipm_w/50 * capturePoint_ref_ssp1[i][1] + (1-lipm_w/50)*com_ref[1]]
+        print(com_ref)
+        
+    
+    print("dd")
+    print(capturePoint_ref_ssp2[50][0]-0.0996687102)
+    print(capturePoint_ref_ssp2[50][1])
+    for i in range(0, 111):
+        print([i, capturePoint_ref_ssp2_1[i][0], capturePoint_ref_ssp2_1[i][48]])
+        
+        if(i == 0):
+            com_ref = [com_ref[0]-0.0996687102, com_ref[1]]
+        elif(i <= 50):
+            com_ref = [lipm_w/50 * capturePoint_ref_ssp2_1[i][0] + (1-lipm_w/50)*com_ref[0], lipm_w/50 * capturePoint_ref_ssp2_1[i][1] + (1-lipm_w/50)*com_ref[1]]
+        print(com_ref)
+    
+    k = sdafsdfs
+    '''
     for i in range(0,N-1):
         traj_[43] = (array_boundx[i][0] + array_boundx[i][1])/2 #zmp_refx_[i][0]
         traj_[47] = (array_boundy[i][0] + array_boundy[i][1])/2#zmp_refy_[i][0]
@@ -1638,6 +1759,8 @@ def talker():
         foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
         runningCostModel_vector[i] = crocoddyl.CostModelSum(state_vector[i], actuation_vector[i].nu + 4)
         
+        stateBoundCost_vector3[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_cp), crocoddyl.ResidualFlyState2(state_vector[i], actuation_vector[i].nu + 4))
+
         if i >= 1:
             #runningCostModel_vector[i].addCost("stateReg", stateBoundCost_vector[i], 1.0)
             runningCostModel_vector[i].addCost("comReg", comBoundCost_vector[i], 1.0)
@@ -1646,16 +1769,13 @@ def talker():
             runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)
             runningCostModel_vector[i].addCost("stateReg1", stateBoundCost_vector1[i], 1.0)
             runningCostModel_vector[i].addCost("stateReg2", stateBoundCost_vector2[i], 1.0)
+            runningCostModel_vector[i].addCost("stateReg3", stateBoundCost_vector3[i], 1.0)
         
-        if i >= 1 and i <= 3:
             runningCostModel_vector[i].addCost("pelvReg2", PelvisR[i], 1.0)
            
         runningDAM_vector[i] = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[i], actuation_vector[i], runningCostModel_vector[i])
         runningModelWithRK4_vector[i] = crocoddyl.IntegratedActionModelEuler(runningDAM_vector[i], dt_)
-
-        #traj_[43] = zmp_refx_[N-1][0]
-        #traj_[47] = zmp_refy_[N-1][0]
-
+        
     state_vector[N-1] = crocoddyl.StateKinodynamic(model.model)
     actuation_vector[N-1] = crocoddyl.ActuationModelKinoBase(state_vector[N-1])
     state_bounds[N-1] = crocoddyl.ActivationBounds(lb_[:,N-1],ub_[:,N-1])
@@ -1687,17 +1807,14 @@ def talker():
     terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
     terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
     
-    #reviese runningCostModel_vector[5].costs["footReg1"].cost.residual.pref = pinocchio.SE3.Identity()
-
-    #terminalCostModel.addCost("pelvisReg1", PelvisR[N-1], 1.0)
     terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
     terminalModel = crocoddyl.IntegratedActionModelEuler(terminalDAM, dt_)
     problemWithRK4 = crocoddyl.ShootingProblem(x0, runningModelWithRK4_vector, terminalModel)
-    problemWithRK4.nthreads = 15
+    problemWithRK4.nthreads = 8
 
     ddp = crocoddyl.SolverFDDP(problemWithRK4)
     first_time = True
-    ddp.th_stop = 0.000000009
+    ddp.th_stop = 0.00000001
    
     for time_step in range(0, total_time):
         xs_pca = []
@@ -1708,109 +1825,72 @@ def talker():
             for i in range(1, N-1):
                 traj_[43] = (array_boundx[i + time_step][0] + array_boundx[i + time_step][1])/2 #zmp_refx_[i][0]
                 traj_[47] = (array_boundy[i + time_step][0] + array_boundy[i + time_step][1])/2#zmp_refy_[i][0]
-                stateBoundCost_vector1[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp1), crocoddyl.ResidualFlyState(state_vector[i], traj_, actuation_vector[i].nu + 4))
-               
-                runningCostModel_vector[i].removeCost("stateReg1")
-                runningCostModel_vector[i].addCost("stateReg1", stateBoundCost_vector1[i], 1.0)
-               
+                
+                runningCostModel_vector[i].costs["stateReg1"].cost.residual.reference = traj_
+                
                 rf_foot_pos_vector[i].translation[0] = copy(array_boundRF[i + time_step][0])
                 rf_foot_pos_vector[i].translation[1] = copy(array_boundRF[i + time_step][1])
                 rf_foot_pos_vector[i].translation[2] = copy(array_boundRF[i + time_step][2])
                 lf_foot_pos_vector[i].translation[0] = copy(array_boundLF[i + time_step][0])
                 lf_foot_pos_vector[i].translation[1] = copy(array_boundLF[i + time_step][1])
                 lf_foot_pos_vector[i].translation[2] = copy(array_boundLF[i + time_step][2])
-                residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-                residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-                foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
-                foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
-               
-                runningCostModel_vector[i].removeCost("footReg1")
-                runningCostModel_vector[i].removeCost("footReg2")
-                runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
-                runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)  
-               
+                
+                runningCostModel_vector[i].costs["footReg1"].cost.residual.reference = rf_foot_pos_vector[i]
+                runningCostModel_vector[i].costs["footReg2"].cost.residual.reference = lf_foot_pos_vector[i]
+
+                runningCostModel_vector[i].costs["stateReg3"].cost.residual.reference = capturePoint_ref_for[i + time_step]
+
             rf_foot_pos_vector[N-1].translation[0] = copy(array_boundRF[N-1 + time_step][0])
             rf_foot_pos_vector[N-1].translation[1] = copy(array_boundRF[N-1 + time_step][1])
             rf_foot_pos_vector[N-1].translation[2] = copy(array_boundRF[N-1 + time_step][2])
             lf_foot_pos_vector[N-1].translation[0] = copy(array_boundLF[N-1 + time_step][0])
             lf_foot_pos_vector[N-1].translation[1] = copy(array_boundLF[N-1 + time_step][1])
             lf_foot_pos_vector[N-1].translation[2] = copy(array_boundLF[N-1 + time_step][2])
-            residual_FrameRF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], RFframe_id, rf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-            residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-            foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
-            foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])    
-       
+            
         elif (time_step < 99):
             time_step_ssp2 = time_step - 49
             for i in range(1, N-1):
                 traj_[43] = (array_boundxssp2[i + time_step_ssp2][0] + array_boundxssp2[i + time_step_ssp2][1])/2 #zmp_refx_[i][0]
                 traj_[47] = (array_boundyssp2[i + time_step_ssp2][0] + array_boundyssp2[i + time_step_ssp2][1])/2#zmp_refy_[i][0]
-               
-                if i != 1:
-                    stateBoundCost_vector1[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp1), crocoddyl.ResidualFlyState(state_vector[i], traj_, actuation_vector[i].nu + 4))
-                else:
-                    stateBoundCost_vector1[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp2), crocoddyl.ResidualFlyState(state_vector[i], traj_, actuation_vector[i].nu + 4))
-
-                runningCostModel_vector[i].removeCost("stateReg1")
-                runningCostModel_vector[i].addCost("stateReg1", stateBoundCost_vector1[i], 1.0)
-
+                
+                runningCostModel_vector[i].costs["stateReg1"].cost.residual.reference = traj_
+                
                 rf_foot_pos_vector[i].translation[0] = copy(array_boundRFssp2[i + time_step_ssp2][0])
                 rf_foot_pos_vector[i].translation[1] = copy(array_boundRFssp2[i + time_step_ssp2][1])
                 rf_foot_pos_vector[i].translation[2] = copy(array_boundRFssp2[i + time_step_ssp2][2])
                 lf_foot_pos_vector[i].translation[0] = copy(array_boundLFssp2[i + time_step_ssp2][0])
                 lf_foot_pos_vector[i].translation[1] = copy(array_boundLFssp2[i + time_step_ssp2][1])
                 lf_foot_pos_vector[i].translation[2] = copy(array_boundLFssp2[i + time_step_ssp2][2])
-       
-                residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-                residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-                foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
-                foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
-               
-                runningCostModel_vector[i].removeCost("footReg1")
-                runningCostModel_vector[i].removeCost("footReg2")
-                runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
-                runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)  
-             
+                
+                runningCostModel_vector[i].costs["footReg1"].cost.residual.reference = rf_foot_pos_vector[i]
+                runningCostModel_vector[i].costs["footReg2"].cost.residual.reference = lf_foot_pos_vector[i]
+                runningCostModel_vector[i].costs["stateReg3"].cost.residual.reference = capturePoint_ref_ssp2[i + time_step_ssp2]
+           
             rf_foot_pos_vector[N-1].translation[0] = copy(array_boundRFssp2[N-1 + time_step_ssp2][0])
             rf_foot_pos_vector[N-1].translation[1] = copy(array_boundRFssp2[N-1 + time_step_ssp2][1])
             rf_foot_pos_vector[N-1].translation[2] = copy(array_boundRFssp2[N-1 + time_step_ssp2][2])
             lf_foot_pos_vector[N-1].translation[0] = copy(array_boundLFssp2[N-1 + time_step_ssp2][0])
             lf_foot_pos_vector[N-1].translation[1] = copy(array_boundLFssp2[N-1 + time_step_ssp2][1])
             lf_foot_pos_vector[N-1].translation[2] = copy(array_boundLFssp2[N-1 + time_step_ssp2][2])
-            residual_FrameRF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], RFframe_id, rf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-            residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-            foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
-            foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])
-       
+            
         elif(time_step < 149):
             time_step_ssp1 = time_step - 99
             for i in range(1, N-1):
                 traj_[43] = (array_boundxssp1[i + time_step_ssp1][0] + array_boundxssp1[i + time_step_ssp1][1])/2 #zmp_refx_[i][0]
                 traj_[47] = (array_boundyssp1[i + time_step_ssp1][0] + array_boundyssp1[i + time_step_ssp1][1])/2 #zmp_refy_[i][0]
-               
-                if i != 1:
-                    stateBoundCost_vector1[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp1), crocoddyl.ResidualFlyState(state_vector[i], traj_, actuation_vector[i].nu + 4))
-                else:
-                    stateBoundCost_vector1[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp2), crocoddyl.ResidualFlyState(state_vector[i], traj_, actuation_vector[i].nu + 4))
-           
-                runningCostModel_vector[i].removeCost("stateReg1")
-                runningCostModel_vector[i].addCost("stateReg1", stateBoundCost_vector1[i], 1.0)
-
+                 
+                runningCostModel_vector[i].costs["stateReg1"].cost.residual.reference = traj_
+                
                 rf_foot_pos_vector[i].translation[0] = copy(array_boundRFssp1[i + time_step_ssp1][0])
                 rf_foot_pos_vector[i].translation[1] = copy(array_boundRFssp1[i + time_step_ssp1][1])
                 rf_foot_pos_vector[i].translation[2] = copy(array_boundRFssp1[i + time_step_ssp1][2])
                 lf_foot_pos_vector[i].translation[0] = copy(array_boundLFssp1[i + time_step_ssp1][0])
                 lf_foot_pos_vector[i].translation[1] = copy(array_boundLFssp1[i + time_step_ssp1][1])
                 lf_foot_pos_vector[i].translation[2] = copy(array_boundLFssp1[i + time_step_ssp1][2])
-                residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-                residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-                foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
-                foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
-           
-                runningCostModel_vector[i].removeCost("footReg1")
-                runningCostModel_vector[i].removeCost("footReg2")
-                runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
-                runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)  
+                
+                runningCostModel_vector[i].costs["footReg1"].cost.residual.reference = rf_foot_pos_vector[i]
+                runningCostModel_vector[i].costs["footReg2"].cost.residual.reference = lf_foot_pos_vector[i]
+                runningCostModel_vector[i].costs["stateReg3"].cost.residual.reference = capturePoint_ref_ssp1[i + time_step_ssp1]
            
             rf_foot_pos_vector[N-1].translation[0] = copy(array_boundRFssp1[N-1 + time_step_ssp1][0])
             rf_foot_pos_vector[N-1].translation[1] = copy(array_boundRFssp1[N-1 + time_step_ssp1][1])
@@ -1818,41 +1898,26 @@ def talker():
             lf_foot_pos_vector[N-1].translation[0] = copy(array_boundLFssp1[N-1 + time_step_ssp1][0])
             lf_foot_pos_vector[N-1].translation[1] = copy(array_boundLFssp1[N-1 + time_step_ssp1][1])
             lf_foot_pos_vector[N-1].translation[2] = copy(array_boundLFssp1[N-1 + time_step_ssp1][2])
-            residual_FrameRF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], RFframe_id, rf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-            residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-            foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
-            foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])
+                    
         else:
             contactswitch, time_step_num = divmod(time_step - 149, 50)
             if(contactswitch % 2 == 0):
                 for i in range(1, N-1):
                     traj_[43] = (array_boundxssp2[i + time_step_num][0] + array_boundxssp2[i + time_step_num][1])/2 #zmp_refx_[i][0]
                     traj_[47] = (array_boundyssp2[i + time_step_num][0] + array_boundyssp2[i + time_step_num][1])/2#zmp_refy_[i][0]
-               
-                    if i != 1:
-                        stateBoundCost_vector1[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp1), crocoddyl.ResidualFlyState(state_vector[i], traj_, actuation_vector[i].nu + 4))
-                    else:
-                        stateBoundCost_vector1[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp2), crocoddyl.ResidualFlyState(state_vector[i], traj_, actuation_vector[i].nu + 4))
-
-                    runningCostModel_vector[i].removeCost("stateReg1")
-                    runningCostModel_vector[i].addCost("stateReg1", stateBoundCost_vector1[i], 1.0)
-
+                  
+                    runningCostModel_vector[i].costs["stateReg1"].cost.residual.reference = traj_
+                
                     rf_foot_pos_vector[i].translation[0] = copy(array_boundRFssp2[i + time_step_num][0])
                     rf_foot_pos_vector[i].translation[1] = copy(array_boundRFssp2[i + time_step_num][1])
                     rf_foot_pos_vector[i].translation[2] = copy(array_boundRFssp2[i + time_step_num][2])
                     lf_foot_pos_vector[i].translation[0] = copy(array_boundLFssp2[i + time_step_num][0])
                     lf_foot_pos_vector[i].translation[1] = copy(array_boundLFssp2[i + time_step_num][1])
                     lf_foot_pos_vector[i].translation[2] = copy(array_boundLFssp2[i + time_step_num][2])
-       
-                    residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-                    residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-                    foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
-                    foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
-               
-                    runningCostModel_vector[i].removeCost("footReg1")
-                    runningCostModel_vector[i].removeCost("footReg2")
-                    runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
-                    runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)  
+                
+                    runningCostModel_vector[i].costs["footReg1"].cost.residual.reference = rf_foot_pos_vector[i]
+                    runningCostModel_vector[i].costs["footReg2"].cost.residual.reference = lf_foot_pos_vector[i]
+                    runningCostModel_vector[i].costs["stateReg3"].cost.residual.reference = capturePoint_ref_ssp2_1[i + time_step_num]
              
                 rf_foot_pos_vector[N-1].translation[0] = copy(array_boundRFssp2[N-1 + time_step_num][0])
                 rf_foot_pos_vector[N-1].translation[1] = copy(array_boundRFssp2[N-1 + time_step_num][1])
@@ -1860,38 +1925,24 @@ def talker():
                 lf_foot_pos_vector[N-1].translation[0] = copy(array_boundLFssp2[N-1 + time_step_num][0])
                 lf_foot_pos_vector[N-1].translation[1] = copy(array_boundLFssp2[N-1 + time_step_num][1])
                 lf_foot_pos_vector[N-1].translation[2] = copy(array_boundLFssp2[N-1 + time_step_num][2])
-                residual_FrameRF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], RFframe_id, rf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-                residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-                foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
-                foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])                
+               
             else:
                 for i in range(1, N-1):
                     traj_[43] = (array_boundxssp1[i + time_step_num][0] + array_boundxssp1[i + time_step_num][1])/2 #zmp_refx_[i][0]
                     traj_[47] = (array_boundyssp1[i + time_step_num][0] + array_boundyssp1[i + time_step_num][1])/2 #zmp_refy_[i][0]
-               
-                    if i != 1:
-                        stateBoundCost_vector1[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp1), crocoddyl.ResidualFlyState(state_vector[i], traj_, actuation_vector[i].nu + 4))
-                    else:
-                        stateBoundCost_vector1[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_zmp2), crocoddyl.ResidualFlyState(state_vector[i], traj_, actuation_vector[i].nu + 4))
-           
-                    runningCostModel_vector[i].removeCost("stateReg1")
-                    runningCostModel_vector[i].addCost("stateReg1", stateBoundCost_vector1[i], 1.0)
-
+  
+                    runningCostModel_vector[i].costs["stateReg1"].cost.residual.reference = traj_
+                
                     rf_foot_pos_vector[i].translation[0] = copy(array_boundRFssp1[i + time_step_num][0])
                     rf_foot_pos_vector[i].translation[1] = copy(array_boundRFssp1[i + time_step_num][1])
                     rf_foot_pos_vector[i].translation[2] = copy(array_boundRFssp1[i + time_step_num][2])
                     lf_foot_pos_vector[i].translation[0] = copy(array_boundLFssp1[i + time_step_num][0])
                     lf_foot_pos_vector[i].translation[1] = copy(array_boundLFssp1[i + time_step_num][1])
                     lf_foot_pos_vector[i].translation[2] = copy(array_boundLFssp1[i + time_step_num][2])
-                    residual_FrameRF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], RFframe_id, rf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-                    residual_FrameLF[i] = crocoddyl.ResidualKinoFramePlacement(state_vector[i], LFframe_id, lf_foot_pos_vector[i], actuation_vector[i].nu + 4)
-                    foot_trackR[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[i])
-                    foot_trackL[i] = crocoddyl.CostModelResidual(state_vector[i], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[i])
-           
-                    runningCostModel_vector[i].removeCost("footReg1")
-                    runningCostModel_vector[i].removeCost("footReg2")
-                    runningCostModel_vector[i].addCost("footReg1", foot_trackR[i], 1.0)
-                    runningCostModel_vector[i].addCost("footReg2", foot_trackL[i], 1.0)  
+                    
+                    runningCostModel_vector[i].costs["footReg1"].cost.residual.reference = rf_foot_pos_vector[i]
+                    runningCostModel_vector[i].costs["footReg2"].cost.residual.reference = lf_foot_pos_vector[i]
+                    runningCostModel_vector[i].costs["stateReg3"].cost.residual.reference = capturePoint_ref_ssp1[i + time_step_num]
            
                 rf_foot_pos_vector[N-1].translation[0] = copy(array_boundRFssp1[N-1 + time_step_num][0])
                 rf_foot_pos_vector[N-1].translation[1] = copy(array_boundRFssp1[N-1 + time_step_num][1])
@@ -1899,14 +1950,9 @@ def talker():
                 lf_foot_pos_vector[N-1].translation[0] = copy(array_boundLFssp1[N-1 + time_step_num][0])
                 lf_foot_pos_vector[N-1].translation[1] = copy(array_boundLFssp1[N-1 + time_step_num][1])
                 lf_foot_pos_vector[N-1].translation[2] = copy(array_boundLFssp1[N-1 + time_step_num][2])
-                residual_FrameRF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], RFframe_id, rf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-                residual_FrameLF[N-1] = crocoddyl.ResidualKinoFramePlacement(state_vector[N-1], LFframe_id, lf_foot_pos_vector[N-1], actuation_vector[N-1].nu + 4)
-                foot_trackR[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_rf), residual_FrameRF[N-1])
-                foot_trackL[N-1] = crocoddyl.CostModelResidual(state_vector[N-1], crocoddyl.ActivationModelWeightedQuad(weight_quad_lf), residual_FrameLF[N-1])
-        terminalCostModel.removeCost("footReg1")
-        terminalCostModel.removeCost("footReg2")
-        terminalCostModel.addCost("footReg1", foot_trackR[N-1], 1.0)
-        terminalCostModel.addCost("footReg2", foot_trackL[N-1], 1.0)
+                
+        terminalCostModel.costs["footReg1"].cost.residual.reference = rf_foot_pos_vector[N-1]
+        terminalCostModel.costs["footReg2"].cost.residual.reference = lf_foot_pos_vector[N-1]
        
         while signal == False:
             mpc_signalv  = mpc_signal.read()
@@ -1922,8 +1968,7 @@ def talker():
                 statemachine.write(np.array([2, 0, 0], dtype=np.int8))
                 x_initv  = x_init.read()
                 X = np.ndarray(shape=(49,), dtype=np.float64, buffer=x_initv)
-                #K_time1 = time.time()
-               
+                
                 if time_step == 0:
                     X = np.array([ 0.00000000e+00,  0.00000000e+00,  8.24730000e-01,  0.00000000e+00,
     0.00000000e+00,  0.00000000e+00,  1.00000000e+00,  0.00000000e+00,
@@ -1984,56 +2029,28 @@ def talker():
                         break
                    
                 c_start = time.time()
-                css = ddp.solve(xs_pca, us_pca, 15, False, 0.0000009)
+                css = ddp.solve(xs_pca, us_pca, 15, False, 0.000001)
                 c_end = time.time()
                
-                '''
-                problemWithRK4.x0 = x0
-                ddp.th_stop = 0.00000008
-                c_start = time.time()
-                css = ddp.solve(xs_pca, us_pca, 20, False, 0.000003)
-                c_end = time.time()
-
-                ddp.th_stop = 0.000000008
-                c_start = time.time()
-                css = ddp.solve(xs_pca, us_pca, 20, False, 0.000001)
-                c_end = time.time()
-                '''
 
                 X = ddp.xs[1]
                 desired_value.write(X)
                 statemachine.write(np.array([1, 0, 0], dtype=np.int8))
+               
                 duration = (1e3 * (c_end - c_start))
-               
-                print('ddp.iter {0},{1},{2},{3}'.format(ddp.iter, duration, css, ddp.cost))
-                #print(["zmpsol",ddp.xs[1][43], ddp.xs[1][47], x0[43], x0[47]])
-                #print(["time",time_step])
-                #print(["FOOT", rf_foot_pos_vector[1].translation[0], rf_foot_pos_vector[1].translation[2], lf_foot_pos_vector[1].translation[0], lf_foot_pos_vector[1].translation[2]])
-               
-               
-                '''
-                if(time_step < 49):
-                    print(["mpc_cycle", mpc_cycle, time_step])
-                    print(["FOOT", rf_foot_pos_vector[1].translation[0], rf_foot_pos_vector[1].translation[2], lf_foot_pos_vector[1].translation[0], lf_foot_pos_vector[1].translation[2]])
-                    print(["RFLF ", array_boundy[1 + time_step][0], array_boundy[1 + time_step][1]])
-                elif(time_step < 99):
-                    print(["mpc_cycle", mpc_cycle, time_step])
-                    print(["FOOT", rf_foot_pos_vector[1].translation[0], rf_foot_pos_vector[1].translation[2], lf_foot_pos_vector[1].translation[0], lf_foot_pos_vector[1].translation[2]])
-                    print(["RFLF ", array_boundyssp2[1 + time_step_ssp2][0], array_boundyssp2[1 + time_step_ssp2][1]])
-                else:
-                    print(["mpc_cycle", mpc_cycle, time_step])
-                    print(["FOOT", rf_foot_pos_vector[1].translation[0], rf_foot_pos_vector[1].translation[2], lf_foot_pos_vector[1].translation[0], lf_foot_pos_vector[1].translation[2]])
-                    print(["RFLF ", array_boundRFssp1[1 + time_step_ssp1][0], array_boundRFssp1[1 + time_step_ssp1][1]])
-               
-                '''
-               
-               
+
+
+                #print('ddp.iter {0},{1},{2},{3}'.format(ddp.iter, duration, css, ddp.cost))
+                #print([runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference, ddp.xs[1][41]+ddp.xs[1][42]/3.51462, ddp.xs[1][45]+ddp.xs[1][46]/3.51462])
                 total_time_.append([time_step, ddp.cost, duration, ddp.iter])
+                cp_err.append([runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0], (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48], (ddp.xs[1][45]+ddp.xs[1][46]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0] - (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48] - (ddp.xs[1][45]+ddp.xs[1][46]/3.51462)])
                 ok_ = True
                 
                 if time_step == total_time - 1:
                     time.sleep(0.002)
                     print(total_time_)
+                    #print(cp_err)
+                    np.savetxt('/home/jhk/data/walking/test.txt', cp_err)
                     statemachine.write(np.array([2, 0, 0], dtype=np.int8))
                     time.sleep(1000)
                

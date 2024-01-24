@@ -21,10 +21,10 @@ np.set_printoptions(threshold=sys.maxsize)
 
 def loadmodel():
 
-    timestep=23
-    f = open("/home/jhk/walkingdata/beforedata/fdyn/lfoot2_final.txt", 'r')
-    f1 = open("/home/jhk/walkingdata/beforedata/fdyn/rfoot2_final.txt", 'r')
-    f2 = open("/home/jhk/walkingdata/beforedata/fdyn/zmp2_ssp1_1.txt", 'r')
+    timestep=0
+    f = open("/home/jhk/walkingdata1/beforedata/ssp1/20cm/lfoot1.txt", 'r')
+    f1 = open("/home/jhk/walkingdata1/beforedata/ssp1/20cm/rfoot1.txt", 'r')
+    f2 = open("/home/jhk/walkingdata1/beforedata/ssp1/20cm/timestep0_zmp2_ssp1_1.txt", 'r')
     f3 = open("/home/jhk/data/mpc/5_tocabi_data.txt", 'w')
     f4 = open("/home/jhk/data/mpc/6_tocabi_data.txt", 'w')
     f5 = open("/home/jhk/ssd_mount/zmp5.txt", 'r')
@@ -124,115 +124,24 @@ def loadmodel():
         database1[key]['iters'] = []
 
     k_ = [
-        "timestep=1_finish",
-        "timestep=2_finish",
-        "timestep=3_finish",
-        "timestep=4_finish",
-        "timestep=5_finish",
-        "timestep=6_finish",
-        "timestep=7_finish",
-        "timestep=8_finish",
-        "timestep=9_finish",
-        "timestep=10_finish",
-        "timestep=11_finish",
-        "timestep=12_finish",
-        "timestep=13_finish",
-        "timestep=14_finish",
-        "timestep=15_finish",
-        "timestep=16_finish",
-        "timestep=17_finish",
-        "timestep=18_finish",
-        "timestep=19_finish",
-        "timestep=20_finish",
-        "timestep=21_finish",
-        "timestep=22_finish",
-        "timestep=23_finish",
-        "timestep=24_finish",
-        "timestep=25_finish",
-        "timestep=26_finish",
-        "timestep=27_finish",
-        "timestep=28_finish",
-        "timestep=29_finish",
-        "timestep=30_finish",
-        "timestep=31_finish",
-        "timestep=32_finish",
-        "timestep=33_finish",
-        "timestep=34_finish",
-        "timestep=35_finish",
-        "timestep=36_finish",
-        "timestep=37_finish",
-        "timestep=38_finish",
-        "timestep=39_finish",
-        "timestep=40_finish",
-        "timestep=41_finish",
-        "timestep=42_finish",
-        "timestep=43_finish",
-        "timestep=44_finish",
-        "timestep=45_finish",
-        "timestep=46_finish",
-        "timestep=47_finish",
-        "timestep=48_finish",
-        "timestep=49_finish",
     ]
 
     j = []
     j1 = []
     
-    for kkkk in range(1, len(k_)):
-        filename = '/home/jhk/walkingdata/beforedata/fdyn/'
-        #filename2 = 'filename5_8_72_0.0007_1.txt'#k_[kkkk] 
+    filename = '/home/jhk/walkingdata1/beforedata/ssp1/20cm/timestep=0'
+    #filename2 = 'filename5_8_72_0.0007_1.txt'#k_[kkkk] 
 
-        filename3 = filename + k_[kkkk] + '/' + k_[kkkk] 
-        with open(filename3, 'rb') as f:
-            database = pickle.load(f,  encoding='iso-8859-1')
-        prev = len(database['Right']['x_state'])
-        f.close()
-        j = 0
-        timestep = kkkk + 1
-        for i in range(0, N):
-            if i == 0:
-                array_boundx_[i] = array_boundx[k3*i + timestep]
-                array_boundy_[i] = array_boundy[k3*i + timestep]
-            else:
-                array_boundx_[i] = array_boundx[k3*(i) + timestep]
-                array_boundy_[i] = array_boundy[k3*(i) + timestep]
-            print(len(database['Right']['x_state']))
-        for i in range(len(database['Right']['x_state'])-1,0,-1):
-            for k in range(1, 60):
-                if k == 1:
-                    if(database['Right']['costs'][i] > 0.015):
-                        del(database[key]['trajs'][i])
-                        del(database[key]['vel_trajs'][i])
-                        del(database[key]['x_state'][i])
-                        del(database[key]['acc_trajs'][i])
-                        del(database[key]['u_trajs'][i])
-                        del(database[key]['costs'][i])
-                        print("cost")
-                        print([i,k])
-                        j = j +1
-                        break
+    filename3 = filename +'/' + 'Fdyn_data5_5_0_0.0007_0.txt'
+    with open(filename3, 'rb') as f:
+        database = pickle.load(f,  encoding='iso-8859-1')
+    prev = len(database['Right']['x_state'])
+    f.close()
+    j = 0
 
-                if (database['Right']['x_state'][i][k][6] > array_boundy_[k][1]) or (database['Right']['x_state'][i][k][6] < array_boundy_[k][0]):
-                    print([i,k])
-                    del(database[key]['trajs'][i])
-                    del(database[key]['vel_trajs'][i])
-                    del(database[key]['x_state'][i])
-                    del(database[key]['acc_trajs'][i])
-                    del(database[key]['u_trajs'][i])
-                    del(database[key]['costs'][i])
-                    j = j +1
-                    break
-           
-        print(filename3)
-        print(j1)
-        with open(filename3, 'wb') as f:
-            pickle.dump(database, f, protocol=pickle.HIGHEST_PROTOCOL)
-        
-        print("final")
-        print(len(database['Right']['x_state']))
-        print("prev")
-        print(prev)
-        j1.append([prev, len(database['Right']['x_state'])])
+    for i in range(0, 60):
+        print(i)
+        print([database['Right']['x_state'][0][i][2], database['Right']['x_state'][0][i][6]])
         
 
 def talker():

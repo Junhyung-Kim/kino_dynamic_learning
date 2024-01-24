@@ -37,7 +37,7 @@ def PCAlearning():
         database[key]['costs'] = []
         database[key]['iters'] = []
 
-    #with open('/home/jhk/ssd_mount/Fdyn_data5.txt', 'rb') as f:
+    #with open('/home/jhk/ssd_mount/ssp_data5.txt', 'rb') as f:
    
 
     '''
@@ -87,12 +87,12 @@ def PCAlearning():
 def talker():
     global xs_pca_test, xs_pca, us_pca
     print("start")
-    for step_time in range(45,46):
-        f = open("/home/jhk/walkingdata1/beforedata/fdyn/20cm/lfoot1.txt", 'r')
-        f1 = open("/home/jhk/walkingdata1/beforedata/fdyn/20cm/rfoot1.txt", 'r')
-        f2 = open("/home/jhk/walkingdata1/beforedata/fdyn/20cm/timestep0_zmp2_ssp1_1.txt", 'r')
-        f3 = open("/home/jhk/data/mpc/5_tocabi_data.txt", 'w')
-        f4 = open("/home/jhk/data/mpc/6_tocabi_data.txt", 'w')
+    for step_time in range(0,1):
+        f = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=17/lfoot1_ssp1_1.txt", 'r')
+        f1 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=17/rfoot1_ssp1_1.txt", 'r')
+        f2 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=17/timestep0_zmp2_ssp1_1.txt", 'r')
+        f3 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/5_tocabi_data.txt", 'w')
+        f4 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/6_tocabi_data.txt", 'w')
         f5 = open("/home/jhk/ssd_mount/zmp5.txt", 'r')
 
         lines = f.readlines()
@@ -239,18 +239,38 @@ def talker():
         
 
 
-        k_1 = [ "Fdyn_data7_5_1_-0.0007_0.txt",
-"Fdyn_data7_5_5_-0.0021_0.txt",
-"Fdyn_data7_5_5_0.0021_0.txt",
-"Fdyn_data7_5_7_0.0033_1.txt",
-
+        k_1 = ["ssp1_data7_5_4_-0.0007_0.txt",
+"ssp1_data7_5_4_0.0007_0.txt",
+"ssp1_data7_5_4_-0.0021_0.txt",
+"ssp1_data7_5_4_0.0021_0.txt",
+"ssp1_data7_5_4_-0.0033_0.txt",
+"ssp1_data7_5_4_0.0033_0.txt",
+"ssp1_data7_5_5_-0.0007_0.txt",
+"ssp1_data7_5_5_0.0007_0.txt",
+"ssp1_data7_5_5_-0.0021_0.txt",
+"ssp1_data7_5_5_0.0021_0.txt",
+"ssp1_data7_5_5_-0.0033_0.txt",
+"ssp1_data7_5_5_0.0033_0.txt",
+"ssp1_data7_5_6_-0.0007_0.txt",
+"ssp1_data7_5_6_0.0007_0.txt",
+"ssp1_data7_5_6_-0.0021_0.txt",
+"ssp1_data7_5_6_0.0021_0.txt",
+"ssp1_data7_5_6_-0.0033_0.txt",
+"ssp1_data7_5_6_0.0033_0.txt",
+"ssp1_data7_5_7_-0.0007_0.txt",
+"ssp1_data7_5_7_0.0007_0.txt",
+"ssp1_data7_5_7_-0.0021_0.txt",
+"ssp1_data7_5_7_0.0021_0.txt",
+"ssp1_data7_5_7_-0.0033_0.txt",
+"ssp1_data7_5_7_0.0033_0.txt",
 
 ]
-        for kkk in range(0, len(k_1), 1):
+
+        for kkk in range(15, len(k_1), 50): #42
             crocs_data = dict()
             crocs_data['left'] = dict()
             crocs_data['Right'] = dict()
-
+            #k= sadfsdfa
             for key in crocs_data.keys():
                 crocs_data[key]['foot_poses'] = []
                 crocs_data[key]['trajs'] = []
@@ -263,9 +283,9 @@ def talker():
                 crocs_data[key]['costs'] = []
                 crocs_data[key]['iters'] = []
             #k = adsfsdf
-            filename3 = '/home/jhk/walkingdata1/beforedata/fdyn/20cm/timestep=45/'
+            filename3 = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=17/'
             filename3 = filename3 + k_1[kkk]
-            #with open('/home/jhk/ssd_mount/Fdyn_data7.txt', 'rb') as f:"
+            #with open('/home/jhk/ssd_mount/ssp_data7.txt', 'rb') as f:"
             with open(filename3, 'rb') as f:
                 database = pickle.load(f,  encoding='iso-8859-1')
             f.close()
@@ -710,17 +730,36 @@ def talker():
                         print(ddp.xs[N-1][41:49])
                     iter_ = iter_ + 1
                 
-                k_ = [
-
- "filename7_5_1_-0.0007_0.txt",
+                k_ = ["filename7_5_4_-0.0007_0.txt",
+"filename7_5_4_0.0007_0.txt",
+"filename7_5_4_-0.0021_0.txt",
+"filename7_5_4_0.0021_0.txt",
+"filename7_5_4_-0.0033_0.txt",
+"filename7_5_4_0.0033_0.txt",
+"filename7_5_5_-0.0007_0.txt",
+"filename7_5_5_0.0007_0.txt",
 "filename7_5_5_-0.0021_0.txt",
 "filename7_5_5_0.0021_0.txt",
-"filename7_5_7_0.0033_1.txt",
+"filename7_5_5_-0.0033_0.txt",
+"filename7_5_5_0.0033_0.txt",
+"filename7_5_6_-0.0007_0.txt",
+"filename7_5_6_0.0007_0.txt",
+"filename7_5_6_-0.0021_0.txt",
+"filename7_5_6_0.0021_0.txt",
+"filename7_5_6_-0.0033_0.txt",
+"filename7_5_6_0.0033_0.txt",
+"filename7_5_7_-0.0007_0.txt",
+"filename7_5_7_0.0007_0.txt",
+"filename7_5_7_-0.0021_0.txt",
+"filename7_5_7_0.0021_0.txt",
+"filename7_5_7_-0.0033_0.txt",
+"filename7_5_7_0.0033_0.txt",
+
 ]
 
 
                 if time1 % 5 == 0:
-                    filename = '/home/jhk/walkingdata1/beforedata/fdyn/20cm/timestep=45/'
+                    filename = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=17/'
                     filename = filename + k_[kkk]
                     #filename1 = 'test1'
                     #filename2 = '.pkl'
@@ -736,7 +775,7 @@ def talker():
                 if booltemp == False:
                     e = e+1
         
-            filename = '/home/jhk/walkingdata1/beforedata/fdyn/20cm/timestep=45/'
+            filename = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=17/'
             filename = filename + k_[kkk]
             filename3 = filename #+ filename1 + filename2
             with open(filename3, 'wb') as f:

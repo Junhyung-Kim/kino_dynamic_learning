@@ -152,12 +152,13 @@ def talker():
         database1[key]['costs'] = [] 
         database1[key]['iters'] = []
 
-    filename = '/home/jhk/walkingdata/beforedata/fdyn/timestep=47_finish'
+    filename = '/home/jhk/walkingdata/beforedata/ssp1/timestep=0_finish_re'
     with open(filename, 'rb') as f:
         database = pickle.load(f,  encoding='iso-8859-1')
     f.close()
+    
+    print(database['Right']['trajs'][0][0])
     '''
-    print(database['Right']['trajs'][0][1])
     print(database['Right']['vel_trajs'][0][1])
     print(database['Right']['trajs'][0][2])
     
@@ -166,6 +167,7 @@ def talker():
     '''
     print(database['Right']['costs'])
     '''
+    k= asdfasds
     print("kkk")
     print(len(database['Right']['costs']))
     for i in range(len(database['Right']['costs'])-1,0,-1):
