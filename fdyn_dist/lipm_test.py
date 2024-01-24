@@ -1627,13 +1627,14 @@ def talker():
             capturePoint_ref_for[i][0] = np.exp(lipm_w * (i-60)/50) * cp_forEOS[2][0] + (1-np.exp(lipm_w * (i-60)/50))*(cp_forEOS[3][0]/(1-b_offset)-(b_offset * cp_forEOS[2][0])/(1-b_offset))
             capturePoint_ref_for[i][state.nx + 7] = np.exp(lipm_w * (i-60)/50) * cp_forEOS[2][1] + (1-np.exp(lipm_w * (i-60)/50))*(cp_forEOS[3][1]/(1-b_offset)-(b_offset * cp_forEOS[2][1])/(1-b_offset))
         
-    cp_ssp2EOS[0] = [capturePoint_ref_for[50][0]-0.04957, capturePoint_ref_for[50][1]]
+    cp_ssp2EOS[0] = [0.451300000000000090e-01 ,-1.024999999999999939e-01]#[capturePoint_ref_for[50][0]-0.04957, capturePoint_ref_for[50][state.nx + 7]]
     cp_ssp2EOS[1] = [1.451300000000000090e-01, 1.024999999999999939e-01]
     cp_ssp2EOS[2] = [2.447987101999999915e-01, -1.024999999999999939e-01]
     cp_ssp2EOS[3] = [3.451300000000000479e-01, 1.024999999999999939e-01]
 
     b_offset_init = np.exp(lipm_w * 1.0)
 
+    #1.02 -> 
     for i in range(0, 111):
         if(i <= 10):
             capturePoint_ref_ssp2[i][0] = np.exp(lipm_w * (i+40)/50) * cp_ssp2EOS[0][0] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp2EOS[1][0]/(1-b_offset_init)-(b_offset_init * cp_ssp2EOS[0][0])/(1-b_offset_init))
@@ -1645,7 +1646,7 @@ def talker():
             capturePoint_ref_ssp2[i][0] = np.exp(lipm_w * (i-60)/50) * cp_ssp2EOS[2][0] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp2EOS[3][0]/(1-b_offset)-(b_offset * cp_ssp2EOS[2][0])/(1-b_offset))
             capturePoint_ref_ssp2[i][state.nx + 7] = np.exp(lipm_w * (i-60)/50) * cp_ssp2EOS[2][1] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp2EOS[3][1]/(1-b_offset)-(b_offset * cp_ssp2EOS[2][1])/(1-b_offset))
           
-    cp_ssp1EOS[0] = [capturePoint_ref_ssp2[50][0]-0.0996687102, capturePoint_ref_ssp2[50][1]]
+    cp_ssp1EOS[0] = [0.451300000000000090e-01, 1.024999999999999939e-01]#[capturePoint_ref_ssp2[50][0]-0.0996687102, capturePoint_ref_ssp2[50][state.nx + 7]]
     cp_ssp1EOS[1] = [1.451300000000000090e-01, -1.024999999999999939e-01]
     cp_ssp1EOS[2] = [2.447987101999999915e-01, 1.024999999999999939e-01]
     cp_ssp1EOS[3] = [3.451300000000000479e-01, -1.024999999999999939e-01]
@@ -1663,7 +1664,7 @@ def talker():
             capturePoint_ref_ssp1[i][0] = np.exp(lipm_w * (i-60)/50) * cp_ssp1EOS[2][0] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp1EOS[3][0]/(1-b_offset)-(b_offset * cp_ssp1EOS[2][0])/(1-b_offset))
             capturePoint_ref_ssp1[i][state.nx + 7] = np.exp(lipm_w * (i-60)/50) * cp_ssp1EOS[2][1] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp1EOS[3][1]/(1-b_offset)-(b_offset * cp_ssp1EOS[2][1])/(1-b_offset))
     
-    cp_ssp2EOS[0] = [capturePoint_ref_ssp1[50][0]-0.0996687102, capturePoint_ref_ssp1[50][1]]
+    cp_ssp2EOS[0] = [0.451300000000000090e-01, -1.024999999999999939e-01]#[capturePoint_ref_ssp1[50][0]-0.0996687102, capturePoint_ref_ssp1[50][state.nx + 7]]
     cp_ssp2EOS[1] = [1.451300000000000090e-01, 1.024999999999999939e-01]
     cp_ssp2EOS[2] = [2.447987101999999915e-01, -1.024999999999999939e-01]
     cp_ssp2EOS[3] = [3.451300000000000479e-01, 1.024999999999999939e-01]
@@ -1679,7 +1680,6 @@ def talker():
         else:
             capturePoint_ref_ssp2_1[i][0] = np.exp(lipm_w * (i-60)/50) * cp_ssp2EOS[2][0] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp2EOS[3][0]/(1-b_offset)-(b_offset * cp_ssp2EOS[2][0])/(1-b_offset))
             capturePoint_ref_ssp2_1[i][state.nx + 7] = np.exp(lipm_w * (i-60)/50) * cp_ssp2EOS[2][1] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp2EOS[3][1]/(1-b_offset)-(b_offset * cp_ssp2EOS[2][1])/(1-b_offset))
-    
     '''
     for i in range(0, 111):
         print([i, capturePoint_ref_for[i][0],capturePoint_ref_for[i][48]])
@@ -1691,11 +1691,10 @@ def talker():
     
     
     print(capturePoint_ref_for[50][0]-0.04957)
-    print(capturePoint_ref_for[50][1])
+    print(capturePoint_ref_for[50][state.nx + 7])
     print("cc")
     for i in range(0, 111):
         print([i, capturePoint_ref_ssp2[i][0], capturePoint_ref_ssp2[i][48]])
-        
         if(i == 0):
             com_ref = [com_ref[0]-0.04957, com_ref[1]]
         elif(i <= 50):
@@ -1716,7 +1715,7 @@ def talker():
     
     print("dd")
     print(capturePoint_ref_ssp2[50][0]-0.0996687102)
-    print(capturePoint_ref_ssp2[50][1])
+    print(capturePoint_ref_ssp2[50][state.nx + 7])
     for i in range(0, 111):
         print([i, capturePoint_ref_ssp2_1[i][0], capturePoint_ref_ssp2_1[i][48]])
         
