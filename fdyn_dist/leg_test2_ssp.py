@@ -1999,24 +1999,81 @@ def loadmodel(kkkk):
         database1[key]['costs'] = [] 
         database1[key]['iters'] = []
 
-    k_ = [
-"ssp1_data5_5_0_-0.0007_0.txt",  "ssp1_data5_5_1_-0.0021_1.txt",  "ssp1_data5_5_3_-0.0007_0.txt",  "ssp1_data5_5_4_0.0007_1.txt",   "ssp1_data5_5_5_-0.0021_1.txt",  "ssp1_data5_5_7_-0.0007_0.txt",
-"ssp1_data5_5_0_-0.0007_1.txt",  "ssp1_data5_5_1_0.0021_1.txt",   "ssp1_data5_5_3_0.0007_0.txt",   "ssp1_data5_5_4_-0.0021_0.txt",  "ssp1_data5_5_5_0.0021_1.txt",   "ssp1_data5_5_7_0.0007_0.txt",
-"ssp1_data5_5_0_0.0007_1.txt",   "ssp1_data5_5_1_-0.0033_1.txt",  "ssp1_data5_5_3_-0.0007_1.txt",  "ssp1_data5_5_4_0.0021_0.txt",   "ssp1_data5_5_5_-0.0033_0.txt",  "ssp1_data5_5_7_-0.0007_1.txt",
-"ssp1_data5_5_0_-0.0021_0.txt",  "ssp1_data5_5_1_0.0033_1.txt",   "ssp1_data5_5_3_0.0007_1.txt",   "ssp1_data5_5_4_-0.0021_1.txt",  "ssp1_data5_5_5_-0.0033_1.txt",  "ssp1_data5_5_7_0.0007_1.txt",
-"ssp1_data5_5_0_0.0021_0.txt",   "ssp1_data5_5_2_-0.0007_0.txt",  "ssp1_data5_5_3_-0.0021_0.txt",  "ssp1_data5_5_4_0.0021_1.txt",   "ssp1_data5_5_5_0.0033_1.txt",   "ssp1_data5_5_7_-0.0021_0.txt",
-"ssp1_data5_5_0_-0.0021_1.txt",  "ssp1_data5_5_2_0.0007_0.txt",   "ssp1_data5_5_3_0.0021_0.txt",   "ssp1_data5_5_4_-0.0033_0.txt",  "ssp1_data5_5_6_-0.0007_0.txt",  "ssp1_data5_5_7_-0.0021_1.txt",
-"ssp1_data5_5_0_-0.0033_1.txt",  "ssp1_data5_5_2_-0.0007_1.txt",  "ssp1_data5_5_3_-0.0021_1.txt",  "ssp1_data5_5_4_-0.0033_1.txt",  "ssp1_data5_5_6_0.0007_0.txt",   "ssp1_data5_5_7_0.0021_1.txt",
-"ssp1_data5_5_0_0.0033_1.txt",   "ssp1_data5_5_2_0.0007_1.txt",   "ssp1_data5_5_3_0.0021_1.txt",   "ssp1_data5_5_4_0.0033_1.txt",   "ssp1_data5_5_6_-0.0007_1.txt",  "ssp1_data5_5_7_-0.0033_0.txt",
-"ssp1_data5_5_1_-0.0007_0.txt",  "ssp1_data5_5_2_-0.0021_0.txt",  "ssp1_data5_5_3_-0.0033_0.txt",  "ssp1_data5_5_5_-0.0007_0.txt",  "ssp1_data5_5_6_0.0007_1.txt",   "ssp1_data5_5_7_-0.0033_1.txt",
-"ssp1_data5_5_1_0.0007_0.txt",   "ssp1_data5_5_2_0.0021_0.txt",   "ssp1_data5_5_3_-0.0033_1.txt",  "ssp1_data5_5_5_0.0007_0.txt",   "ssp1_data5_5_6_-0.0021_0.txt",  "ssp1_data5_5_7_0.0033_1.txt",
-"ssp1_data5_5_1_-0.0007_1.txt",  "ssp1_data5_5_2_-0.0021_1.txt",  "ssp1_data5_5_3_0.0033_1.txt",   "ssp1_data5_5_5_-0.0007_1.txt",  "ssp1_data5_5_6_0.0021_0.txt",   
-"ssp1_data5_5_1_0.0007_1.txt",   "ssp1_data5_5_2_0.0021_1.txt",   "ssp1_data5_5_4_-0.0007_0.txt",  "ssp1_data5_5_5_0.0007_1.txt",   "ssp1_data5_5_6_-0.0021_1.txt",  
-"ssp1_data5_5_1_-0.0021_0.txt",  "ssp1_data5_5_2_-0.0033_1.txt",  "ssp1_data5_5_4_0.0007_0.txt",   "ssp1_data5_5_5_-0.0021_0.txt",  "ssp1_data5_5_6_0.0021_1.txt",   
-"ssp1_data5_5_1_0.0021_0.txt",   "ssp1_data5_5_2_0.0033_1.txt",   "ssp1_data5_5_4_-0.0007_1.txt",  "ssp1_data5_5_5_0.0021_0.txt",   "ssp1_data5_5_6_-0.0033_0.txt",  
- ]
+    k_ = ["ssp1_data5_5_0_-0.0007_0.txt",
+"ssp1_data5_5_0_0.0007_0.txt",
+"ssp1_data5_5_0_-0.0021_0.txt",
+"ssp1_data5_5_0_0.0021_0.txt",
+"ssp1_data5_5_0_0.0021_1.txt",
+"ssp1_data5_5_0_-0.0033_0.txt",
+"ssp1_data5_5_0_0.0033_0.txt",
+"ssp1_data5_5_0_0.0033_1.txt",
+"ssp1_data5_5_1_-0.0007_0.txt",
+"ssp1_data5_5_1_0.0007_0.txt",
+"ssp1_data5_5_1_-0.0021_0.txt",
+"ssp1_data5_5_1_0.0021_0.txt",
+"ssp1_data5_5_1_0.0021_1.txt",
+"ssp1_data5_5_1_-0.0033_0.txt",
+"ssp1_data5_5_1_0.0033_0.txt",
+"ssp1_data5_5_1_0.0033_1.txt",
+"ssp1_data5_5_2_-0.0007_0.txt",
+"ssp1_data5_5_2_0.0007_0.txt",
+"ssp1_data5_5_2_-0.0021_0.txt",
+"ssp1_data5_5_2_0.0021_0.txt",
+"ssp1_data5_5_2_0.0021_1.txt",
+"ssp1_data5_5_2_-0.0033_0.txt",
+"ssp1_data5_5_2_0.0033_0.txt",
+"ssp1_data5_5_2_0.0033_1.txt",
+"ssp1_data5_5_3_-0.0007_0.txt",
+"ssp1_data5_5_3_0.0007_0.txt",
+"ssp1_data5_5_3_-0.0021_0.txt",
+"ssp1_data5_5_3_0.0021_0.txt",
+"ssp1_data5_5_3_0.0021_1.txt",
+"ssp1_data5_5_3_-0.0033_0.txt",
+"ssp1_data5_5_3_0.0033_0.txt",
+"ssp1_data5_5_3_0.0033_1.txt",
+"ssp1_data5_5_4_-0.0007_0.txt",
+"ssp1_data5_5_4_0.0007_0.txt",
+"ssp1_data5_5_4_-0.0021_0.txt",
+"ssp1_data5_5_4_0.0021_0.txt",
+"ssp1_data5_5_4_0.0021_1.txt",
+"ssp1_data5_5_4_-0.0033_0.txt",
+"ssp1_data5_5_4_0.0033_0.txt",
+"ssp1_data5_5_4_0.0033_1.txt",
+"ssp1_data5_5_5_-0.0007_0.txt",
+"ssp1_data5_5_5_0.0007_0.txt",
+"ssp1_data5_5_5_-0.0021_0.txt",
+"ssp1_data5_5_5_0.0021_0.txt",
+"ssp1_data5_5_5_0.0021_1.txt",
+"ssp1_data5_5_5_-0.0033_0.txt",
+"ssp1_data5_5_5_0.0033_0.txt",
+"ssp1_data5_5_5_0.0033_1.txt",
+"ssp1_data5_5_6_-0.0007_0.txt",
+"ssp1_data5_5_6_0.0007_0.txt",
+"ssp1_data5_5_6_-0.0021_0.txt",
+"ssp1_data5_5_6_0.0021_0.txt",
+"ssp1_data5_5_6_0.0021_1.txt",
+"ssp1_data5_5_6_-0.0033_0.txt",
+"ssp1_data5_5_6_0.0033_0.txt",
+"ssp1_data5_5_6_0.0033_1.txt",
+"ssp1_data5_5_7_-0.0007_0.txt",
+"ssp1_data5_5_7_0.0007_0.txt",
+"ssp1_data5_5_7_-0.0021_0.txt",
+"ssp1_data5_5_7_0.0021_0.txt",
+"ssp1_data5_5_7_0.0021_1.txt",
+"ssp1_data5_5_7_-0.0033_0.txt",
+"ssp1_data5_5_7_0.0033_0.txt",
+"ssp1_data5_5_7_0.0033_1.txt",
+"ssp1_data5_5_8_-0.0007_0.txt",
+"ssp1_data5_5_8_0.0007_0.txt",
+"ssp1_data5_5_8_-0.0021_0.txt",
+"ssp1_data5_5_8_0.0021_0.txt",
+"ssp1_data5_5_8_0.0021_1.txt",
+"ssp1_data5_5_8_-0.0033_0.txt",
+"ssp1_data5_5_8_0.0033_0.txt",
+"ssp1_data5_5_8_0.0033_1.txt",
+]
 
-    filename = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=13/'
+    filename = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=9/'
     filename2 = k_[kkkk]
     
     filename3 = filename + filename2
@@ -2049,9 +2106,9 @@ def talker():
 
         global contactState, f1, f2
 
-        f3 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=13/newfile.txt", 'w')
-        f1 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=13/newfile7.txt", 'w')
-        f2 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=13/newfile7.txt", 'w')
+        f3 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=9/newfile.txt", 'w')
+        f1 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=9/newfile7.txt", 'w')
+        f2 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=9/newfile7.txt", 'w')
         zmpx = []
         zmpy = []
         #print(zmp_refx)
@@ -2059,8 +2116,8 @@ def talker():
         loadmodel(kkkk)
         N = 60
         k = 1
-        f = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=13/lfoot1_ssp1_1.txt", 'r')
-        f1 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=13/rfoot1_ssp1_1.txt", 'r')
+        f = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=9/lfoot1_ssp1_1.txt", 'r')
+        f1 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=9/rfoot1_ssp1_1.txt", 'r')
         lines1 = f1.readlines()
         lines = f.readlines()
         array_boundRF = [[] for i in range(int(len(lines1)))]
@@ -2222,28 +2279,85 @@ def talker():
             #filename2 = '/Fdyn_data7.txt'
             '''
             if time1 % 200 == 0:
-                filename3 = '/home/jhk/walkingdata1/beforedata/ssp1/timestep=13/Fdyn_data5_8_7.txt' #filename + filename1 + filename2
+                filename3 = '/home/jhk/walkingdata1/beforedata/ssp1/timestep=9/Fdyn_data5_8_7.txt' #filename + filename1 + filename2
                 with open(filename3,'wb') as f:
                     pickle.dump(database1,f)
             '''
-        k_ = [
-"ssp1_data7_5_0_-0.0007_0.txt",  "ssp1_data7_5_1_-0.0021_1.txt",  "ssp1_data7_5_3_-0.0007_0.txt",  "ssp1_data7_5_4_0.0007_1.txt",   "ssp1_data7_5_5_-0.0021_1.txt",  "ssp1_data7_5_7_-0.0007_0.txt",
-"ssp1_data7_5_0_-0.0007_1.txt",  "ssp1_data7_5_1_0.0021_1.txt",   "ssp1_data7_5_3_0.0007_0.txt",   "ssp1_data7_5_4_-0.0021_0.txt",  "ssp1_data7_5_5_0.0021_1.txt",   "ssp1_data7_5_7_0.0007_0.txt",
-"ssp1_data7_5_0_0.0007_1.txt",   "ssp1_data7_5_1_-0.0033_1.txt",  "ssp1_data7_5_3_-0.0007_1.txt",  "ssp1_data7_5_4_0.0021_0.txt",   "ssp1_data7_5_5_-0.0033_0.txt",  "ssp1_data7_5_7_-0.0007_1.txt",
-"ssp1_data7_5_0_-0.0021_0.txt",  "ssp1_data7_5_1_0.0033_1.txt",   "ssp1_data7_5_3_0.0007_1.txt",   "ssp1_data7_5_4_-0.0021_1.txt",  "ssp1_data7_5_5_-0.0033_1.txt",  "ssp1_data7_5_7_0.0007_1.txt",
-"ssp1_data7_5_0_0.0021_0.txt",   "ssp1_data7_5_2_-0.0007_0.txt",  "ssp1_data7_5_3_-0.0021_0.txt",  "ssp1_data7_5_4_0.0021_1.txt",   "ssp1_data7_5_5_0.0033_1.txt",   "ssp1_data7_5_7_-0.0021_0.txt",
-"ssp1_data7_5_0_-0.0021_1.txt",  "ssp1_data7_5_2_0.0007_0.txt",   "ssp1_data7_5_3_0.0021_0.txt",   "ssp1_data7_5_4_-0.0033_0.txt",  "ssp1_data7_5_6_-0.0007_0.txt",  "ssp1_data7_5_7_-0.0021_1.txt",
-"ssp1_data7_5_0_-0.0033_1.txt",  "ssp1_data7_5_2_-0.0007_1.txt",  "ssp1_data7_5_3_-0.0021_1.txt",  "ssp1_data7_5_4_-0.0033_1.txt",  "ssp1_data7_5_6_0.0007_0.txt",   "ssp1_data7_5_7_0.0021_1.txt",
-"ssp1_data7_5_0_0.0033_1.txt",   "ssp1_data7_5_2_0.0007_1.txt",   "ssp1_data7_5_3_0.0021_1.txt",   "ssp1_data7_5_4_0.0033_1.txt",   "ssp1_data7_5_6_-0.0007_1.txt",  "ssp1_data7_5_7_-0.0033_0.txt",
-"ssp1_data7_5_1_-0.0007_0.txt",  "ssp1_data7_5_2_-0.0021_0.txt",  "ssp1_data7_5_3_-0.0033_0.txt",  "ssp1_data7_5_5_-0.0007_0.txt",  "ssp1_data7_5_6_0.0007_1.txt",   "ssp1_data7_5_7_-0.0033_1.txt",
-"ssp1_data7_5_1_0.0007_0.txt",   "ssp1_data7_5_2_0.0021_0.txt",   "ssp1_data7_5_3_-0.0033_1.txt",  "ssp1_data7_5_5_0.0007_0.txt",   "ssp1_data7_5_6_-0.0021_0.txt",  "ssp1_data7_5_7_0.0033_1.txt",
-"ssp1_data7_5_1_-0.0007_1.txt",  "ssp1_data7_5_2_-0.0021_1.txt",  "ssp1_data7_5_3_0.0033_1.txt",   "ssp1_data7_5_5_-0.0007_1.txt",  "ssp1_data7_5_6_0.0021_0.txt",   
-"ssp1_data7_5_1_0.0007_1.txt",   "ssp1_data7_5_2_0.0021_1.txt",   "ssp1_data7_5_4_-0.0007_0.txt",  "ssp1_data7_5_5_0.0007_1.txt",   "ssp1_data7_5_6_-0.0021_1.txt",  
-"ssp1_data7_5_1_-0.0021_0.txt",  "ssp1_data7_5_2_-0.0033_1.txt",  "ssp1_data7_5_4_0.0007_0.txt",   "ssp1_data7_5_5_-0.0021_0.txt",  "ssp1_data7_5_6_0.0021_1.txt",   
-"ssp1_data7_5_1_0.0021_0.txt",   "ssp1_data7_5_2_0.0033_1.txt",   "ssp1_data7_5_4_-0.0007_1.txt",  "ssp1_data7_5_5_0.0021_0.txt",   "ssp1_data7_5_6_-0.0033_0.txt",  
+        k_ = ["ssp1_data7_5_0_-0.0007_0.txt",
+"ssp1_data7_5_0_0.0007_0.txt",
+"ssp1_data7_5_0_-0.0021_0.txt",
+"ssp1_data7_5_0_0.0021_0.txt",
+"ssp1_data7_5_0_0.0021_1.txt",
+"ssp1_data7_5_0_-0.0033_0.txt",
+"ssp1_data7_5_0_0.0033_0.txt",
+"ssp1_data7_5_0_0.0033_1.txt",
+"ssp1_data7_5_1_-0.0007_0.txt",
+"ssp1_data7_5_1_0.0007_0.txt",
+"ssp1_data7_5_1_-0.0021_0.txt",
+"ssp1_data7_5_1_0.0021_0.txt",
+"ssp1_data7_5_1_0.0021_1.txt",
+"ssp1_data7_5_1_-0.0033_0.txt",
+"ssp1_data7_5_1_0.0033_0.txt",
+"ssp1_data7_5_1_0.0033_1.txt",
+"ssp1_data7_5_2_-0.0007_0.txt",
+"ssp1_data7_5_2_0.0007_0.txt",
+"ssp1_data7_5_2_-0.0021_0.txt",
+"ssp1_data7_5_2_0.0021_0.txt",
+"ssp1_data7_5_2_0.0021_1.txt",
+"ssp1_data7_5_2_-0.0033_0.txt",
+"ssp1_data7_5_2_0.0033_0.txt",
+"ssp1_data7_5_2_0.0033_1.txt",
+"ssp1_data7_5_3_-0.0007_0.txt",
+"ssp1_data7_5_3_0.0007_0.txt",
+"ssp1_data7_5_3_-0.0021_0.txt",
+"ssp1_data7_5_3_0.0021_0.txt",
+"ssp1_data7_5_3_0.0021_1.txt",
+"ssp1_data7_5_3_-0.0033_0.txt",
+"ssp1_data7_5_3_0.0033_0.txt",
+"ssp1_data7_5_3_0.0033_1.txt",
+"ssp1_data7_5_4_-0.0007_0.txt",
+"ssp1_data7_5_4_0.0007_0.txt",
+"ssp1_data7_5_4_-0.0021_0.txt",
+"ssp1_data7_5_4_0.0021_0.txt",
+"ssp1_data7_5_4_0.0021_1.txt",
+"ssp1_data7_5_4_-0.0033_0.txt",
+"ssp1_data7_5_4_0.0033_0.txt",
+"ssp1_data7_5_4_0.0033_1.txt",
+"ssp1_data7_5_5_-0.0007_0.txt",
+"ssp1_data7_5_5_0.0007_0.txt",
+"ssp1_data7_5_5_-0.0021_0.txt",
+"ssp1_data7_5_5_0.0021_0.txt",
+"ssp1_data7_5_5_0.0021_1.txt",
+"ssp1_data7_5_5_-0.0033_0.txt",
+"ssp1_data7_5_5_0.0033_0.txt",
+"ssp1_data7_5_5_0.0033_1.txt",
+"ssp1_data7_5_6_-0.0007_0.txt",
+"ssp1_data7_5_6_0.0007_0.txt",
+"ssp1_data7_5_6_-0.0021_0.txt",
+"ssp1_data7_5_6_0.0021_0.txt",
+"ssp1_data7_5_6_0.0021_1.txt",
+"ssp1_data7_5_6_-0.0033_0.txt",
+"ssp1_data7_5_6_0.0033_0.txt",
+"ssp1_data7_5_6_0.0033_1.txt",
+"ssp1_data7_5_7_-0.0007_0.txt",
+"ssp1_data7_5_7_0.0007_0.txt",
+"ssp1_data7_5_7_-0.0021_0.txt",
+"ssp1_data7_5_7_0.0021_0.txt",
+"ssp1_data7_5_7_0.0021_1.txt",
+"ssp1_data7_5_7_-0.0033_0.txt",
+"ssp1_data7_5_7_0.0033_0.txt",
+"ssp1_data7_5_7_0.0033_1.txt",
+"ssp1_data7_5_8_-0.0007_0.txt",
+"ssp1_data7_5_8_0.0007_0.txt",
+"ssp1_data7_5_8_-0.0021_0.txt",
+"ssp1_data7_5_8_0.0021_0.txt",
+"ssp1_data7_5_8_0.0021_1.txt",
+"ssp1_data7_5_8_-0.0033_0.txt",
+"ssp1_data7_5_8_0.0033_0.txt",
+"ssp1_data7_5_8_0.0033_1.txt",
 ]
 
-        filename = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=13/' #filename + filename1 + filename2
+        filename = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=9/' #filename + filename1 + filename2
         filename3 = filename + k_[kkkk]
         with open(filename3,'wb') as f:
             pickle.dump(database1,f)

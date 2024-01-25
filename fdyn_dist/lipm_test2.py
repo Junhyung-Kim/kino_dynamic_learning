@@ -1491,17 +1491,17 @@ def talker():
     weight_quad_camx = 2.9
     weight_quad_camy = 2.9
     weight_quad_zmp = np.array([0.05, 0.05])#([weight_quad_zmpx] + [weight_quad_zmpy])
-    weight_quad_zmp1 = np.array([3.0, 10.0]) ##10, 40
-    weight_quad_zmp2 = np.array([3.0, 10.0]) ##11
-    weight_quad_cam = np.array([0.01, 0.01])#([0.008, 0.008])([weight_quad_camy] + [weight_quad_camx])
-    weight_quad_upper = np.array([30.0, 30.0])
-    weight_quad_pelvis = np.array([100.0, 100.0, 0.005])
+    weight_quad_zmp1 = np.array([5.0, 10.0]) ##5, 10
+    weight_quad_zmp2 = np.array([5.0, 10.0]) ##11
+    weight_quad_cam = np.array([0.006, 0.01])#([0.008, 0.008])([weight_quad_camy] + [weight_quad_camx])
+    weight_quad_upper = np.array([7.0, 7.0])
+    weight_quad_pelvis = np.array([60.0, 60.0, 0.005])
     weight_quad_com = np.array([11.0, 11.0, 2.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
     weight_quad_rf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
     weight_quad_lf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
     lb_ = np.ones([2, N])
     ub_ = np.ones([2, N])
-    weight_quad_cp = np.array([60.0, 60.0])
+    weight_quad_cp = np.array([25.0, 20.0])
     
 
     actuation_vector = [None] * (N)
@@ -1601,7 +1601,7 @@ def talker():
     p2.start()
     p3.start()
 
-    cp_offset = [0.01, 0.01]
+    cp_offset = [-0.01, 0.03]
 
     lipm_w = 3.51462
     cp_forEOS[0] = [x0[41], x0[45]]
@@ -1814,7 +1814,7 @@ def talker():
 
     ddp = crocoddyl.SolverFDDP(problemWithRK4)
     first_time = True
-    ddp.th_stop = 0.00000009
+    ddp.th_stop = 0.00000001
    
     for time_step in range(0, total_time):
         xs_pca = []
@@ -2039,14 +2039,17 @@ def talker():
                
                 duration = (1e3 * (c_end - c_start))
 
-
-                #print('ddp.iter {0},{1},{2},{3}'.format(ddp.iter, duration, css, ddp.cost))
-                #print([runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference, ddp.xs[1][41]+ddp.xs[1][42]/3.51462, ddp.xs[1][45]+ddp.xs[1][46]/3.51462])
+                #if(time_step > 208):
+                #    print('ddp.iter {0},{1},{2},{3},{4}'.format(time_step, ddp.iter, duration, css, ddp.cost))
+                    #print([runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference, ddp.xs[1][41]+ddp.xs[1][42]/3.51462, ddp.xs[1][45]+ddp.xs[1][46]/3.51462])
                 total_time_.append([time_step, ddp.cost, duration, ddp.iter])
-                cp_err.append([runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0], (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48], (ddp.xs[1][45]+ddp.xs[1][46]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0] - (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48] - (ddp.xs[1][45]+ddp.xs[1][46]/3.51462)])
+                cp_err.append([time_step, ddp.xs[1][41], runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0], (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48], (ddp.xs[1][45]+ddp.xs[1][46]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0] - (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48] - (ddp.xs[1][45]+ddp.xs[1][46]/3.51462)])
                 ok_ = True
                 
-                if time_step == total_time - 1:
+                #if time_step == 216 or time_step == 215:
+                #    print(x0)
+                
+                if time_step == total_time - 1:# or time_step == 219:
                     time.sleep(0.002)
                     print(total_time_)
                     #print(cp_err)

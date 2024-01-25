@@ -88,9 +88,9 @@ def talker():
     global xs_pca_test, xs_pca, us_pca
     print("start")
     for step_time in range(0,1):
-        f = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=17/lfoot1_ssp1_1.txt", 'r')
-        f1 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=17/rfoot1_ssp1_1.txt", 'r')
-        f2 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=17/timestep0_zmp2_ssp1_1.txt", 'r')
+        f = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=15/lfoot1_ssp1_1.txt", 'r')
+        f1 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=15/rfoot1_ssp1_1.txt", 'r')
+        f2 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=15/timestep0_zmp2_ssp1_1.txt", 'r')
         f3 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/5_tocabi_data.txt", 'w')
         f4 = open("/home/jhk/walkingdata1/beforedata/ssp1/30cm/6_tocabi_data.txt", 'w')
         f5 = open("/home/jhk/ssd_mount/zmp5.txt", 'r')
@@ -239,34 +239,66 @@ def talker():
         
 
 
-        k_1 = ["ssp1_data7_5_4_-0.0007_0.txt",
+        k_1 = [
+"ssp1_data7_5_3_-0.0007_0.txt",
+"ssp1_data7_5_3_-0.0021_0.txt",
+"ssp1_data7_5_3_0.0021_0.txt",
+"ssp1_data7_5_3_-0.0021_1.txt",
+"ssp1_data7_5_3_0.0021_1.txt",
+"ssp1_data7_5_3_0.0021_2.txt",
+"ssp1_data7_5_3_-0.0033_0.txt",
+"ssp1_data7_5_3_0.0033_0.txt",
+"ssp1_data7_5_3_-0.0033_1.txt",
+"ssp1_data7_5_4_-0.0007_0.txt",
 "ssp1_data7_5_4_0.0007_0.txt",
+"ssp1_data7_5_4_0.0007_1.txt",
 "ssp1_data7_5_4_-0.0021_0.txt",
 "ssp1_data7_5_4_0.0021_0.txt",
+"ssp1_data7_5_4_-0.0021_1.txt",
+"ssp1_data7_5_4_0.0021_1.txt",
+"ssp1_data7_5_4_0.0021_2.txt",
 "ssp1_data7_5_4_-0.0033_0.txt",
 "ssp1_data7_5_4_0.0033_0.txt",
+"ssp1_data7_5_4_-0.0033_1.txt",
+"ssp1_data7_5_4_0.0033_1.txt",
 "ssp1_data7_5_5_-0.0007_0.txt",
 "ssp1_data7_5_5_0.0007_0.txt",
+"ssp1_data7_5_5_0.0007_1.txt",
 "ssp1_data7_5_5_-0.0021_0.txt",
 "ssp1_data7_5_5_0.0021_0.txt",
+"ssp1_data7_5_5_-0.0021_1.txt",
+"ssp1_data7_5_5_0.0021_1.txt",
+"ssp1_data7_5_5_0.0021_2.txt",
 "ssp1_data7_5_5_-0.0033_0.txt",
 "ssp1_data7_5_5_0.0033_0.txt",
+"ssp1_data7_5_5_-0.0033_1.txt",
+"ssp1_data7_5_5_0.0033_1.txt",
 "ssp1_data7_5_6_-0.0007_0.txt",
 "ssp1_data7_5_6_0.0007_0.txt",
+"ssp1_data7_5_6_0.0007_1.txt",
 "ssp1_data7_5_6_-0.0021_0.txt",
 "ssp1_data7_5_6_0.0021_0.txt",
+"ssp1_data7_5_6_-0.0021_1.txt",
+"ssp1_data7_5_6_0.0021_1.txt",
+"ssp1_data7_5_6_0.0021_2.txt",
 "ssp1_data7_5_6_-0.0033_0.txt",
 "ssp1_data7_5_6_0.0033_0.txt",
+"ssp1_data7_5_6_-0.0033_1.txt",
+"ssp1_data7_5_6_0.0033_1.txt",
 "ssp1_data7_5_7_-0.0007_0.txt",
 "ssp1_data7_5_7_0.0007_0.txt",
+"ssp1_data7_5_7_0.0007_1.txt",
 "ssp1_data7_5_7_-0.0021_0.txt",
 "ssp1_data7_5_7_0.0021_0.txt",
+"ssp1_data7_5_7_0.0021_1.txt",
+"ssp1_data7_5_7_0.0021_2.txt",
 "ssp1_data7_5_7_-0.0033_0.txt",
 "ssp1_data7_5_7_0.0033_0.txt",
+"ssp1_data7_5_7_-0.0033_1.txt",
+"ssp1_data7_5_7_0.0033_1.txt",
+        ]
 
-]
-
-        for kkk in range(15, len(k_1), 50): #42
+        for kkk in range(20, len(k_1), 200): #42
             crocs_data = dict()
             crocs_data['left'] = dict()
             crocs_data['Right'] = dict()
@@ -283,7 +315,7 @@ def talker():
                 crocs_data[key]['costs'] = []
                 crocs_data[key]['iters'] = []
             #k = adsfsdf
-            filename3 = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=17/'
+            filename3 = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=15/'
             filename3 = filename3 + k_1[kkk]
             #with open('/home/jhk/ssd_mount/ssp_data7.txt', 'rb') as f:"
             with open(filename3, 'rb') as f:
@@ -730,36 +762,68 @@ def talker():
                         print(ddp.xs[N-1][41:49])
                     iter_ = iter_ + 1
                 
-                k_ = ["filename7_5_4_-0.0007_0.txt",
+                k_ = [
+"filename7_5_3_-0.0007_0.txt",
+"filename7_5_3_-0.0021_0.txt",
+"filename7_5_3_0.0021_0.txt",
+"filename7_5_3_-0.0021_1.txt",
+"filename7_5_3_0.0021_1.txt",
+"filename7_5_3_0.0021_2.txt",
+"filename7_5_3_-0.0033_0.txt",
+"filename7_5_3_0.0033_0.txt",
+"filename7_5_3_-0.0033_1.txt",
+"filename7_5_4_-0.0007_0.txt",
 "filename7_5_4_0.0007_0.txt",
+"filename7_5_4_0.0007_1.txt",
 "filename7_5_4_-0.0021_0.txt",
 "filename7_5_4_0.0021_0.txt",
+"filename7_5_4_-0.0021_1.txt",
+"filename7_5_4_0.0021_1.txt",
+"filename7_5_4_0.0021_2.txt",
 "filename7_5_4_-0.0033_0.txt",
 "filename7_5_4_0.0033_0.txt",
+"filename7_5_4_-0.0033_1.txt",
+"filename7_5_4_0.0033_1.txt",
 "filename7_5_5_-0.0007_0.txt",
 "filename7_5_5_0.0007_0.txt",
+"filename7_5_5_0.0007_1.txt",
 "filename7_5_5_-0.0021_0.txt",
 "filename7_5_5_0.0021_0.txt",
+"filename7_5_5_-0.0021_1.txt",
+"filename7_5_5_0.0021_1.txt",
+"filename7_5_5_0.0021_2.txt",
 "filename7_5_5_-0.0033_0.txt",
 "filename7_5_5_0.0033_0.txt",
+"filename7_5_5_-0.0033_1.txt",
+"filename7_5_5_0.0033_1.txt",
 "filename7_5_6_-0.0007_0.txt",
 "filename7_5_6_0.0007_0.txt",
+"filename7_5_6_0.0007_1.txt",
 "filename7_5_6_-0.0021_0.txt",
 "filename7_5_6_0.0021_0.txt",
+"filename7_5_6_-0.0021_1.txt",
+"filename7_5_6_0.0021_1.txt",
+"filename7_5_6_0.0021_2.txt",
 "filename7_5_6_-0.0033_0.txt",
 "filename7_5_6_0.0033_0.txt",
+"filename7_5_6_-0.0033_1.txt",
+"filename7_5_6_0.0033_1.txt",
 "filename7_5_7_-0.0007_0.txt",
 "filename7_5_7_0.0007_0.txt",
+"filename7_5_7_0.0007_1.txt",
 "filename7_5_7_-0.0021_0.txt",
 "filename7_5_7_0.0021_0.txt",
+"filename7_5_7_0.0021_1.txt",
+"filename7_5_7_0.0021_2.txt",
 "filename7_5_7_-0.0033_0.txt",
 "filename7_5_7_0.0033_0.txt",
-
+"filename7_5_7_-0.0033_1.txt",
+"filename7_5_7_0.0033_1.txt",
 ]
 
 
                 if time1 % 5 == 0:
-                    filename = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=17/'
+                    filename = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=15/'
                     filename = filename + k_[kkk]
                     #filename1 = 'test1'
                     #filename2 = '.pkl'
@@ -775,7 +839,7 @@ def talker():
                 if booltemp == False:
                     e = e+1
         
-            filename = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=17/'
+            filename = '/home/jhk/walkingdata1/beforedata/ssp1/30cm/timestep=15/'
             filename = filename + k_[kkk]
             filename3 = filename #+ filename1 + filename2
             with open(filename3, 'wb') as f:
