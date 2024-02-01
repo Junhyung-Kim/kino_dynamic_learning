@@ -1491,11 +1491,11 @@ def talker():
     weight_quad_camx = 2.9
     weight_quad_camy = 2.9
     weight_quad_zmp = np.array([0.05, 0.05])#([weight_quad_zmpx] + [weight_quad_zmpy])
-    weight_quad_zmp1 = np.array([6.0, 30.0]) ##5, 10
-    weight_quad_zmp2 = np.array([6.0, 30.0]) ##11
+    weight_quad_zmp1 = np.array([6.0, 15.0]) ##5, 10
+    weight_quad_zmp2 = np.array([6.0, 15.0]) ##11
     weight_quad_cam = np.array([0.006, 0.01])#([0.008, 0.008])([weight_quad_camy] + [weight_quad_camx])
-    weight_quad_upper = np.array([5.0, 5.0])
-    weight_quad_pelvis = np.array([5.0, 5.0, 0.005])
+    weight_quad_upper = np.array([8.0, 8.0])
+    weight_quad_pelvis = np.array([30.0, 30.0, 0.005])
     weight_quad_com = np.array([11.0, 11.0, 2.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
     weight_quad_rf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
     weight_quad_lf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
@@ -2046,7 +2046,7 @@ def talker():
                         break
                    
                 c_start = time.time()
-                css = ddp.solve(xs_pca, us_pca, 15, False, 0.0000003)
+                css = ddp.solve(xs_pca, us_pca, 10, False, 0.0000003)
                 c_end = time.time()
                
 
