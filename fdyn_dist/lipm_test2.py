@@ -1502,8 +1502,8 @@ def talker():
     weight_quad_camx = 2.9
     weight_quad_camy = 2.9
     weight_quad_zmp = np.array([0.05, 0.05])#([weight_quad_zmpx] + [weight_quad_zmpy])
-    weight_quad_zmp1 = np.array([50.0, 30.0]) ##5, 10
-    weight_quad_zmp2 = np.array([50.0, 30.0]) ##11
+    weight_quad_zmp1 = np.array([20.0, 20.0]) ##5, 10
+    weight_quad_zmp2 = np.array([20.0, 20.0]) ##11
     weight_quad_cam = np.array([0.006, 0.01])#([0.008, 0.008])([weight_quad_camy] + [weight_quad_camx])
     weight_quad_upper = np.array([1.0, 1.0])
     weight_quad_pelvis = np.array([60.0, 60.0, 0.005])
@@ -1512,7 +1512,7 @@ def talker():
     weight_quad_lf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
     lb_ = np.ones([2, N])
     ub_ = np.ones([2, N])
-    weight_quad_cp = np.array([300.0, 130.0])
+    weight_quad_cp = np.array([500.0, 130.0])
     
 
     actuation_vector = [None] * (N)
@@ -2103,7 +2103,7 @@ def talker():
                 if(ddp.cost < 1):
                     X = ddp.xs[1]
                     desired_value.write(X)
-                    statemachine.write(np.array([1, 0, 0], dtype=np.int8))
+                statemachine.write(np.array([1, 0, 0], dtype=np.int8))
                
                 duration = (1e3 * (c_end - c_start))
 
@@ -2117,11 +2117,12 @@ def talker():
                 #if time_step == 216 or time_step == 215:
                 #    print(x0)
                 
-                if time_step == total_time - 1 or ddp.cost > 1:
+                if time_step == total_time - 1:
                     time.sleep(0.002)
                     print(total_time_)
                     #print(cp_err)
                     np.savetxt('/home/jhk/data/walking/test.txt', cp_err)
+                    np.savetxt('/home/jhk/data/walking/test1.txt', total_time_)
                     statemachine.write(np.array([3, 0, 0], dtype=np.int8))
                     time.sleep(1000)
                
