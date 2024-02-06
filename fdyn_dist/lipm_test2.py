@@ -3,6 +3,7 @@ import pickle
 import roslaunch
 import numpy as np
 import time
+import control
 from copy import copy
 from sklearn.model_selection import train_test_split
 import scipy.stats
@@ -33,6 +34,16 @@ import ctypes
 import pytorch_model_summary
 from multiprocessing import shared_memory
 import sysv_ipc
+
+def calculatePreviewControlParams(A, B, C, Q, R, N):
+    [P, _, _] = control.dare(A, B, C.T*Q*C, R)
+    K = (R + B.T*P*B).I*(B.T*P*A)
+
+    f = np.zeros((1, N))
+    for i in range(N):
+        f[0,i] = (R+B.T*P*B).I*B.T*(((A-B*K).T)**i)*C.T*Q
+
+    return K, f
 
 class CShmReader :
     def __init__(self) :
@@ -1491,17 +1502,17 @@ def talker():
     weight_quad_camx = 2.9
     weight_quad_camy = 2.9
     weight_quad_zmp = np.array([0.05, 0.05])#([weight_quad_zmpx] + [weight_quad_zmpy])
-    weight_quad_zmp1 = np.array([5.0, 10.0]) ##5, 10
-    weight_quad_zmp2 = np.array([5.0, 10.0]) ##11
+    weight_quad_zmp1 = np.array([50.0, 30.0]) ##5, 10
+    weight_quad_zmp2 = np.array([50.0, 30.0]) ##11
     weight_quad_cam = np.array([0.006, 0.01])#([0.008, 0.008])([weight_quad_camy] + [weight_quad_camx])
-    weight_quad_upper = np.array([7.0, 7.0])
+    weight_quad_upper = np.array([1.0, 1.0])
     weight_quad_pelvis = np.array([60.0, 60.0, 0.005])
     weight_quad_com = np.array([11.0, 11.0, 2.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
     weight_quad_rf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
     weight_quad_lf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
     lb_ = np.ones([2, N])
     ub_ = np.ones([2, N])
-    weight_quad_cp = np.array([25.0, 20.0])
+    weight_quad_cp = np.array([300.0, 130.0])
     
 
     actuation_vector = [None] * (N)
@@ -1601,133 +1612,190 @@ def talker():
     p2.start()
     p3.start()
 
-    cp_offset = [-0.01, 0.03]
 
-    lipm_w = 3.51462
-    cp_forEOS[0] = [x0[41], x0[45]]
-    cp_forEOS[1] = [9.479871019999999704e-02 + cp_offset[0], -1.024999999999999939e-01 + cp_offset[1]]
-    cp_forEOS[2] = [1.947000000000000119e-01 + cp_offset[0], 1.024999999999999939e-01 - cp_offset[1]]
-    cp_forEOS[3] = [2.947000000000000119e-01 + cp_offset[0], -1.024999999999999939e-01 + cp_offset[1]]
-    
-    b_offset_init = np.exp(lipm_w * 0.2)
-    b_offset = np.exp(lipm_w * 1.0)
-    #np.exp(lipm_w * i/50) * cp_forEOS[1][0] + (1-np.exp(lipm_w * i/50))*(cp_forEOS[1][0]/(1-b_offset_init)-(b_offset_init * cp_forEOS[0][0])/(1-b_offset_init))
     capturePoint_ref_for = np.zeros([111, (state.nx + 8)])
     capturePoint_ref_ssp1 = np.zeros([111, (state.nx + 8)])
     capturePoint_ref_ssp2 = np.zeros([111, (state.nx + 8)])
     capturePoint_ref_ssp2_1 = np.zeros([111, (state.nx + 8)])
     
-    for i in range(0, 111):
-        if(i <= 10):
-            capturePoint_ref_for[i][0] = np.exp(lipm_w * i/50) * cp_forEOS[0][0] + (1-np.exp(lipm_w * i/50))*(cp_forEOS[1][0]/(1-b_offset_init)-(b_offset_init * cp_forEOS[0][0])/(1-b_offset_init))
-            capturePoint_ref_for[i][state.nx + 7] = np.exp(lipm_w * i/50) * cp_forEOS[0][1] + (1-np.exp(lipm_w * i/50))*(cp_forEOS[1][1]/(1-b_offset_init)-(b_offset_init * cp_forEOS[0][1])/(1-b_offset_init))
-        elif(i<= 60):
-            capturePoint_ref_for[i][0] = np.exp(lipm_w * (i-10)/50) * cp_forEOS[1][0] + (1-np.exp(lipm_w * (i-10)/50))*(cp_forEOS[2][0]/(1-b_offset)-(b_offset * cp_forEOS[1][0])/(1-b_offset))
-            capturePoint_ref_for[i][state.nx + 7] = np.exp(lipm_w * (i-10)/50) * cp_forEOS[1][1] + (1-np.exp(lipm_w * (i-10)/50))*(cp_forEOS[2][1]/(1-b_offset)-(b_offset * cp_forEOS[1][1])/(1-b_offset))
-        else:
-            capturePoint_ref_for[i][0] = np.exp(lipm_w * (i-60)/50) * cp_forEOS[2][0] + (1-np.exp(lipm_w * (i-60)/50))*(cp_forEOS[3][0]/(1-b_offset)-(b_offset * cp_forEOS[2][0])/(1-b_offset))
-            capturePoint_ref_for[i][state.nx + 7] = np.exp(lipm_w * (i-60)/50) * cp_forEOS[2][1] + (1-np.exp(lipm_w * (i-60)/50))*(cp_forEOS[3][1]/(1-b_offset)-(b_offset * cp_forEOS[2][1])/(1-b_offset))
-        
-    cp_ssp2EOS[0] = [0.451300000000000090e-01 + cp_offset[0],-1.024999999999999939e-01+ cp_offset[1]]#[capturePoint_ref_for[50][0]-0.04957, capturePoint_ref_for[50][state.nx + 7]]
-    cp_ssp2EOS[1] = [1.451300000000000090e-01 + cp_offset[0], 1.024999999999999939e-01- cp_offset[1]]
-    cp_ssp2EOS[2] = [2.447987101999999915e-01 + cp_offset[0], -1.024999999999999939e-01+ cp_offset[1]]
-    cp_ssp2EOS[3] = [3.451300000000000479e-01 + cp_offset[0], 1.024999999999999939e-01- cp_offset[1]]
-
-    b_offset_init = np.exp(lipm_w * 1.0)
-
-    #1.02 -> 
-    for i in range(0, 111):
-        if(i <= 10):
-            capturePoint_ref_ssp2[i][0] = np.exp(lipm_w * (i+40)/50) * cp_ssp2EOS[0][0] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp2EOS[1][0]/(1-b_offset_init)-(b_offset_init * cp_ssp2EOS[0][0])/(1-b_offset_init))
-            capturePoint_ref_ssp2[i][state.nx + 7] = np.exp(lipm_w * (i+40)/50) * cp_ssp2EOS[0][1] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp2EOS[1][1]/(1-b_offset_init)-(b_offset_init * cp_ssp2EOS[0][1])/(1-b_offset_init))
-        elif(i <= 60):
-            capturePoint_ref_ssp2[i][0] = np.exp(lipm_w * (i-10)/50) * cp_ssp2EOS[1][0] + (1-np.exp(lipm_w * (i-10)/50))*(cp_ssp2EOS[2][0]/(1-b_offset)-(b_offset * cp_ssp2EOS[1][0])/(1-b_offset))
-            capturePoint_ref_ssp2[i][state.nx + 7] = np.exp(lipm_w * (i-10)/50) * cp_ssp2EOS[1][1] + (1-np.exp(lipm_w * (i-10)/50))*(cp_ssp2EOS[2][1]/(1-b_offset)-(b_offset * cp_ssp2EOS[1][1])/(1-b_offset))
-        else:
-            capturePoint_ref_ssp2[i][0] = np.exp(lipm_w * (i-60)/50) * cp_ssp2EOS[2][0] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp2EOS[3][0]/(1-b_offset)-(b_offset * cp_ssp2EOS[2][0])/(1-b_offset))
-            capturePoint_ref_ssp2[i][state.nx + 7] = np.exp(lipm_w * (i-60)/50) * cp_ssp2EOS[2][1] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp2EOS[3][1]/(1-b_offset)-(b_offset * cp_ssp2EOS[2][1])/(1-b_offset))
-          
-    cp_ssp1EOS[0] = [0.451300000000000090e-01 + cp_offset[0], 1.024999999999999939e-01- cp_offset[1]]#[capturePoint_ref_ssp2[50][0]-0.0996687102, capturePoint_ref_ssp2[50][state.nx + 7]]
-    cp_ssp1EOS[1] = [1.451300000000000090e-01 + cp_offset[0], -1.024999999999999939e-01+ cp_offset[1]]
-    cp_ssp1EOS[2] = [2.447987101999999915e-01 + cp_offset[0], 1.024999999999999939e-01- cp_offset[1]]
-    cp_ssp1EOS[3] = [3.451300000000000479e-01 + cp_offset[0], -1.024999999999999939e-01+ cp_offset[1]]
-
-    b_offset_init = np.exp(lipm_w * 1.0)
-
-    for i in range(0, 111):
-        if(i <= 10):
-            capturePoint_ref_ssp1[i][0] = np.exp(lipm_w * (i+40)/50) * cp_ssp1EOS[0][0] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp1EOS[1][0]/(1-b_offset_init)-(b_offset_init * cp_ssp1EOS[0][0])/(1-b_offset_init))
-            capturePoint_ref_ssp1[i][state.nx + 7] = np.exp(lipm_w * (i+40)/50) * cp_ssp1EOS[0][1] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp1EOS[1][1]/(1-b_offset_init)-(b_offset_init * cp_ssp1EOS[0][1])/(1-b_offset_init))
-        elif(i <= 60):
-            capturePoint_ref_ssp1[i][0] = np.exp(lipm_w * (i-10)/50) * cp_ssp1EOS[1][0] + (1-np.exp(lipm_w * (i-10)/50))*(cp_ssp1EOS[2][0]/(1-b_offset)-(b_offset * cp_ssp1EOS[1][0])/(1-b_offset))
-            capturePoint_ref_ssp1[i][state.nx + 7] = np.exp(lipm_w * (i-10)/50) * cp_ssp1EOS[1][1] + (1-np.exp(lipm_w * (i-10)/50))*(cp_ssp1EOS[2][1]/(1-b_offset)-(b_offset * cp_ssp1EOS[1][1])/(1-b_offset))
-        else:
-            capturePoint_ref_ssp1[i][0] = np.exp(lipm_w * (i-60)/50) * cp_ssp1EOS[2][0] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp1EOS[3][0]/(1-b_offset)-(b_offset * cp_ssp1EOS[2][0])/(1-b_offset))
-            capturePoint_ref_ssp1[i][state.nx + 7] = np.exp(lipm_w * (i-60)/50) * cp_ssp1EOS[2][1] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp1EOS[3][1]/(1-b_offset)-(b_offset * cp_ssp1EOS[2][1])/(1-b_offset))
+    z_c = data.com[0][2]
+    g = 9.81
+    dt = 0.02
+    t_step = 1.0 # timing for one step
+    t_preview = 1.2 # timing for preview
+    N_preview = int(t_preview/dt) # preview length
     
-    cp_ssp2EOS[0] = [0.451300000000000090e-01 + cp_offset[0], -1.024999999999999939e-01+ cp_offset[1]]#[capturePoint_ref_ssp1[50][0]-0.0996687102, capturePoint_ref_ssp1[50][state.nx + 7]]
-    cp_ssp2EOS[1] = [1.451300000000000090e-01 + cp_offset[0], 1.024999999999999939e-01- cp_offset[1]]
-    cp_ssp2EOS[2] = [2.447987101999999915e-01 + cp_offset[0], -1.024999999999999939e-01+ cp_offset[1]]
-    cp_ssp2EOS[3] = [3.451300000000000479e-01 + cp_offset[0], 1.024999999999999939e-01- cp_offset[1]]
+    i = 0
+    time_step = 0
+    ZMP_x_ref = []
+    ZMP_y_ref = []
 
-    b_offset_init = np.exp(lipm_w * 1.0)
-    for i in range(0, 111):
-        if(i <= 10):
-            capturePoint_ref_ssp2_1[i][0] = np.exp(lipm_w * (i+40)/50) * cp_ssp2EOS[0][0] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp2EOS[1][0]/(1-b_offset_init)-(b_offset_init * cp_ssp2EOS[0][0])/(1-b_offset_init))
-            capturePoint_ref_ssp2_1[i][state.nx + 7] = np.exp(lipm_w * (i+40)/50) * cp_ssp2EOS[0][1] + (1-np.exp(lipm_w * (i+40)/50))*(cp_ssp2EOS[1][1]/(1-b_offset_init)-(b_offset_init * cp_ssp2EOS[0][1])/(1-b_offset_init))
-        elif(i <= 60):
-            capturePoint_ref_ssp2_1[i][0] = np.exp(lipm_w * (i-10)/50) * cp_ssp2EOS[1][0] + (1-np.exp(lipm_w * (i-10)/50))*(cp_ssp2EOS[2][0]/(1-b_offset)-(b_offset * cp_ssp2EOS[1][0])/(1-b_offset))
-            capturePoint_ref_ssp2_1[i][state.nx + 7] = np.exp(lipm_w * (i-10)/50) * cp_ssp2EOS[1][1] + (1-np.exp(lipm_w * (i-10)/50))*(cp_ssp2EOS[2][1]/(1-b_offset)-(b_offset * cp_ssp2EOS[1][1])/(1-b_offset))
-        else:
-            capturePoint_ref_ssp2_1[i][0] = np.exp(lipm_w * (i-60)/50) * cp_ssp2EOS[2][0] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp2EOS[3][0]/(1-b_offset)-(b_offset * cp_ssp2EOS[2][0])/(1-b_offset))
-            capturePoint_ref_ssp2_1[i][state.nx + 7] = np.exp(lipm_w * (i-60)/50) * cp_ssp2EOS[2][1] + (1-np.exp(lipm_w * (i-60)/50))*(cp_ssp2EOS[3][1]/(1-b_offset)-(b_offset * cp_ssp2EOS[2][1])/(1-b_offset))
-    '''
-    for i in range(0, 111):
-        print([i, capturePoint_ref_for[i][0],capturePoint_ref_for[i][48]])
-        if(i == 0):
-            com_ref = [x0[41], x0[45]]
-        elif(i <= 50):
-            com_ref = [lipm_w/50 * capturePoint_ref_for[i][0] + (1-lipm_w/50)*com_ref[0], lipm_w/50 * capturePoint_ref_for[i][1] + (1-lipm_w/50)*com_ref[1]]
-        print(com_ref)
-    
-    
-    print(capturePoint_ref_for[50][0]-0.04957)
-    print(capturePoint_ref_for[50][state.nx + 7])
-    print("cc")
-    for i in range(0, 111):
-        print([i, capturePoint_ref_ssp2[i][0], capturePoint_ref_ssp2[i][48]])
-        if(i == 0):
-            com_ref = [com_ref[0]-0.04957, com_ref[1]]
-        elif(i <= 50):
-            com_ref = [lipm_w/50 * capturePoint_ref_ssp2[i][0] + (1-lipm_w/50)*com_ref[0], lipm_w/50 * capturePoint_ref_ssp2[i][1] + (1-lipm_w/50)*com_ref[1]]
-        print(com_ref)
+    for t in np.arange(0, len(array_boundx)):
+        ZMP_x_ref.append((array_boundx[t + time_step][0] + array_boundx[t + time_step][1])/2)
+        ZMP_y_ref.append((array_boundy[t + time_step][0] + array_boundy[t + time_step][1])/2)
         
+    A = np.mat(([1, dt, dt**2/2],
+            [0, 1, dt],
+            [0, 0, 1]))
+    B = np.mat((dt**3/6, dt**2/2, dt)).T
+    C = np.mat((1, 0, -z_c/g))
+    Q = 1
+    R = 1e-6
 
-    print("ee")
-    for i in range(0, 111):
-        print([i,capturePoint_ref_ssp1[i][0], capturePoint_ref_ssp1[i][48]])
+    # Calculate Preview control parameters
+    K, f = calculatePreviewControlParams(A, B, C, Q, R, N_preview)
+
+    N_simulation = int(2.2/dt)
+    ux_1 = np.asmatrix(np.zeros((N_simulation, 1)))
+    uy_1 = np.asmatrix(np.zeros((N_simulation, 1)))
+    COM_x_1 = np.asmatrix(np.zeros((3, N_simulation+1)))
+    COM_y_1 = np.asmatrix(np.zeros((3, N_simulation+1)))
+    COM_x_2 = np.asmatrix(np.zeros((3, N_simulation+1)))
+    COM_y_2 = np.asmatrix(np.zeros((3, N_simulation+1)))
+
+    for k in range(0, N_simulation+1):
+        COM_x_1[0, k] = data.com[0][0]
+        COM_y_1[0, k] = data.com[0][1]
         
-        if(i == 0):
-            com_ref = [com_ref[0]-0.0996687102, com_ref[1]]
-        elif(i <= 50):
-            com_ref = [lipm_w/50 * capturePoint_ref_ssp1[i][0] + (1-lipm_w/50)*com_ref[0], lipm_w/50 * capturePoint_ref_ssp1[i][1] + (1-lipm_w/50)*com_ref[1]]
-        print(com_ref)
-        
+    # record data for plot
+    COM_x_record_1 = []
+    COM_y_record_1 = []
+    ZMP_x_record_1 = []
+    ZMP_y_record_1 = []
     
-    print("dd")
-    print(capturePoint_ref_ssp2[50][0]-0.0996687102)
-    print(capturePoint_ref_ssp2[50][state.nx + 7])
-    for i in range(0, 111):
-        print([i, capturePoint_ref_ssp2_1[i][0], capturePoint_ref_ssp2_1[i][48]])
+    for k in range(N_simulation):
+        ZMP_x_preview = np.asmatrix(ZMP_x_ref[k:k+N_preview]).T
+        ZMP_y_preview = np.asmatrix(ZMP_y_ref[k:k+N_preview]).T
+
+        ZMP_x = C*COM_x_1[:,k]
+        ZMP_y = C*COM_y_1[:,k]
         
-        if(i == 0):
-            com_ref = [com_ref[0]-0.0996687102, com_ref[1]]
-        elif(i <= 50):
-            com_ref = [lipm_w/50 * capturePoint_ref_ssp2_1[i][0] + (1-lipm_w/50)*com_ref[0], lipm_w/50 * capturePoint_ref_ssp2_1[i][1] + (1-lipm_w/50)*com_ref[1]]
-        print(com_ref)
+        ux_1[k] = -K*COM_x_1[:, k] + f*ZMP_x_preview
+        uy_1[k] = -K*COM_y_1[:, k] + f*ZMP_y_preview
+
+        COM_x_1[:,k+1] = A*COM_x_1[:, k] + B*ux_1[k]
+        COM_y_1[:,k+1] = A*COM_y_1[:, k] + B*uy_1[k]
+        
+        capturePoint_ref_for[k][0] = COM_x_1[0,k] + COM_x_1[1,k]/np.sqrt(g/z_c)
+        capturePoint_ref_for[k][state.nx + 7] = COM_y_1[0,k] + COM_y_1[1,k]/np.sqrt(g/z_c)
+        
+        if k == 50:
+            COM_x_2  = copy(COM_x_1) 
+            COM_y_2  = copy(COM_y_1)
+            
+        if k <= 50:  
+            COM_x_record_1.append([capturePoint_ref_for[k][0], COM_y_1[0,k],COM_x_1[1,k], COM_y_1[1,k], COM_x_1[2,k], COM_y_1[2,k],ZMP_x[0,0], ZMP_y[0,0]])
     
-    k = sdafsdfs
-    '''
+    COM_x_1 = np.asmatrix(np.zeros((3, N_simulation+1)))
+    COM_y_1 = np.asmatrix(np.zeros((3, N_simulation+1)))
+
+    COM_x_1[:,0] = COM_x_2[:,50]
+    COM_y_1[:,0] = COM_y_2[:,50]
+    COM_x_1[0,0] = COM_x_1[0,0] - 0.04957
+    
+    ZMP_x_ref = []
+    ZMP_y_ref = []
+
+    for t in np.arange(0, len(array_boundx)):
+        ZMP_x_ref.append((array_boundxssp2[t + time_step][0] + array_boundxssp2[t + time_step][1])/2)
+        ZMP_y_ref.append((array_boundyssp2[t + time_step][0] + array_boundyssp2[t + time_step][1])/2)
+
+    for k in range(N_simulation):
+        ZMP_x_preview = np.asmatrix(ZMP_x_ref[k:k+N_preview]).T
+        ZMP_y_preview = np.asmatrix(ZMP_y_ref[k:k+N_preview]).T
+
+        ZMP_x = C*COM_x_1[:,k]
+        ZMP_y = C*COM_y_1[:,k]
+        
+        ux_1[k] = -K*COM_x_1[:, k] + f*ZMP_x_preview
+        uy_1[k] = -K*COM_y_1[:, k] + f*ZMP_y_preview
+
+        COM_x_1[:,k+1] = A*COM_x_1[:, k] + B*ux_1[k]
+        COM_y_1[:,k+1] = A*COM_y_1[:, k] + B*uy_1[k]
+
+        capturePoint_ref_ssp2[k][0] = COM_x_1[0,k] + COM_x_1[1,k]/np.sqrt(g/z_c)
+        capturePoint_ref_ssp2[k][state.nx + 7] = COM_y_1[0,k] + COM_y_1[1,k]/np.sqrt(g/z_c)
+
+        if k == 50:
+            COM_x_2  = COM_x_1 
+            COM_y_2  = COM_y_1
+        if k <= 50:  
+            COM_x_record_1.append([capturePoint_ref_ssp2[k][0] + 0.04957, COM_y_1[0,k],COM_x_1[1,k], COM_y_1[1,k], COM_x_1[2,k], COM_y_1[2,k],ZMP_x[0,0] + 0.04957, ZMP_y[0,0]])
+    
+    COM_x_1 = np.asmatrix(np.zeros((3, N_simulation+1)))
+    COM_y_1 = np.asmatrix(np.zeros((3, N_simulation+1)))
+
+    COM_x_1[:,0] = COM_x_2[:,50]
+    COM_y_1[:,0] = COM_y_2[:,50]
+
+    COM_x_1[0,0] = COM_x_1[0,0] - 0.1
+
+    ZMP_x_ref = []
+    ZMP_y_ref = []
+
+    for t in np.arange(0, len(array_boundx)):
+        ZMP_x_ref.append((array_boundxssp1[t + time_step][0] + array_boundxssp1[t + time_step][1])/2)
+        ZMP_y_ref.append((array_boundyssp1[t + time_step][0] + array_boundyssp1[t + time_step][1])/2)
+
+    for k in range(N_simulation):
+        ZMP_x_preview = np.asmatrix(ZMP_x_ref[k:k+N_preview]).T
+        ZMP_y_preview = np.asmatrix(ZMP_y_ref[k:k+N_preview]).T
+
+        ZMP_x = C*COM_x_1[:,k]
+        ZMP_y = C*COM_y_1[:,k]
+        
+        ux_1[k] = -K*COM_x_1[:, k] + f*ZMP_x_preview
+        uy_1[k] = -K*COM_y_1[:, k] + f*ZMP_y_preview
+
+        COM_x_1[:,k+1] = A*COM_x_1[:, k] + B*ux_1[k]
+        COM_y_1[:,k+1] = A*COM_y_1[:, k] + B*uy_1[k]
+
+        capturePoint_ref_ssp1[k][0] = COM_x_1[0,k] + COM_x_1[1,k]/np.sqrt(g/z_c)
+        capturePoint_ref_ssp1[k][state.nx + 7] = COM_y_1[0,k] + COM_y_1[1,k]/np.sqrt(g/z_c)
+
+        if k == 50:
+            COM_x_2  = COM_x_1 
+            COM_y_2  = COM_y_1
+        if k <= 50:  
+            COM_x_record_1.append([capturePoint_ref_ssp1[k][0] + 0.1 + 0.04957, COM_y_1[0,k],COM_x_1[1,k], COM_y_1[1,k], COM_x_1[2,k], COM_y_1[2,k],ZMP_x[0,0] + 0.1 + 0.04957, ZMP_y[0,0]])
+
+    COM_x_1 = np.asmatrix(np.zeros((3, N_simulation+1)))
+    COM_y_1 = np.asmatrix(np.zeros((3, N_simulation+1)))
+
+    COM_x_1[:,0] = COM_x_2[:,50]
+    COM_y_1[:,0] = COM_y_2[:,50]
+
+    COM_x_1[0,0] = COM_x_1[0,0] - 0.1
+
+    ZMP_x_ref = []
+    ZMP_y_ref = []
+
+    for t in np.arange(0, len(array_boundx)):
+        ZMP_x_ref.append((array_boundxssp2[t + time_step][0] + array_boundxssp2[t + time_step][1])/2)
+        ZMP_y_ref.append((array_boundyssp2[t + time_step][0] + array_boundyssp2[t + time_step][1])/2)
+
+    for k in range(N_simulation):
+        ZMP_x_preview = np.asmatrix(ZMP_x_ref[k:k+N_preview]).T
+        ZMP_y_preview = np.asmatrix(ZMP_y_ref[k:k+N_preview]).T
+
+        ZMP_x = C*COM_x_1[:,k]
+        ZMP_y = C*COM_y_1[:,k]
+        
+        ux_1[k] = -K*COM_x_1[:, k] + f*ZMP_x_preview
+        uy_1[k] = -K*COM_y_1[:, k] + f*ZMP_y_preview
+
+        COM_x_1[:,k+1] = A*COM_x_1[:, k] + B*ux_1[k]
+        COM_y_1[:,k+1] = A*COM_y_1[:, k] + B*uy_1[k]
+
+        capturePoint_ref_ssp2_1[k][0] = COM_x_1[0,k] + COM_x_1[1,k]/np.sqrt(g/z_c)
+        capturePoint_ref_ssp2_1[k][state.nx + 7] = COM_y_1[0,k] + COM_y_1[1,k]/np.sqrt(g/z_c)
+
+        if k == 50:
+            COM_x_2  = COM_x_1 
+            COM_y_2  = COM_y_1
+        if k <= 50:  
+            COM_x_record_1.append([capturePoint_ref_ssp2_1[k][0] + 0.2 + 0.04957, COM_y_1[0,k],COM_x_1[1,k], COM_y_1[1,k], COM_x_1[2,k], COM_y_1[2,k],ZMP_x[0,0] + 0.2 + 0.04957, ZMP_y[0,0]])
+
     for i in range(0,N-1):
         traj_[43] = (array_boundx[i][0] + array_boundx[i][1])/2 #zmp_refx_[i][0]
         traj_[47] = (array_boundy[i][0] + array_boundy[i][1])/2#zmp_refy_[i][0]
@@ -2032,29 +2100,29 @@ def talker():
                 css = ddp.solve(xs_pca, us_pca, 10, False, 0.0000003)
                 c_end = time.time()
                
-
-                X = ddp.xs[1]
-                desired_value.write(X)
-                statemachine.write(np.array([1, 0, 0], dtype=np.int8))
+                if(ddp.cost < 1):
+                    X = ddp.xs[1]
+                    desired_value.write(X)
+                    statemachine.write(np.array([1, 0, 0], dtype=np.int8))
                
                 duration = (1e3 * (c_end - c_start))
 
                 #if(time_step > 208):
-                #    print('ddp.iter {0},{1},{2},{3},{4}'.format(time_step, ddp.iter, duration, css, ddp.cost))
+                print('ddp.iter {0},{1},{2},{3},{4}'.format(time_step, ddp.iter, duration, css, ddp.cost))
                     #print([runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference, ddp.xs[1][41]+ddp.xs[1][42]/3.51462, ddp.xs[1][45]+ddp.xs[1][46]/3.51462])
                 total_time_.append([time_step, ddp.cost, duration, ddp.iter])
-                cp_err.append([time_step, ddp.xs[1][41], runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0], (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48], (ddp.xs[1][45]+ddp.xs[1][46]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0] - (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48] - (ddp.xs[1][45]+ddp.xs[1][46]/3.51462)])
+                cp_err.append([time_step,runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0], (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48], (ddp.xs[1][45]+ddp.xs[1][46]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0] - (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48] - (ddp.xs[1][45]+ddp.xs[1][46]/3.51462)])
                 ok_ = True
                 
                 #if time_step == 216 or time_step == 215:
                 #    print(x0)
                 
-                if time_step == total_time - 1:# or time_step == 219:
+                if time_step == total_time - 1 or ddp.cost > 1:
                     time.sleep(0.002)
                     print(total_time_)
                     #print(cp_err)
                     np.savetxt('/home/jhk/data/walking/test.txt', cp_err)
-                    statemachine.write(np.array([2, 0, 0], dtype=np.int8))
+                    statemachine.write(np.array([3, 0, 0], dtype=np.int8))
                     time.sleep(1000)
                
                 first_time = False
