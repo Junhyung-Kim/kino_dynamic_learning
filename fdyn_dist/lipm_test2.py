@@ -1397,7 +1397,7 @@ def talker():
     T = 1
     MAXITER = 300
     dt_ = 1.2 / float(N)
-    total_time = 360#148
+    total_time = 560#148
 
     crocs_data = dict()
     crocs_data['left'] = dict()
@@ -1498,23 +1498,38 @@ def talker():
    
     MAXITER = 300
     dt_ = 1.0 / float(N)
-   
+    
+    weight_quad_camx = 2.9
+    weight_quad_camy = 2.9
+    weight_quad_zmp = np.array([0.01, 0.01])#([weight_quad_zmpx] + [weight_quad_zmpy])
+    weight_quad_zmp1 = np.array([15.0, 10.0]) ##5, 10
+    weight_quad_zmp2 = np.array([9.0, 10.0]) ##11
+    weight_quad_cam = np.array([0.05, 0.03])#([0.008, 0.008])([weight_quad_camy] + [weight_quad_camx])
+    weight_quad_upper = np.array([25.0, 25.0])
+    weight_quad_pelvis = np.array([90.0, 90.0, 0.005])
+    weight_quad_com = np.array([13.0, 13.0, 5.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
+    weight_quad_rf = np.array([13.0, 3.0, 5.0, 0.2, 0.2, 0.2])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
+    weight_quad_lf = np.array([13.0, 3.0, 5.0, 0.2, 0.2, 0.2])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
+    lb_ = np.ones([2, N])
+    ub_ = np.ones([2, N])
+    weight_quad_cp = np.array([180.0, 150.0])
+    
+    '''
     weight_quad_camx = 2.9
     weight_quad_camy = 2.9
     weight_quad_zmp = np.array([0.05, 0.05])#([weight_quad_zmpx] + [weight_quad_zmpy])
-    weight_quad_zmp1 = np.array([20.0, 20.0]) ##5, 10
-    weight_quad_zmp2 = np.array([20.0, 20.0]) ##11
-    weight_quad_cam = np.array([0.006, 0.01])#([0.008, 0.008])([weight_quad_camy] + [weight_quad_camx])
-    weight_quad_upper = np.array([1.0, 1.0])
-    weight_quad_pelvis = np.array([60.0, 60.0, 0.005])
-    weight_quad_com = np.array([11.0, 11.0, 2.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
-    weight_quad_rf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
-    weight_quad_lf = np.array([10.0, 3.0, 5.0, 0.5, 0.5, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
+    weight_quad_zmp1 = np.array([20.0, 10.0]) ##5, 10
+    weight_quad_zmp2 = np.array([20.0, 10.0]) ##11
+    weight_quad_cam = np.array([0.1, 0.01])#([0.008, 0.008])([weight_quad_camy] + [weight_quad_camx])
+    weight_quad_upper = np.array([10.0, 10.0])
+    weight_quad_pelvis = np.array([90.0, 90.0, 0.005])
+    weight_quad_com = np.array([18.0, 11.0, 50.0])#([weight_quad_comx] + [weight_quad_comy] + [weight_quad_comz])
+    weight_quad_rf = np.array([18.0, 3.0, 30.0, 1.0, 1.0, 0.5])#np.array([weight_quad_rfx] + [weight_quad_rfy] + [weight_quad_rfz] + [weight_quad_rfroll] + [weight_quad_rfpitch] + [weight_quad_rfyaw])
+    weight_quad_lf = np.array([18.0, 3.0, 30.0, 1.0, 1.0, 0.5])#np.array([weight_quad_lfx] + [weight_quad_lfy] + [weight_quad_lfz] + [weight_quad_lfroll] + [weight_quad_lfpitch] + [weight_quad_lfyaw])
     lb_ = np.ones([2, N])
     ub_ = np.ones([2, N])
-    weight_quad_cp = np.array([500.0, 130.0])
-    
-
+    weight_quad_cp = np.array([80.0, 150.0])
+    '''
     actuation_vector = [None] * (N)
     state_vector = [None] * (N)
     state_bounds = [None] * (N)
@@ -1733,8 +1748,10 @@ def talker():
     ZMP_x_ref = []
     ZMP_y_ref = []
 
+    cp_offset = [0.02, 0]
+
     for t in np.arange(0, len(array_boundx)):
-        ZMP_x_ref.append((array_boundxssp1[t + time_step][0] + array_boundxssp1[t + time_step][1])/2)
+        ZMP_x_ref.append((array_boundxssp1[t + time_step][0] + array_boundxssp1[t + time_step][1])/2 + cp_offset[0])
         ZMP_y_ref.append((array_boundyssp1[t + time_step][0] + array_boundyssp1[t + time_step][1])/2)
 
     for k in range(N_simulation):
@@ -1878,11 +1895,12 @@ def talker():
     terminalDAM = crocoddyl.DifferentialActionModelKinoDynamics(state_vector[N-1], actuation_vector[N-1], terminalCostModel)
     terminalModel = crocoddyl.IntegratedActionModelEuler(terminalDAM, dt_)
     problemWithRK4 = crocoddyl.ShootingProblem(x0, runningModelWithRK4_vector, terminalModel)
-    problemWithRK4.nthreads = 8
+    problemWithRK4.nthreads = 12
 
     ddp = crocoddyl.SolverFDDP(problemWithRK4)
     first_time = True
-    ddp.th_stop = 0.00000001
+    ddp.th_stop = 0.000000005
+    #ddp.th_stop = 0.00000001
    
     for time_step in range(0, total_time):
         xs_pca = []
@@ -2035,7 +2053,7 @@ def talker():
             if mpc_signaldata[0] == 1:
                 statemachine.write(np.array([2, 0, 0], dtype=np.int8))
                 x_initv  = x_init.read()
-                X = np.ndarray(shape=(49,), dtype=np.float64, buffer=x_initv)
+                X = np.ndarray(shape=(50,), dtype=np.float64, buffer=x_initv)
                 
                 if time_step == 0:
                     X = np.array([ 0.00000000e+00,  0.00000000e+00,  8.24730000e-01,  0.00000000e+00,
@@ -2078,31 +2096,52 @@ def talker():
 
                     x0[44] = data.hg.angular[1]
                     x0[48] = data.hg.angular[0]
+                    X = np.array([ 0.00000000e+00,  0.00000000e+00,  8.24730000e-01,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  1.00000000e+00,  0.00000000e+00,
+    0.00000000e+00, -5.50000000e-01,  1.26000000e+00, -7.10000000e-01,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00, -5.50000000e-01,
+    1.26000000e+00, -7.10000000e-01,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+    0.00000000e+00,  8.61938268e-02,  0.00000000e+00,  8.61938268e-02,
+    0.00000000e+00,  5.18219890e-06,  0.00000000e+00,  5.18219890e-06,
+    0.00000000e+00, data.com[0][2]])
+                    for i in range(1, N-1):
+                       runningCostModel_vector[i].costs["comReg"].cost.residual.reference = np.array([0, 0, X[49]])
+                                
+                    terminalCostModel.costs["comReg"].cost.residual.reference = np.array([0, 0, X[49]])
 
                 else:
-                    x0 = copy(X[:])
+                    x0 = copy(X[:49])
                     queue[:41] = x0[:41]
                     queue[41] = x0[43]
                     queue[42] = x0[47]
                
                 thread_manager[:] = [1, 1, 1]    
                 problemWithRK4.x0 = x0
-               
+                
+                #
                 while True:
                     if (thread_manager[0] == 0 and thread_manager[1] == 0 and thread_manager[2] == 0):
                         for i in range(0, N):
-                            xs_pca.append(np.concatenate([q_traj[i,:], v_traj[i,:], x_traj[i,:]]))
+                            xs_pca.append(np.concatenate([q_traj[i,:3], [0, 0, 0, 1], q_traj[i,7:19], [0.0, 0.0], v_traj[i,:18], [0.0, 0.0], x_traj[i,:]]))
                             if i != N-1:
-                                us_pca.append(np.concatenate([a_traj[i,:], u_traj[i,:]]))
+                                us_pca.append(np.concatenate([a_traj[i,:18], [0.0, 0.0], u_traj[i,:]]))
                         break
-                   
+                #print(xs_pca)
                 c_start = time.time()
                 css = ddp.solve(xs_pca, us_pca, 10, False, 0.0000003)
+                #css = ddp.solve(xs_pca, us_pca, 10, False, 0.0000003
                 c_end = time.time()
                
                 if(ddp.cost < 1):
                     X = ddp.xs[1]
                     desired_value.write(X)
+                    cp_err.append([time_step,runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0], (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48], (ddp.xs[1][45]+ddp.xs[1][46]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0] - (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48] - (ddp.xs[1][45]+ddp.xs[1][46]/3.51462)])
+                
                 statemachine.write(np.array([1, 0, 0], dtype=np.int8))
                
                 duration = (1e3 * (c_end - c_start))
@@ -2111,11 +2150,8 @@ def talker():
                 print('ddp.iter {0},{1},{2},{3},{4}'.format(time_step, ddp.iter, duration, css, ddp.cost))
                     #print([runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference, ddp.xs[1][41]+ddp.xs[1][42]/3.51462, ddp.xs[1][45]+ddp.xs[1][46]/3.51462])
                 total_time_.append([time_step, ddp.cost, duration, ddp.iter])
-                cp_err.append([time_step,runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0], (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48], (ddp.xs[1][45]+ddp.xs[1][46]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[0] - (ddp.xs[1][41]+ddp.xs[1][42]/3.51462), runningCostModel_vector[1].costs["stateReg3"].cost.residual.reference[48] - (ddp.xs[1][45]+ddp.xs[1][46]/3.51462)])
                 ok_ = True
                 
-                #if time_step == 216 or time_step == 215:
-                #    print(x0)
                 
                 if time_step == total_time - 1:
                     time.sleep(0.002)
